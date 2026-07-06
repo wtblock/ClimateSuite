@@ -1,0 +1,14 @@
+/////////////////////////////////////////////////////////////////////////////
+// Copyright © 2022 by W. T. Block, all rights reserved
+/////////////////////////////////////////////////////////////////////////////
+
+#pragma once
+
+#include "resource.h"
+#include "ClimateStations.h"
+
+// collection of climate stations
+CClimateStations m_Stations;
+
+// processed count
+int m_nCount;
