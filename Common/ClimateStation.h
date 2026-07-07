@@ -495,6 +495,8 @@ protected:
 // public methods
 public:
 
+	void WriteToDatabase(CClimateDatabase& db);
+
 // protected overrides
 protected:
 

@@ -4,6 +4,7 @@
 
 #pragma once
 #include "CHelper.h"
+#include "ClimateDatabase.h"
 
 /////////////////////////////////////////////////////////////////////////////
 // a single month's temperature data that has been parsed from a line of text
@@ -392,6 +393,15 @@ public:
 			MeasurementType = eType;
 		}
 	}
+
+	void WriteToDatabase
+	(
+		CClimateDatabase& db,
+		LPCTSTR stationID,
+		int year,
+		int month
+	);
+
 
 	// destructor
 	~CClimateTemperature()

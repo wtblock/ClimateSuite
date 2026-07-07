@@ -41,6 +41,15 @@ public:
 	__declspec( property( get = GetStationPath, put = SetStationPath ) )
 		CString StationPath;
 
+	// return a reference to the stations collection
+	CKeyedCollection<CString, CClimateStation>& GetClimateStations()
+	{
+		return m_Stations;
+	}
+	// return a reference to the stations collection
+	__declspec( property( get = GetClimateStations) )
+		CKeyedCollection<CString, CClimateStation> ClimateStations;
+
 	// return the station for the given key
 	shared_ptr<CClimateStation> GetClimateStation(CString csKey)
 	{

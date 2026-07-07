@@ -210,15 +210,18 @@ public:
 	// monthly data is indexed from 0 to 11 (Jan to Dec)
 	inline shared_ptr<CClimateTemperature> GetMonth( int month )
 	{
+		shared_ptr<CClimateTemperature> value;
 		const int nMonths = (int)m_arrMonths.size();
 		if ( month < nMonths )
 		{
-			return m_arrMonths[ month ];
+			value = m_arrMonths[ month ];
 
 		} else if ( month == nMonths )
 		{
-			return shared_ptr<CClimateTemperature>( new CClimateTemperature );
+			value = shared_ptr<CClimateTemperature>( new CClimateTemperature );
 		}
+
+		return value;
 	}
 	// monthly data is indexed from 0 to 11 (Jan to Dec)
 	inline void SetMonth( int month, shared_ptr<CClimateTemperature> value )
@@ -619,6 +622,12 @@ public:
 		// calculate greater than values
 		CountGreaterValues();
 	}
+
+	void WriteToDatabase
+	(
+		CClimateDatabase& db,
+		LPCTSTR stationID
+	);
 
 	// destructor
 	~CStationYear()

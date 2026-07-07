@@ -156,6 +156,7 @@
   </ItemDefinitionGroup>
   <ItemGroup>
     <ClInclude Include="CHelper.h" />
+    <ClInclude Include="ClimateDatabase.h" />
     <ClInclude Include="ClimateStation.h" />
     <ClInclude Include="ClimateStations.h" />
     <ClInclude Include="ClimateTemperature.h" />
@@ -166,6 +167,7 @@
     <ClInclude Include="pch.h" />
     <ClInclude Include="PlusGDI.h" />
     <ClInclude Include="SmartArray.h" />
+    <ClInclude Include="sqlite3.h" />
     <ClInclude Include="StationYear.h" />
     <ClInclude Include="targetver.h" />
     <ClInclude Include="ThreadHelp.h" />
@@ -173,6 +175,7 @@
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="CHelper.cpp" />
+    <ClCompile Include="ClimateDatabase.cpp" />
     <ClCompile Include="ClimateStation.cpp" />
     <ClCompile Include="ClimateStations.cpp" />
     <ClCompile Include="ClimateTemperature.cpp" />
@@ -185,6 +188,12 @@
       <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Release|x64'">Create</PrecompiledHeader>
     </ClCompile>
     <ClCompile Include="PlusGDI.cpp" />
+    <ClCompile Include="sqlite3.c">
+      <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">NotUsing</PrecompiledHeader>
+      <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">NotUsing</PrecompiledHeader>
+      <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">NotUsing</PrecompiledHeader>
+      <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Release|x64'">NotUsing</PrecompiledHeader>
+    </ClCompile>
     <ClCompile Include="StationYear.cpp" />
     <ClCompile Include="ThreadHelp.cpp" />
     <ClCompile Include="VariantVector.cpp" />

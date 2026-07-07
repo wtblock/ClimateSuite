@@ -324,22 +324,234 @@ int _tmain(int argc, TCHAR* argv[], TCHAR* envp[])
 	// the pathname of the executable
 	const CString csExe = arrArgs[0];
 
-	// crawl through directory tree defined by the command line
-	// parameter trolling for given climate file extensions
-	m_nCount = 0;
-	fErr.WriteString(L"Processing Maximum Values\n");
-	RecursePath(csPath, L".tmax", fOut, fErr);
-	fErr.WriteString(L"\n\n");
+	const BOOL bDB = ::PathFileExists(L"ClimateUSHCN.db");
 
-	m_nCount = 0;
-	fErr.WriteString(L"Processing Minimum Values\n");
-	RecursePath(csPath, L".tmin", fOut, fErr);
-	fErr.WriteString(L"\n\n");
+	if (!bDB)
+	{
+		// crawl through directory tree defined by the command line
+		// parameter trolling for given climate file extensions
+		m_nCount = 0;
+		fErr.WriteString(L"Processing Maximum Values\n");
+		RecursePath(csPath, L".tmax", fOut, fErr);
+		fErr.WriteString(L"\n\n");
 
-	m_nCount = 0;
-	fErr.WriteString(L"Processing Average Values\n");
-	RecursePath(csPath, L".tavg", fOut, fErr);
-	fErr.WriteString(L"\n\n");
+		m_nCount = 0;
+		fErr.WriteString(L"Processing Minimum Values\n");
+		RecursePath(csPath, L".tmin", fOut, fErr);
+		fErr.WriteString(L"\n\n");
+
+		m_nCount = 0;
+		fErr.WriteString(L"Processing Average Values\n");
+		RecursePath(csPath, L".tavg", fOut, fErr);
+		fErr.WriteString(L"\n\n");
+
+		fErr.WriteString(L"Writing stations to the database\n");
+	}
+
+	CClimateDatabase db;
+
+	db.Open
+	(
+		L"ClimateUSHCN.db"
+	);
+
+	if (!bDB)
+	{
+		db.CreateSchema();
+		db.BeginTransaction();
+
+		int nTotalStations = static_cast<int>(m_Stations.ClimateStations.Items.size());
+		int nStationIndex = 0;
+
+		// Write all stations and their yearly/monthly data
+		for (auto& kv : m_Stations.ClimateStations.Items)
+		{
+			CString csMessage;
+			nStationIndex++;
+			if (nStationIndex % 10 == 0)
+			{
+				csMessage.Format(L"%05d ", nStationIndex);
+				fErr.WriteString(csMessage);
+				if (nStationIndex % 100 == 0)
+				{
+					fErr.WriteString(L"\n");
+				}
+			}
+			shared_ptr<CClimateStation> pStation = kv.second;
+
+			pStation->WriteToDatabase
+			(
+				db
+			);
+		}
+
+		_tprintf
+		(
+			L"Database build complete. %d stations written.\n",
+			nTotalStations
+		);
+
+		db.Commit();
+	}
+	else
+	{
+		_tprintf(L"Database already exists. Skipping build.\n");
+	}
+
+	// Now run your test query
+	sqlite3_stmt* stmt = db.Prepare
+	(
+		L"SELECT COUNT(*) FROM Stations;"
+	);
+
+	if (stmt)
+	{
+		if (db.Step(stmt))
+		{
+			int nStations = sqlite3_column_int(stmt, 0);
+
+			_tprintf
+			(
+				L"\nVerification: Stations table contains %d rows.\n",
+				nStations
+			);
+		}
+
+		db.Finalize(stmt);
+	}
+
+	// a more complex query
+	stmt = db.Prepare
+	(
+		L"SELECT StationID, State, Latitude, Longitude "
+		L"FROM Stations "
+		L"WHERE StationID = 'USH00028619';"
+	);
+
+	if (db.Step(stmt))
+	{
+		CStringA id = (char*)sqlite3_column_text(stmt, 0);
+		CStringA state = (char*)sqlite3_column_text(stmt, 1);
+		double lat = sqlite3_column_double(stmt, 2);
+		double lon = sqlite3_column_double(stmt, 3);
+
+		_tprintf
+		(
+			L"Station %S (%S): lat=%f lon=%f\n",
+			id.GetString(),
+			state.GetString(),
+			lat,
+			lon
+		);
+
+		db.Finalize(stmt);
+	}
+
+	// count the years
+	sqlite3_stmt* stmtYears = db.Prepare
+	(
+		L"SELECT COUNT(*) FROM Years;"
+	);
+
+	if (stmtYears)
+	{
+		if (db.Step(stmtYears))
+		{
+			int nYears = sqlite3_column_int(stmtYears, 0);
+
+			_tprintf
+			(
+				L"Verification: Years table contains %d rows.\n",
+				nYears
+			);
+		}
+
+		db.Finalize(stmtYears);
+	}
+
+	// count the months
+	sqlite3_stmt* stmtMonths = db.Prepare
+	(
+		L"SELECT COUNT(*) FROM Months;"
+	);
+
+	if (stmtMonths)
+	{
+		if (db.Step(stmtMonths))
+		{
+			int nMonths = sqlite3_column_int(stmtMonths, 0);
+
+			_tprintf
+			(
+				L"Verification: Months table contains %d rows.\n",
+				nMonths
+			);
+		}
+
+		db.Finalize(stmtMonths);
+	}
+
+	sqlite3_stmt* stmtSchema = db.Prepare
+	(
+		L"PRAGMA table_info(Stations);"
+	);
+
+	if (stmtSchema)
+	{
+		_tprintf(L"\nStations table schema:\n");
+
+		while (db.Step(stmtSchema))
+		{
+			int cid = sqlite3_column_int(stmtSchema, 0);
+			CStringA name = (char*)sqlite3_column_text(stmtSchema, 1);
+			CStringA type = (char*)sqlite3_column_text(stmtSchema, 2);
+
+			_tprintf
+			(
+				L"  Column %d: %S (%S)\n",
+				cid,
+				name.GetString(),
+				type.GetString()
+			);
+		}
+
+		db.Finalize(stmtSchema);
+	}
+
+	sqlite3_stmt* stmtTX = db.Prepare
+	(
+		L"SELECT StationID, Location, Latitude, Longitude "
+		L"FROM Stations "
+		L"WHERE State = 'TX';"
+	);
+
+	if (stmtTX)
+	{
+		_tprintf(L"\nStations in Texas:\n");
+
+		CString csMessage;
+		while (db.Step(stmtTX))
+		{
+			CStringA id = (char*)sqlite3_column_text(stmtTX, 0);
+			CStringA location = (char*)sqlite3_column_text(stmtTX, 1);
+			double lat = sqlite3_column_double(stmtTX, 2);
+			double lon = sqlite3_column_double(stmtTX, 3);
+
+			csMessage.Format
+			(
+				L"  %S, %S (lat=%f lon=%f)\n",
+				id.GetString(),
+				location.GetString(),
+				lat,
+				lon
+			);
+			fErr.WriteString(csMessage);
+		}
+
+		db.Finalize(stmtTX);
+	}
+
+	db.Close();
 
 	// all is good
 	return 0;
