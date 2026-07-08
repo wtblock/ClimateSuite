@@ -35,6 +35,88 @@ shared_ptr<CClimateStation> ParseSource
 } // ParseSource
 
 /////////////////////////////////////////////////////////////////////////////
+// the version and release date are read from the workspace subfolder
+// 
+// \working folder
+//   \ushcn.tavg.latest.raw
+//     \ushcn.v2.5.5.20260706
+// 
+// where:
+//   version is: v2.5.5
+//   release date is: 20260706
+//
+bool ParseVersion(CString csPath)
+{
+	// just being pessimistic
+	bool value = false;
+
+	// has version been processed?
+	if (m_bVersion == false)
+	{
+		CString csFile = CHelper::GetFileName(csPath);
+		CString csExt = CHelper::GetExtension(csPath);
+		csFile.MakeLower();
+
+		// folder in the format of ushcn.v2.5.5.20260706
+		if (csFile.Left(7) == L"ushcn.v")
+		{
+			// parse the version number
+			csFile.TrimLeft(L"ushcn.");
+			m_csVersion = csFile;
+
+			// record the release date
+			csExt.TrimLeft(L".");
+			m_csReleaseDate = csExt;
+
+			// we are done
+			value = true;
+		}
+	}
+
+	return value;
+} // ParseVersion
+
+/////////////////////////////////////////////////////////////////////////////
+// the dataset read from the workspace subfolder
+// 
+// \working folder
+//   \ushcn.tavg.latest.raw
+// 
+// where:
+//   dataset is: raw
+//
+bool ParseDataset(CString csPath)
+{
+	// just being pessimistic
+	bool value = false;
+
+	// has version been processed?
+	if (m_bDataset == false)
+	{
+		CString csExt = CHelper::GetExtension(csPath);
+		csExt.MakeLower();
+		csExt.TrimLeft(L".");
+		if (csExt == L"raw")
+		{
+			m_csDataset = csExt;
+			value = true;
+		}
+		else if (csExt == L"tob")
+		{
+			m_csDataset = csExt;
+			value = true;
+		}
+		else if (csExt == L"52j")
+		{
+			m_csDataset = L"FLs.52j";
+			value = true;
+		}
+	}
+
+	return value;
+} // ParseDataset
+
+/////////////////////////////////////////////////////////////////////////////
 // crawl through the directory tree looking for given climate extension
 void RecursePath
 (
@@ -48,6 +130,18 @@ void RecursePath
 	USES_CONVERSION;
 
 	int nStation = 0;
+
+	// find dataset?
+	if (m_bDataset == false)
+	{
+		m_bDataset = ParseDataset(path);
+	}
+
+	// find version?
+	if (m_bVersion == false)
+	{
+		m_bVersion = ParseVersion(path);
+	}
 
 	// determine measurement type from the given extension
 	CClimateTemperature::MEASURE_TYPE eType = CClimateTemperature::mtMaximum;
@@ -308,6 +402,20 @@ int _tmain(int argc, TCHAR* argv[], TCHAR* envp[])
 	m_Stations.StationPath = csStationPath;
 	m_Stations.ReadStationData();
 
+	// dataset has not been found
+	m_bDataset = false;
+
+	// version has not been found
+	m_bVersion = false;
+
+	// credit format
+	m_csCreditFormat =
+		L"Citations:\n"
+		L"W.T. Block's Climate Suite, version %s.%s, dataset = %s.\n"
+		L"M.J. Menne, C.N. Williams, and R.S. Vose, 2009: The United States Historical\n"
+		L"Climatology Network monthly temperature data - Version 2.\n"
+		L"Bulletin of the American Meteorological Society, 90, 993-1007.\n";
+
 	// start up COM
 	const BOOL bOK = AfxOleInit();
 	if (bOK == FALSE)
@@ -348,6 +456,14 @@ int _tmain(int argc, TCHAR* argv[], TCHAR* envp[])
 		fErr.WriteString(L"Writing stations to the database\n");
 	}
 
+	m_csCredit.Format
+	(
+		m_csCreditFormat,
+		m_csVersion.GetString(),
+		m_csReleaseDate.GetString(),
+		m_csDataset.GetString()
+	);
+
 	CClimateDatabase db;
 
 	db.Open
@@ -385,6 +501,11 @@ int _tmain(int argc, TCHAR* argv[], TCHAR* envp[])
 			);
 		}
 
+		db.Metadata[L"Data_Credit"] = m_csCredit;
+		db.Metadata[L"Data_Version"] = m_csVersion;
+		db.Metadata[L"Data_ReleaseDate"] = m_csReleaseDate;
+		db.Metadata[L"Dataset_Type"] = m_csDataset;
+
 		_tprintf
 		(
 			L"Database build complete. %d stations written.\n",
@@ -396,6 +517,21 @@ int _tmain(int argc, TCHAR* argv[], TCHAR* envp[])
 	else
 	{
 		_tprintf(L"Database already exists. Skipping build.\n");
+
+		// Update metadata without rebuilding the database
+		m_csVersion = db.Metadata[L"Data_Version"];
+		m_csReleaseDate = db.Metadata[L"Data_ReleaseDate"];
+		m_csDataset = db.Metadata[L"Dataset_Type"];
+
+		m_csCredit.Format
+		(
+			m_csCreditFormat,
+			m_csVersion.GetString(),
+			m_csReleaseDate.GetString(),
+			m_csDataset.GetString()
+		);
+
+		db.Metadata[L"Data_Credit"] = m_csCredit;
 	}
 
 	// Now run your test query
@@ -551,6 +687,8 @@ int _tmain(int argc, TCHAR* argv[], TCHAR* envp[])
 		db.Finalize(stmtTX);
 	}
 
+	CString csCredit = db.Metadata[L"Data_Credit"];
+	_tprintf(L"\n%s\n", csCredit.GetString());
 	db.Close();
 
 	// all is good

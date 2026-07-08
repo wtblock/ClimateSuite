@@ -118,6 +118,13 @@ void CClimateDatabase::CreateSchema()
 {
 	Exec
 	(
+		L"CREATE TABLE IF NOT EXISTS Metadata "
+		L"(Key TEXT PRIMARY KEY, "
+		L" Value TEXT);"
+	);
+
+	Exec
+	(
 		L"CREATE TABLE IF NOT EXISTS Stations "
 		L"(StationID TEXT PRIMARY KEY, "
 		L" GUID TEXT, "
