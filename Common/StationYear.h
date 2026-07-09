@@ -174,6 +174,36 @@ public:
 	__declspec( property( get = GetMeasurementType, put = SetMeasurementType ) )
 		CClimateTemperature::MEASURE_TYPE MeasurementType;
 
+	// TMAX, TMIN, or TAVG
+	inline CString GetMeasurementName()
+	{
+		CClimateTemperature::MEASURE_TYPE eType = MeasurementType;
+		CString value;
+		switch (eType)
+		{
+			case CClimateTemperature::MEASURE_TYPE::mtAverage:
+			{
+				value = L"TAVG";
+				break;
+			}
+			case CClimateTemperature::MEASURE_TYPE::mtMaximum:
+			{
+				value = L"TMAX";
+				break;
+			}
+			case CClimateTemperature::MEASURE_TYPE::mtMinimum:
+			{
+				value = L"TMIN";
+				break;
+			}
+		}
+
+		return value;
+	}
+	// TMAX, TMIN, or TAVG
+	__declspec( property( get = GetMeasurementName) )
+		CString MeasurementName;
+
 	// station name (columns 1 - 11 of source)
 	inline CString GetStation()
 	{
@@ -569,6 +599,13 @@ protected:
 
 // public methods
 public:
+	// write our data into the database
+	void WriteToDatabase
+	(
+		CClimateDatabase& db,
+		LPCTSTR stationID
+	);
+
 
 // protected overrides
 protected:
@@ -622,12 +659,6 @@ public:
 		// calculate greater than values
 		CountGreaterValues();
 	}
-
-	void WriteToDatabase
-	(
-		CClimateDatabase& db,
-		LPCTSTR stationID
-	);
 
 	// destructor
 	~CStationYear()

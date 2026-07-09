@@ -3,6 +3,7 @@
 /////////////////////////////////////////////////////////////////////////////
 #pragma once
 #include "sqlite3.h"
+#include "SmartArray.h"
 
 /////////////////////////////////////////////////////////////////////////////
 // a wrapper class for the SQLite3.c code
@@ -55,6 +56,24 @@ public:
 	// database metadata
 	__declspec(property(get = GetMetadata, put = SetMetadata))
 		CString Metadata[];
+
+	/////////////////////////////////////////////////////////////////////////////
+	// Execute a SQL query and return a table of rows and columns.
+	//
+	// This method executes any SQL SELECT statement and returns the results
+	// in a two-dimensional array:
+	//
+	//   arrRows[rowIndex][columnIndex]
+	//
+	// Each row is represented as a CStringArray containing the column values.
+	// This method is generic and reusable across all future projects.
+	//
+	/////////////////////////////////////////////////////////////////////////////
+	bool ExecuteTable
+	(
+		const CString& csSQL,
+		CSmartArray<CSmartArray<CString>>& arrRows
+	);
 
 public:
 	CClimateDatabase();

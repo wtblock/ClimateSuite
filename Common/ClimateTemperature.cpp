@@ -25,7 +25,7 @@ void CClimateTemperature::WriteToDatabase
 	db.BindText(stmt, 1, stationID);
 	db.BindInt(stmt, 2, year);
 	db.BindInt(stmt, 3, month);
-	db.BindInt(stmt, 4, MeasurementType);
+	db.BindText(stmt, 4, MeasurementName);
 	db.BindDouble(stmt, 5, Centigrade);
 	db.BindText(stmt, 6, DataMeasurementFlag);
 	db.BindText(stmt, 7, QualityControlFlag);

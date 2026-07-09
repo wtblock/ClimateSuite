@@ -179,5 +179,54 @@ void CClimateDatabase::CreateSchema()
 }
 
 /////////////////////////////////////////////////////////////////////////////
+// Execute a SQL query and return a table of rows and columns
+/////////////////////////////////////////////////////////////////////////////
+bool CClimateDatabase::ExecuteTable
+(
+	const CString& csSQL,
+	CSmartArray<CSmartArray<CString>>& arrRows
+)
+{
+	arrRows.clear();
+
+	sqlite3_stmt* stmt = nullptr;
+
+	int rc = sqlite3_prepare16_v2
+	(
+		m_db,
+		csSQL.GetString(),
+		-1,
+		&stmt,
+		nullptr
+	);
+
+	if (rc != SQLITE_OK)
+		return false;
+
+	while
+	(
+		(rc = sqlite3_step(stmt)) == SQLITE_ROW
+	)
+	{
+		CSmartArray<CString> arrRow;
+
+		int nCols = sqlite3_column_count(stmt);
+
+		for (int i = 0; i < nCols; i++)
+		{
+			const void* pText = sqlite3_column_text16(stmt, i);
+
+			CString csValue = (pText != nullptr) ? (LPCTSTR)pText : L"";
+
+			arrRow.append(csValue);
+		}
+
+		arrRows.append(arrRow);
+	}
+
+	sqlite3_finalize(stmt);
+
+	return (rc == SQLITE_DONE);
+} // ExecuteTable
 
 /////////////////////////////////////////////////////////////////////////////

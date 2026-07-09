@@ -217,6 +217,36 @@ public:
 	__declspec( property( get = GetMeasurementType, put = SetMeasurementType ) )
 		MEASURE_TYPE MeasurementType;
 	
+	// TMAX, TMIN, or TAVG
+	inline CString GetMeasurementName()
+	{
+		CClimateTemperature::MEASURE_TYPE eType = MeasurementType;
+		CString value;
+		switch (eType)
+		{
+		case CClimateTemperature::MEASURE_TYPE::mtAverage:
+		{
+			value = L"TAVG";
+			break;
+		}
+		case CClimateTemperature::MEASURE_TYPE::mtMaximum:
+		{
+			value = L"TMAX";
+			break;
+		}
+		case CClimateTemperature::MEASURE_TYPE::mtMinimum:
+		{
+			value = L"TMIN";
+			break;
+		}
+		}
+
+		return value;
+	}
+	// TMAX, TMIN, or TAVG
+	__declspec(property(get = GetMeasurementName))
+		CString MeasurementName;
+
 	// temperature in degrees centigrade
 	inline float GetCentigrade()
 	{

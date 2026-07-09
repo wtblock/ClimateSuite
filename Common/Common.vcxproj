@@ -166,6 +166,8 @@
     <ClInclude Include="KeyedCollection.h" />
     <ClInclude Include="pch.h" />
     <ClInclude Include="PlusGDI.h" />
+    <ClInclude Include="QueryEngine.h" />
+    <ClInclude Include="QuerySQL.h" />
     <ClInclude Include="SmartArray.h" />
     <ClInclude Include="sqlite3.h" />
     <ClInclude Include="StationYear.h" />
@@ -188,6 +190,8 @@
       <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Release|x64'">Create</PrecompiledHeader>
     </ClCompile>
     <ClCompile Include="PlusGDI.cpp" />
+    <ClCompile Include="QueryEngine.cpp" />
+    <ClCompile Include="QuerySQL.cpp" />
     <ClCompile Include="sqlite3.c">
       <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">NotUsing</PrecompiledHeader>
       <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">NotUsing</PrecompiledHeader>

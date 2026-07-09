@@ -5,6 +5,7 @@
 #include "StationYear.h"
 
 /////////////////////////////////////////////////////////////////////////////
+// write our data into the database
 void CStationYear::WriteToDatabase
 (
 	CClimateDatabase& db,
@@ -23,7 +24,7 @@ void CStationYear::WriteToDatabase
 
 	db.BindText(stmt, 1, stationID);
 	db.BindInt(stmt, 2, nYear);
-	db.BindInt(stmt, 3, MeasurementType);
+	db.BindText(stmt, 3, MeasurementName);   // <-- FIXED
 	db.BindDouble(stmt, 4, Maximum);
 	db.BindDouble(stmt, 5, Minimum);
 	db.BindDouble(stmt, 6, Average);
@@ -51,7 +52,7 @@ void CStationYear::WriteToDatabase
 
 		db.BindText(stmtGC, 1, stationID);
 		db.BindInt(stmtGC, 2, nYear);
-		db.BindInt(stmtGC, 3, MeasurementType);
+		db.BindText(stmtGC, 3, MeasurementName);   // <-- FIXED
 		db.BindInt(stmtGC, 4, gc.first);
 		db.BindInt(stmtGC, 5, gc.second);
 

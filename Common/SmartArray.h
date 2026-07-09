@@ -48,6 +48,10 @@ public:
 	//         ...
 	//
 	/////////////////////////////////////////////////////////////////////////////
+	inline const vector<shared_ptr<TYPE>>& GetItems() const
+	{
+		return m_arrItems;
+	}
 	inline vector<shared_ptr<TYPE>>& GetItems()
 	{
 		return m_arrItems;
@@ -60,6 +64,10 @@ public:
 	//
 	// Returns the number of elements in the array.
 	/////////////////////////////////////////////////////////////////////////////
+	inline long GetCount() const
+	{
+		return (long)m_arrItems.size();
+	}
 	inline long GetCount()
 	{
 		return (long)m_arrItems.size();
@@ -74,6 +82,10 @@ public:
 	// Returns true if the index is within bounds (0 <= index < Count).
 	// Used by get(), set(), and remove() to ensure safe access.
 	/////////////////////////////////////////////////////////////////////////////
+	inline bool valid(long lIndex) const
+	{
+		return (0 <= lIndex && lIndex < Count);
+	}
 	inline bool valid(long lIndex)
 	{
 		return (0 <= lIndex && lIndex < Count);
@@ -135,6 +147,12 @@ public:
 	// Returns the shared_ptr<TYPE> at the given index, or nullptr if the
 	// index is out of range.
 	/////////////////////////////////////////////////////////////////////////////
+	inline shared_ptr<TYPE> get(long lIndex) const
+	{
+		if (valid(lIndex))
+			return m_arrItems[lIndex];
+		return nullptr;
+	}
 	inline shared_ptr<TYPE> get(long lIndex)
 	{
 		if (valid(lIndex))
