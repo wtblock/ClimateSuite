@@ -102,6 +102,10 @@ int _tmain(int argc, TCHAR* argv[], TCHAR* envp[])
 			L".    List stations in North Dakota.\n"
 			L".    Show stations in CA.\n"
 			L".\n"
+			L".    Show active stations.\n"
+			L".    List active stations with city and state.\n"
+			L".    Show active stations in Colorado.\n"
+			L".\n"
 			L".    Monthly temperatures in Texas.\n"
 			L".    Monthly temperatures in California.\n"
 			L".\n"
@@ -114,7 +118,6 @@ int _tmain(int argc, TCHAR* argv[], TCHAR* envp[])
 			L".  You may copy and paste any of the above queries.\n"
 			L".\n"
 		);
-
 		return 3;
 	}
 

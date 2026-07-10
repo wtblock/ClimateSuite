@@ -106,7 +106,13 @@ public:
 	CString QueryMonthlyTemperaturesByState(const CString& csState);
 
 	// return annual average temperatures for a given state
-	CString QueryAnnualAveragesByState(const CString& csState);
+	CString QueryAnnualAveragesByState(const CString& csState, bool bActive);
+
+	// return annual maximum temperatures for a given state
+	CString QueryAnnualMaximumsByState(const CString& csState, bool bActive);
+
+	// return annual minimum temperatures for a given state
+	CString QueryAnnualMinimumsByState(const CString& csState, bool bActive);
 
 	// return temperature trend (slope) for a given state
 	CString QueryTemperatureTrendByState(const CString& csState);
@@ -114,6 +120,13 @@ public:
 	// Converts natural-language state names into 2-letter postal codes.
 	// Removes punctuation and handles mixed case.
 	CString NormalizeState(const CString& csInput);
+
+	// return a formatted list of all active stations (still recording data)
+	CString QueryActiveStations();
+
+	// return a formatted list of active stations filtered by state
+	CString QueryActiveStationsByState(const CString& csState);
+
 
 
 // protected overrides

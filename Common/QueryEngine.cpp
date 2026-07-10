@@ -202,16 +202,48 @@ bool CQueryEngine::Dispatch(const CString& csQuery, CString& csResult)
 	//---------------------------------------------------------------------
 	if
 	(
-		csNormalized.Find(L"station") >= 0 ||
-		csNormalized.Find(L"stations") >= 0
+		(csNormalized.Find(L"station") >= 0 ||
+			csNormalized.Find(L"stations") >= 0) &&
+		csNormalized.Find(L"annual") < 0 &&
+		csNormalized.Find(L"monthly") < 0 &&
+		csNormalized.Find(L"temperature") < 0 &&
+		csNormalized.Find(L"average") < 0 &&
+		csNormalized.Find(L"maximum") < 0 &&
+		csNormalized.Find(L"minimum") < 0
 	)
 	{
+		// detect "active stations"
+		if (csNormalized.Find(L"active") >= 0)
+		{
+			int nPos = csNormalized.Find(L"in ");
+			if (nPos >= 0)
+			{
+				CString csTail = csQuery.Mid(nPos + 3).Trim();
+
+				// take only the first token after "in "
+				int nSpace = csTail.Find(L' ');
+				CString csState = (nSpace >= 0) ? csTail.Left(nSpace) : csTail;
+
+				csState = NormalizeState(csState);
+
+				csResult = QueryActiveStationsByState(csState);
+				return true;
+			}
+
+			csResult = QueryActiveStations();
+			return true;
+		}
+
 		// detect "in <state>" pattern
 		int nPos = csNormalized.Find(L"in ");
 		if (nPos >= 0)
 		{
-			// extract state abbreviation (2 letters)
-			CString csState = csQuery.Mid(nPos + 3).Trim();
+			CString csTail = csQuery.Mid(nPos + 3).Trim();
+
+			// take only the first token after "in "
+			int nSpace = csTail.Find(L' ');
+			CString csState = (nSpace >= 0) ? csTail.Left(nSpace) : csTail;
+
 			csState = NormalizeState(csState);
 
 			csResult = QueryStationsByState(csState);
@@ -220,7 +252,6 @@ bool CQueryEngine::Dispatch(const CString& csQuery, CString& csResult)
 
 		// otherwise list all stations
 		csResult = QueryAllStations();
-		
 		return true;
 	}
 
@@ -236,7 +267,12 @@ bool CQueryEngine::Dispatch(const CString& csQuery, CString& csResult)
 		int nPos = csNormalized.Find(L"in ");
 		if (nPos >= 0)
 		{
-			CString csState = csQuery.Mid(nPos + 3).Trim();
+			CString csTail = csQuery.Mid(nPos + 3).Trim();
+
+			// take only the first token after "in "
+			int nSpace = csTail.Find(L' ');
+			CString csState = (nSpace >= 0) ? csTail.Left(nSpace) : csTail;
+
 			csState = NormalizeState(csState);
 
 			csResult = QueryMonthlyTemperaturesByState(csState);
@@ -256,19 +292,90 @@ bool CQueryEngine::Dispatch(const CString& csQuery, CString& csResult)
 		csNormalized.Find(L"average") >= 0
 	)
 	{
+		bool bActive = (csNormalized.Find(L"active") >= 0);
+
 		int nPos = csNormalized.Find(L"in ");
 		if (nPos >= 0)
 		{
-			CString csState = csQuery.Mid(nPos + 3).Trim();
+			CString csTail = csQuery.Mid(nPos + 3).Trim();
+
+			// take only the first token after "in "
+			int nSpace = csTail.Find(L' ');
+			CString csState = (nSpace >= 0) ? csTail.Left(nSpace) : csTail;
+
 			csState = NormalizeState(csState);
 
-			csResult = QueryAnnualAveragesByState(csState);
+			csResult = QueryAnnualAveragesByState(csState, bActive);
+
 			return true;
 		}
 
 		csResult = L"Please specify a state.";
 		return true;
 	}
+
+	//---------------------------------------------------------------------
+	// Step 6: Annual maximums
+	//---------------------------------------------------------------------
+	if
+	(
+		csNormalized.Find(L"annual") >= 0 &&
+		csNormalized.Find(L"maximum") >= 0
+	)
+	{
+		bool bActive = (csNormalized.Find(L"active") >= 0);
+
+		int nPos = csNormalized.Find(L"in ");
+		if (nPos >= 0)
+		{
+			CString csTail = csQuery.Mid(nPos + 3).Trim();
+
+			// take only the first token after "in "
+			int nSpace = csTail.Find(L' ');
+			CString csState = (nSpace >= 0) ? csTail.Left(nSpace) : csTail;
+
+			csState = NormalizeState(csState);
+
+			csResult = QueryAnnualMaximumsByState(csState, bActive);
+
+			return true;
+		}
+
+		csResult = L"Please specify a state.";
+		return true;
+	}
+
+	//---------------------------------------------------------------------
+	// Step 6: Annual minimums
+	//---------------------------------------------------------------------
+	if
+	(
+		csNormalized.Find(L"annual") >= 0 &&
+		csNormalized.Find(L"minimum") >= 0
+	)
+	{
+		bool bActive = (csNormalized.Find(L"active") >= 0);
+
+		int nPos = csNormalized.Find(L"in ");
+		if (nPos >= 0)
+		{
+			CString csTail = csQuery.Mid(nPos + 3).Trim();
+
+			// take only the first token after "in "
+			int nSpace = csTail.Find(L' ');
+			CString csState = (nSpace >= 0) ? csTail.Left(nSpace) : csTail;
+
+			csState = NormalizeState(csState);
+
+			csResult = QueryAnnualMinimumsByState(csState, bActive);
+
+			return true;
+		}
+
+		csResult = L"Please specify a state.";
+		return true;
+	}
+
 
 	//---------------------------------------------------------------------
 	// Step 7: Trend queries (future)
@@ -282,7 +389,12 @@ bool CQueryEngine::Dispatch(const CString& csQuery, CString& csResult)
 		int nPos = csNormalized.Find(L"in ");
 		if (nPos >= 0)
 		{
-			CString csState = csQuery.Mid(nPos + 3).Trim();
+			CString csTail = csQuery.Mid(nPos + 3).Trim();
+
+			// take only the first token after "in "
+			int nSpace = csTail.Find(L' ');
+			CString csState = (nSpace >= 0) ? csTail.Left(nSpace) : csTail;
+
 			csState = NormalizeState(csState);
 
 			csResult = QueryTemperatureTrendByState(csState);
@@ -423,22 +535,33 @@ CString CQueryEngine::QueryMonthlyTemperaturesByState(const CString& csState)
 /////////////////////////////////////////////////////////////////////////////
 // return annual average temperatures for a given state
 /////////////////////////////////////////////////////////////////////////////
-CString CQueryEngine::QueryAnnualAveragesByState(const CString& csState)
+CString CQueryEngine::QueryAnnualAveragesByState(const CString& csState, bool bActive)
 {
 	CString csSQL;
-	csSQL.Format
-	(
-		L"SELECT "
-		L"y.Year, "
-		L"AVG(y.AvgValue) AS AvgTemp "
+
+	csSQL.Format(
+		L"SELECT y.Year, AVG(y.AvgValue) AS AvgTemp "
 		L"FROM Years y "
 		L"JOIN Stations s ON y.StationID = s.StationID "
 		L"WHERE s.State = '%s' "
-		L"AND y.MeasurementType IN ('TAVG','TAVE','TMEAN','TEMP') "
-		L"GROUP BY y.Year "
-		L"ORDER BY y.Year;",
+		L"AND y.MeasurementType IN ('TAVG','TAVE','TMEAN','TEMP') ",
 		csState.GetString()
 	);
+
+	if (bActive)
+	{
+		csSQL +=
+			L"AND y.StationID IN ("
+			L"    SELECT StationID "
+			L"    FROM Years "
+			L"    GROUP BY StationID "
+			L"    HAVING MAX(Year) = (SELECT MAX(Year) FROM Years)"
+			L") ";
+	}
+
+	csSQL +=
+		L"GROUP BY y.Year "
+		L"ORDER BY y.Year;";
 
 	CSmartArray<CSmartArray<CString>> arrRows;
 	Database->ExecuteTable(csSQL, arrRows);
@@ -449,6 +572,88 @@ CString CQueryEngine::QueryAnnualAveragesByState(const CString& csState)
 
 	return QuerySQL->FormatTable(arrColumns, arrRows);
 } // QueryAnnualAveragesByState
+
+/////////////////////////////////////////////////////////////////////////////
+// return annual maximum temperatures for a given state
+/////////////////////////////////////////////////////////////////////////////
+CString CQueryEngine::QueryAnnualMaximumsByState(const CString& csState, bool bActive)
+{
+	CString csSQL;
+
+	csSQL.Format(
+		L"SELECT y.Year, AVG(y.MaxValue) AS MaxTemp "
+		L"FROM Years y "
+		L"JOIN Stations s ON y.StationID = s.StationID "
+		L"WHERE s.State = '%s' "
+		L"AND y.MeasurementType = 'TMAX' ",
+		csState.GetString()
+	);
+
+	if (bActive)
+	{
+		csSQL +=
+			L"AND y.StationID IN ("
+			L"    SELECT StationID "
+			L"    FROM Years "
+			L"    GROUP BY StationID "
+			L"    HAVING MAX(Year) = (SELECT MAX(Year) FROM Years)"
+			L") ";
+	}
+
+	csSQL +=
+		L"GROUP BY y.Year "
+		L"ORDER BY y.Year;";
+
+	CSmartArray<CSmartArray<CString>> arrRows;
+	Database->ExecuteTable(csSQL, arrRows);
+
+	CSmartArray<CString> arrColumns;
+	arrColumns.append(L"Year");
+	arrColumns.append(L"MaxTemp");
+
+	return QuerySQL->FormatTable(arrColumns, arrRows);
+} // QueryAnnualMaximumsByState
+
+/////////////////////////////////////////////////////////////////////////////
+// return annual minimum temperatures for a given state
+/////////////////////////////////////////////////////////////////////////////
+CString CQueryEngine::QueryAnnualMinimumsByState(const CString& csState, bool bActive)
+{
+	CString csSQL;
+
+	csSQL.Format(
+		L"SELECT y.Year, AVG(y.MinValue) AS MinTemp "
+		L"FROM Years y "
+		L"JOIN Stations s ON y.StationID = s.StationID "
+		L"WHERE s.State = '%s' "
+		L"AND y.MeasurementType = 'TMIN' ",
+		csState.GetString()
+	);
+
+	if (bActive)
+	{
+		csSQL +=
+			L"AND y.StationID IN ("
+			L"    SELECT StationID "
+			L"    FROM Years "
+			L"    GROUP BY StationID "
+			L"    HAVING MAX(Year) = (SELECT MAX(Year) FROM Years)"
+			L") ";
+	}
+
+	csSQL +=
+		L"GROUP BY y.Year "
+		L"ORDER BY y.Year;";
+
+	CSmartArray<CSmartArray<CString>> arrRows;
+	Database->ExecuteTable(csSQL, arrRows);
+
+	CSmartArray<CString> arrColumns;
+	arrColumns.append(L"Year");
+	arrColumns.append(L"MinTemp");
+
+	return QuerySQL->FormatTable(arrColumns, arrRows);
+} // QueryAnnualMinimumsByState
 
 /////////////////////////////////////////////////////////////////////////////
 // return temperature trend (slope) for a given state
@@ -519,5 +724,72 @@ CString CQueryEngine::QueryTemperatureTrendByState(const CString& csState)
 	return csResult;
 
 } // QueryTemperatureTrendByState
+
+/////////////////////////////////////////////////////////////////////////////
+// return a formatted list of all active stations (still recording data)
+/////////////////////////////////////////////////////////////////////////////
+CString CQueryEngine::QueryActiveStations()
+{
+	// SQL: stations whose last recorded year equals the max year in the dataset
+	CString csSQL =
+		L"SELECT "
+		L"  s.StationID, "
+		L"  s.Location AS City, "
+		L"  s.State, "
+		L"  MAX(y.Year) AS LastYear "
+		L"FROM Stations s "
+		L"JOIN Years y ON s.StationID = y.StationID "
+		L"GROUP BY s.StationID, s.Location, s.State "
+		L"HAVING MAX(y.Year) = (SELECT MAX(Year) FROM Years) "
+		L"ORDER BY s.State, s.Location;";
+
+	CSmartArray<CSmartArray<CString>> arrRows;
+	Database->ExecuteTable(csSQL, arrRows);
+
+	CSmartArray<CString> arrColumns;
+	arrColumns.append(L"StationID");
+	arrColumns.append(L"City");
+	arrColumns.append(L"State");
+	arrColumns.append(L"LastYear");
+
+	return QuerySQL->FormatTable(arrColumns, arrRows);
+
+} // QueryActiveStations
+
+/////////////////////////////////////////////////////////////////////////////
+// return a formatted list of active stations filtered by state
+/////////////////////////////////////////////////////////////////////////////
+CString CQueryEngine::QueryActiveStationsByState(const CString& csState)
+{
+	CString csSQL;
+	csSQL.Format
+	(
+		L"SELECT "
+		L"  s.StationID, "
+		L"  s.Location AS City, "
+		L"  s.State, "
+		L"  MAX(y.Year) AS LastYear "
+		L"FROM Stations s "
+		L"JOIN Years y ON s.StationID = y.StationID "
+		L"WHERE s.State = '%s' "
+		L"GROUP BY s.StationID, s.Location, s.State "
+		L"HAVING MAX(y.Year) = (SELECT MAX(Year) FROM Years) "
+		L"ORDER BY s.Location;",
+		csState.GetString()
+	);
+
+	CSmartArray<CSmartArray<CString>> arrRows;
+	Database->ExecuteTable(csSQL, arrRows);
+
+	CSmartArray<CString> arrColumns;
+	arrColumns.append(L"StationID");
+	arrColumns.append(L"City");
+	arrColumns.append(L"State");
+	arrColumns.append(L"LastYear");
+
+	return QuerySQL->FormatTable(arrColumns, arrRows);
+
+}
+/////////////////////////////////////////////////////////////////////////////
 
 /////////////////////////////////////////////////////////////////////////////
