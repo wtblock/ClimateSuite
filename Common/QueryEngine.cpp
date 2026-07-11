@@ -1,8 +1,10 @@
-/////////////////////////////////////////////////////////////////////////////
-// Copyright � 2026 by W. T. Block, all rights reserved
+﻿/////////////////////////////////////////////////////////////////////////////
+// Copyright © 2026 by W. T. Block, all rights reserved
 /////////////////////////////////////////////////////////////////////////////
 #include "pch.h"
 #include "QueryEngine.h"
+#include "ClimateTemperature.h"
+#include "SmartArray.h"
 
 /////////////////////////////////////////////////////////////////////////////
 // The constructor initializes the database and maps state names to postal 
@@ -115,6 +117,75 @@ CString CQueryEngine::NormalizeState(const CString& csInput)
 } // NormalizeState
 
 /////////////////////////////////////////////////////////////////////////////
+bool CQueryEngine::StationExists(const CString& csStationID)
+{
+	CString csSQL;
+	csSQL.Format(L"SELECT COUNT(*) FROM Stations WHERE StationID = '%s';", csStationID);
+
+	CSmartArray<CSmartArray<CString>> arrRows;
+	Database->ExecuteTable(csSQL, arrRows);
+
+	if (arrRows.Count == 0)
+		return false;
+
+	shared_ptr<CSmartArray<CString> > pArray = arrRows.get(0);
+	CString csRow = *pArray->get(0);
+	return (_ttol(csRow) > 0);
+} // StationExists
+
+
+/////////////////////////////////////////////////////////////////////////////
+bool CQueryEngine::DetectStationID(const CString& csQuery, CString& csStationID)
+{
+	CString csNorm = csQuery;
+	csNorm.MakeLower();
+
+	// USHCN station IDs are always 11 characters: ush + 8 digits
+	// Example: ush00419532
+	// We search for tokens starting with "us" followed by letters/digits.
+
+	CSmartArray<CString> tokens;
+	int nStart = 0;
+	CString csToken = csNorm.Tokenize(L" ", nStart);
+	while (!csToken.IsEmpty())
+	{
+		tokens.append(csToken);
+		csToken = csNorm.Tokenize(L" ", nStart);
+	}
+
+	for (auto& node : tokens.Items)
+	{
+		CString tok = *node;
+		tok.Trim();
+
+		if (tok.GetLength() >= 11 &&
+			tok.Left(2) == L"us" &&
+			IsAlpha(tok[2]) &&
+			IsDigit(tok[3]) &&
+			IsDigit(tok[4]) &&
+			IsDigit(tok[5]) &&
+			IsDigit(tok[6]) &&
+			IsDigit(tok[7]) &&
+			IsDigit(tok[8]) &&
+			IsDigit(tok[9]) &&
+			IsDigit(tok[10]))
+		{
+			// Normalize to uppercase for DB lookup
+			CString csCandidate = tok;
+			csCandidate.MakeUpper();
+
+			if (StationExists(csCandidate))
+			{
+				csStationID = csCandidate;
+				return true;
+			}
+		}
+	}
+
+	return false;
+} // DetectStationID
+
+/////////////////////////////////////////////////////////////////////////////
 // dispatch a natural language query to the appropriate SQL query
 //
 // This method is the central routing hub for all natural-language queries
@@ -142,6 +213,73 @@ bool CQueryEngine::Dispatch(const CString& csQuery, CString& csResult)
 	//---------------------------------------------------------------------
 	CString csNormalized = csQuery;
 	csNormalized.MakeLower();
+
+	//---------------------------------------------------------------------
+	// Purity and data-source filters
+	//---------------------------------------------------------------------
+	bool bExcludeEstimated = false;   // DMFLAG != 'E'
+	bool bExcludeQC = false;   // QCFLAG == ''
+	bool bPureRaw = false;   // both of the above
+	CString csDSFlagFilter;
+
+	// detect "pure raw" style queries
+	if
+	(
+		csNormalized.Find(L"pure") >= 0 ||
+		csNormalized.Find(L"raw only") >= 0 ||
+		csNormalized.Find(L"no flags") >= 0
+	)
+	{
+		bPureRaw = true;
+	}
+
+	// detect "exclude estimated"
+	if
+	(
+		csNormalized.Find(L"exclude estimated") >= 0 ||
+		csNormalized.Find(L"no estimated") >= 0
+	)
+	{
+		bExcludeEstimated = true;
+	}
+
+	// detect "exclude qc" / "exclude questionable"
+	if
+	(
+		csNormalized.Find(L"exclude qc") >= 0 ||
+		csNormalized.Find(L"no qc") >= 0 ||
+		csNormalized.Find(L"exclude questionable") >= 0
+	)
+	{
+		bExcludeQC = true;
+	}
+
+	// normalize pure raw
+	if (bPureRaw)
+	{
+		bExcludeEstimated = true;
+		bExcludeQC = true;
+	}
+
+	// optional: simple DSFLAG filter like "dsflag 2" or "source B"
+	int nDSPos = csNormalized.Find(L"dsflag ");
+	if (nDSPos < 0)
+		nDSPos = csNormalized.Find(L"source ");
+
+	if (nDSPos >= 0)
+	{
+		// length of "dsflag " or "source " is 7
+		CString csTail = csQuery.Mid(nDSPos + 7).Trim();
+
+		// take only the first token
+		int     nSpace = csTail.Find(L' ');
+		CString csToken = (nSpace >= 0) ? csTail.Left(nSpace) : csTail;
+
+		csToken.Trim();
+
+		if (!csToken.IsEmpty())
+			csDSFlagFilter = csToken.Left(1); // DSFLAG is one character
+	}
 
 	//---------------------------------------------------------------------
 	// Raw SQL passthrough
@@ -194,6 +332,59 @@ bool CQueryEngine::Dispatch(const CString& csQuery, CString& csResult)
 	)
 	{
 		csResult = QueryTableSchemas();
+		return true;
+	}
+
+	//---------------------------------------------------------------------
+	// DSFLAG explanation query
+	//---------------------------------------------------------------------
+	if
+	(
+		csNormalized.Find(L"dsflag") >= 0 &&
+		(
+			csNormalized.Find(L"explain") >= 0 ||
+			csNormalized.Find(L"meaning") >= 0 ||
+			csNormalized.Find(L"list") >= 0 ||
+			csNormalized.Find(L"describe") >= 0
+		)
+	)
+	{
+		csResult = QueryExplainDSFlags();
+		return true;
+	}
+
+	//---------------------------------------------------------------------
+	// NEW: Station-specific data queries
+	//---------------------------------------------------------------------
+	CString csStationID;
+	if (DetectStationID(csQuery, csStationID))  // you’d implement this
+	{
+		// Example: monthly temperature for a station
+		if (csNormalized.Find(L"monthly") >= 0 &&
+			csNormalized.Find(L"temperature") >= 0)
+		{
+			// decide measurement type: average / max / min
+			int nMeasureType = CClimateTemperature::MEASURE_TYPE::mtAverage;
+			if (csNormalized.Find(L"maximum") >= 0)
+				nMeasureType = CClimateTemperature::MEASURE_TYPE::mtMaximum;
+			else if (csNormalized.Find(L"minimum") >= 0)
+				nMeasureType = CClimateTemperature::MEASURE_TYPE::mtMinimum;
+
+			csResult = QueryMonthlyTemperaturesByStation
+			(
+				csStationID,
+				nMeasureType,
+				bExcludeEstimated,
+				bExcludeQC,
+				csDSFlagFilter
+			);
+			return true;
+		}
+
+		// you can add annual / trend station queries here later
+
+		// bare "station USH00419532" → maybe a summary:
+		csResult = QueryStationSummary(csStationID);
 		return true;
 	}
 
@@ -275,7 +466,13 @@ bool CQueryEngine::Dispatch(const CString& csQuery, CString& csResult)
 
 			csState = NormalizeState(csState);
 
-			csResult = QueryMonthlyTemperaturesByState(csState);
+			csResult = QueryMonthlyTemperaturesByState
+			(
+				csState,
+				bExcludeEstimated,
+				bExcludeQC,
+				csDSFlagFilter
+			);
 			return true;
 		}
 
@@ -305,7 +502,14 @@ bool CQueryEngine::Dispatch(const CString& csQuery, CString& csResult)
 
 			csState = NormalizeState(csState);
 
-			csResult = QueryAnnualAveragesByState(csState, bActive);
+			csResult = QueryAnnualAveragesByState
+			(
+				csState,
+				bActive,
+				bExcludeEstimated,
+				bExcludeQC,
+				csDSFlagFilter
+			);
 
 			return true;
 		}
@@ -336,7 +540,14 @@ bool CQueryEngine::Dispatch(const CString& csQuery, CString& csResult)
 
 			csState = NormalizeState(csState);
 
-			csResult = QueryAnnualMaximumsByState(csState, bActive);
+			csResult = QueryAnnualMaximumsByState
+			(
+				csState,
+				bActive,
+				bExcludeEstimated,
+				bExcludeQC,
+				csDSFlagFilter
+			);
 
 			return true;
 		}
@@ -367,7 +578,14 @@ bool CQueryEngine::Dispatch(const CString& csQuery, CString& csResult)
 
 			csState = NormalizeState(csState);
 
-			csResult = QueryAnnualMinimumsByState(csState, bActive);
+			csResult = QueryAnnualMinimumsByState
+			(
+				csState,
+				bActive,
+				bExcludeEstimated,
+				bExcludeQC,
+				csDSFlagFilter
+			);
 
 			return true;
 		}
@@ -397,7 +615,13 @@ bool CQueryEngine::Dispatch(const CString& csQuery, CString& csResult)
 
 			csState = NormalizeState(csState);
 
-			csResult = QueryTemperatureTrendByState(csState);
+			csResult = QueryTemperatureTrendByState
+			(
+				csState,
+				bExcludeEstimated,
+				bExcludeQC,
+				csDSFlagFilter
+			);
 			return true;
 		}
 
@@ -502,7 +726,13 @@ CString CQueryEngine::QueryStationsByState(const CString& csState)
 /////////////////////////////////////////////////////////////////////////////
 // return monthly average temperatures for a given state
 /////////////////////////////////////////////////////////////////////////////
-CString CQueryEngine::QueryMonthlyTemperaturesByState(const CString& csState)
+CString CQueryEngine::QueryMonthlyTemperaturesByState
+(
+	const CString& csState,
+	bool           bExcludeEstimated,
+	bool           bExcludeQC,
+	const CString& csDSFlagFilter
+)
 {
 	CString csSQL;
 	csSQL.Format
@@ -514,11 +744,30 @@ CString CQueryEngine::QueryMonthlyTemperaturesByState(const CString& csState)
 		L"FROM Months m "
 		L"JOIN Stations s ON m.StationID = s.StationID "
 		L"WHERE s.State = '%s' "
-		L"AND m.MeasurementType = 'TAVG' "
-		L"GROUP BY m.Year, m.Month "
-		L"ORDER BY m.Year, m.Month;",
+		L"AND m.MeasurementType = 3 ",
 		csState.GetString()
 	);
+
+	if (bExcludeEstimated)
+	{
+		csSQL += L"AND m.DMFLAG != 'E' ";
+	}
+
+	if (bExcludeQC)
+	{
+		csSQL += L"AND m.QCFLAG = '' ";
+	}
+
+	if (!csDSFlagFilter.IsEmpty())
+	{
+		csSQL += L"AND m.DSFLAG = '";
+		csSQL += csDSFlagFilter;
+		csSQL += L"' ";
+	}
+
+	csSQL +=
+		L"GROUP BY m.Year, m.Month "
+		L"ORDER BY m.Year, m.Month;";
 
 	CSmartArray<CSmartArray<CString>> arrRows;
 	Database->ExecuteTable(csSQL, arrRows);
@@ -533,132 +782,106 @@ CString CQueryEngine::QueryMonthlyTemperaturesByState(const CString& csState)
 } // QueryMonthlyTemperaturesByState
 
 /////////////////////////////////////////////////////////////////////////////
-// return annual average temperatures for a given state
+// return annual values for a given state
 /////////////////////////////////////////////////////////////////////////////
-CString CQueryEngine::QueryAnnualAveragesByState(const CString& csState, bool bActive)
+CString CQueryEngine::QueryAnnualByStateCommon
+(
+	const CString& csState,
+	int nMeasurementType,
+	const CString& csColumnName,   // "AvgValue", "MaxValue", "MinValue"
+	const CString& csOutputLabel,  // "AvgTemp", "MaxTemp", "MinTemp"
+	bool bActive
+)
 {
 	CString csSQL;
 
-	csSQL.Format(
-		L"SELECT y.Year, AVG(y.AvgValue) AS AvgTemp "
-		L"FROM Years y "
-		L"JOIN Stations s ON y.StationID = s.StationID "
-		L"WHERE s.State = '%s' "
-		L"AND y.MeasurementType IN ('TAVG','TAVE','TMEAN','TEMP') ",
-		csState.GetString()
+	csSQL.Format
+	(
+		L"SELECT Y.Year, AVG(Y.%s) "
+		L"FROM Years Y "
+		L"JOIN Stations S ON S.StationID = Y.StationID "
+		L"WHERE S.State = '%s' "
+		L"AND Y.MeasurementType = %d ",
+		csColumnName,
+		csState,
+		nMeasurementType
 	);
 
 	if (bActive)
-	{
-		csSQL +=
-			L"AND y.StationID IN ("
-			L"    SELECT StationID "
-			L"    FROM Years "
-			L"    GROUP BY StationID "
-			L"    HAVING MAX(Year) = (SELECT MAX(Year) FROM Years)"
-			L") ";
-	}
+		csSQL += L"AND S.Active = 1 ";
 
-	csSQL +=
-		L"GROUP BY y.Year "
-		L"ORDER BY y.Year;";
+	csSQL += L"GROUP BY Y.Year ORDER BY Y.Year;";
 
 	CSmartArray<CSmartArray<CString>> arrRows;
 	Database->ExecuteTable(csSQL, arrRows);
 
 	CSmartArray<CString> arrColumns;
 	arrColumns.append(L"Year");
-	arrColumns.append(L"AvgTemp");
+	arrColumns.append(csOutputLabel);
 
 	return QuerySQL->FormatTable(arrColumns, arrRows);
+
+} //l QueryAnnualByStateCommon
+
+
+/////////////////////////////////////////////////////////////////////////////
+// return annual average temperatures for a given state
+/////////////////////////////////////////////////////////////////////////////
+CString CQueryEngine::QueryAnnualAveragesByState
+(
+	const CString& csState,
+	bool bActive,
+	bool /*bExcludeEstimated*/,
+	bool /*bExcludeQC*/,
+	const CString& /*csDSFlagFilter*/
+)
+{
+	return QueryAnnualByStateCommon(csState, 3, L"AvgValue", L"AvgTemp", bActive);
+
 } // QueryAnnualAveragesByState
 
 /////////////////////////////////////////////////////////////////////////////
 // return annual maximum temperatures for a given state
 /////////////////////////////////////////////////////////////////////////////
-CString CQueryEngine::QueryAnnualMaximumsByState(const CString& csState, bool bActive)
+CString CQueryEngine::QueryAnnualMaximumsByState
+(
+	const CString& csState,
+	bool bActive,
+	bool /*bExcludeEstimated*/,
+	bool /*bExcludeQC*/,
+	const CString& /*csDSFlagFilter*/
+)
 {
-	CString csSQL;
+	return QueryAnnualByStateCommon(csState, 2, L"MaxValue", L"MaxTemp", bActive);
 
-	csSQL.Format(
-		L"SELECT y.Year, AVG(y.MaxValue) AS MaxTemp "
-		L"FROM Years y "
-		L"JOIN Stations s ON y.StationID = s.StationID "
-		L"WHERE s.State = '%s' "
-		L"AND y.MeasurementType = 'TMAX' ",
-		csState.GetString()
-	);
-
-	if (bActive)
-	{
-		csSQL +=
-			L"AND y.StationID IN ("
-			L"    SELECT StationID "
-			L"    FROM Years "
-			L"    GROUP BY StationID "
-			L"    HAVING MAX(Year) = (SELECT MAX(Year) FROM Years)"
-			L") ";
-	}
-
-	csSQL +=
-		L"GROUP BY y.Year "
-		L"ORDER BY y.Year;";
-
-	CSmartArray<CSmartArray<CString>> arrRows;
-	Database->ExecuteTable(csSQL, arrRows);
-
-	CSmartArray<CString> arrColumns;
-	arrColumns.append(L"Year");
-	arrColumns.append(L"MaxTemp");
-
-	return QuerySQL->FormatTable(arrColumns, arrRows);
 } // QueryAnnualMaximumsByState
 
 /////////////////////////////////////////////////////////////////////////////
 // return annual minimum temperatures for a given state
 /////////////////////////////////////////////////////////////////////////////
-CString CQueryEngine::QueryAnnualMinimumsByState(const CString& csState, bool bActive)
+CString CQueryEngine::QueryAnnualMinimumsByState
+(
+	const CString& csState,
+	bool bActive,
+	bool /*bExcludeEstimated*/,
+	bool /*bExcludeQC*/,
+	const CString& /*csDSFlagFilter*/
+)
 {
-	CString csSQL;
+	return QueryAnnualByStateCommon(csState, 1, L"MinValue", L"MinTemp", bActive);
 
-	csSQL.Format(
-		L"SELECT y.Year, AVG(y.MinValue) AS MinTemp "
-		L"FROM Years y "
-		L"JOIN Stations s ON y.StationID = s.StationID "
-		L"WHERE s.State = '%s' "
-		L"AND y.MeasurementType = 'TMIN' ",
-		csState.GetString()
-	);
-
-	if (bActive)
-	{
-		csSQL +=
-			L"AND y.StationID IN ("
-			L"    SELECT StationID "
-			L"    FROM Years "
-			L"    GROUP BY StationID "
-			L"    HAVING MAX(Year) = (SELECT MAX(Year) FROM Years)"
-			L") ";
-	}
-
-	csSQL +=
-		L"GROUP BY y.Year "
-		L"ORDER BY y.Year;";
-
-	CSmartArray<CSmartArray<CString>> arrRows;
-	Database->ExecuteTable(csSQL, arrRows);
-
-	CSmartArray<CString> arrColumns;
-	arrColumns.append(L"Year");
-	arrColumns.append(L"MinTemp");
-
-	return QuerySQL->FormatTable(arrColumns, arrRows);
 } // QueryAnnualMinimumsByState
 
 /////////////////////////////////////////////////////////////////////////////
 // return temperature trend (slope) for a given state
 /////////////////////////////////////////////////////////////////////////////
-CString CQueryEngine::QueryTemperatureTrendByState(const CString& csState)
+CString CQueryEngine::QueryTemperatureTrendByState
+(
+	const CString& csState,
+	bool           bExcludeEstimated,
+	bool           bExcludeQC,
+	const CString& csDSFlagFilter
+)
 {
 	CString csSQL;
 	csSQL.Format
@@ -669,16 +892,35 @@ CString CQueryEngine::QueryTemperatureTrendByState(const CString& csState)
 		L"FROM Years y "
 		L"JOIN Stations s ON y.StationID = s.StationID "
 		L"WHERE s.State = '%s' "
-		L"AND y.MeasurementType = 'TAVG' "
-		L"GROUP BY y.Year "
-		L"ORDER BY y.Year;",
+		L"AND y.MeasurementType = 3 ",
 		csState.GetString()
 	);
+
+	if (bExcludeEstimated)
+	{
+		csSQL += L"AND y.DMFLAG != 'E' ";
+	}
+
+	if (bExcludeQC)
+	{
+		csSQL += L"AND y.QCFLAG = '' ";
+	}
+
+	if (!csDSFlagFilter.IsEmpty())
+	{
+		csSQL += L"AND y.DSFLAG = '";
+		csSQL += csDSFlagFilter;
+		csSQL += L"' ";
+	}
+
+	csSQL +=
+		L"GROUP BY y.Year "
+		L"ORDER BY y.Year;";
 
 	CSmartArray<CSmartArray<CString>> arrRows;
 	Database->ExecuteTable(csSQL, arrRows);
 
-	long n = arrRows.Count;
+	long   n = arrRows.Count;
 	double sumX = 0.0;
 	double sumY = 0.0;
 	double sumXY = 0.0;
@@ -690,7 +932,7 @@ CString CQueryEngine::QueryTemperatureTrendByState(const CString& csState)
 		if (!pRow || pRow->Count < 2)
 			continue;
 
-		int year = _wtoi(pRow->get(0)->GetString());
+		int    year = _wtoi(pRow->get(0)->GetString());
 		double temp = _wtof(pRow->get(1)->GetString());
 
 		sumX += year;
@@ -703,7 +945,8 @@ CString CQueryEngine::QueryTemperatureTrendByState(const CString& csState)
 
 	if (n > 1)
 	{
-		slope = (n * sumXY - sumX * sumY) /
+		slope =
+			(n * sumXY - sumX * sumY) /
 			(n * sumXX - sumX * sumX);
 	}
 
@@ -789,7 +1032,125 @@ CString CQueryEngine::QueryActiveStationsByState(const CString& csState)
 
 	return QuerySQL->FormatTable(arrColumns, arrRows);
 
-}
+} // QueryActiveStationsByState
+
 /////////////////////////////////////////////////////////////////////////////
+CString CQueryEngine::QueryMonthlyTemperaturesByStation
+(
+	const CString& csStationID,
+	int nMeasurementType,
+	bool bExcludeEstimated,
+	bool bExcludeQC,
+	const CString& csDSFlagFilter
+)
+{
+	CString csSQL;
+	csSQL.Format
+	(
+		L"SELECT Year, Month, Centigrade, DMFlag, QCFlag, DSFlag "
+		L"FROM Months "
+		L"WHERE StationID = '%s' AND MeasurementType = %d ",
+		csStationID,
+		nMeasurementType
+	);
+
+	if (bExcludeEstimated)
+		csSQL += L"AND DMFlag <> 'E' ";
+
+	if (bExcludeQC)
+		csSQL += L"AND QCFlag = '' ";
+
+	if (!csDSFlagFilter.IsEmpty())
+	{
+		csSQL += L"AND DSFlag = '";
+		csSQL += csDSFlagFilter;
+		csSQL += L"' ";
+	}
+
+	csSQL += L"ORDER BY Year, Month;";
+
+	CSmartArray<CSmartArray<CString>> arrRows;
+	Database->ExecuteTable(csSQL, arrRows);
+
+	// Build synthetic column names
+	CSmartArray<CString> arrColumns;
+	arrColumns.append(L"Year");
+	arrColumns.append(L"Month");
+	arrColumns.append(L"Centigrade");
+	arrColumns.append(L"DMFlag");
+	arrColumns.append(L"QCFlag");
+	arrColumns.append(L"DSFlag");
+
+	return QuerySQL->FormatTable(arrColumns, arrRows);
+
+} // QueryMonthlyTemperaturesByStation
+
+/////////////////////////////////////////////////////////////////////////////
+CString CQueryEngine::QueryStationSummary(const CString& csStationID)
+{
+	CString csSQL;
+	csSQL.Format
+	(
+		L"SELECT Name, State, Latitude, Longitude, Elevation "
+		L"FROM Stations WHERE StationID = '%s';",
+		csStationID
+	);
+
+	CSmartArray<CSmartArray<CString>> arrRows;
+	Database->ExecuteTable(csSQL, arrRows);
+
+	if (arrRows.Count == 0)
+		return L"Station not found.";
+
+	shared_ptr<CSmartArray<CString> > pArray = arrRows.get(0);
+
+	CString csName = *pArray->get(0);
+	CString csState = *pArray->get(1);
+	CString csLat = *pArray->get(2);
+	CString csLon = *pArray->get(3);
+	CString csElev = *pArray->get(4);
+
+	CString csOut;
+	csOut.Format
+	(
+		L"Station: %s (%s)\n"
+		L"Location: %s, %s\n"
+		L"Elevation: %s meters\n\n"
+		L"Available data:\n"
+		L"  - Monthly Minimum (MeasurementType = 1)\n"
+		L"  - Monthly Maximum (MeasurementType = 2)\n"
+		L"  - Monthly Average (MeasurementType = 3)\n",
+		csName, csStationID,
+		csLat, csLon,
+		csElev
+	);
+
+	return csOut;
+
+} // QueryStationSummary
+
+/////////////////////////////////////////////////////////////////////////////
+CString CQueryEngine::QueryExplainDSFlags()
+{
+	CString cs =
+
+	L"Data Source Flags (DSFLAG):\n"
+	L"---------------------------------------------\n"
+	L"(blank)  Value computed from daily GHCN-Daily data\n"
+	L"1        NCDC Tape Deck 3220, Summary of the Month Element Digital File\n"
+	L"2        Means Book - Smithsonian Institute (1876, 1881-1931)\n"
+	L"3        Manuscript - Original Records, National Climatic Data Center\n"
+	L"4        Climatological Data (CD), monthly NCDC publication\n"
+	L"5        Climate Record Book - Weather Bureau (1960)\n"
+	L"6        Bulletin W - Summary of Climatological Data (Bigelow, 1912)\n"
+	L"7        Local Climatological Data (LCD), monthly NCDC publication\n"
+	L"8        State Climatologists, various sources\n"
+	L"B        Raymond Bradley - Western U.S. instrumental records (1982)\n"
+	L"D        Henry Diaz - compilation from Bulletin W, LCD, Tape Deck 3220 (1983)\n"
+	L"G        John Griffiths - primarily from Climatological Data\n\n";
+
+	return cs;
+
+} // QueryExplainDSFlags
 
 /////////////////////////////////////////////////////////////////////////////

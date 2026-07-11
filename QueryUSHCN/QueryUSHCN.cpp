@@ -83,7 +83,7 @@ int _tmain(int argc, TCHAR* argv[], TCHAR* envp[])
 			L".\n"
 			L"Usage:\n"
 			L".\n"
-			L".  QueryUSHCN \"query_text\"\n"
+			L".  QueryUSHCN query_text\n"
 			L".\n"
 			L"Where:\n"
 			L".\n"
@@ -112,8 +112,22 @@ int _tmain(int argc, TCHAR* argv[], TCHAR* envp[])
 			L".    Annual averages in Oklahoma.\n"
 			L".    Annual averages in Colorado.\n"
 			L".\n"
+			L".    Annual maximums in Texas.\n"
+			L".    Annual minimums in Montana.\n"
+			L".\n"
 			L".    Temperature trend in Colorado.\n"
 			L".    Temperature trend in Texas.\n"
+			L".\n"
+			L".    Pure raw annual averages in Oklahoma.\n"
+			L".    Monthly temperatures in Utah excluding estimated values.\n"
+			L".    Annual maximums in Kansas excluding QC flags.\n"
+			L".\n"
+			L".    Show DSFLAG meanings.\n"
+			L".    Explain data source flags.\n"
+			L".    List DSFLAG values.\n"
+			L".\n"
+			L".    Annual averages in Nevada using DSFLAG 2 only.\n"
+			L".    Monthly temperatures in Arizona with source B.\n"
 			L".\n"
 			L".  You may copy and paste any of the above queries.\n"
 			L".\n"
@@ -198,4 +212,7 @@ int _tmain(int argc, TCHAR* argv[], TCHAR* envp[])
 
 	// all is good
 	return 0;
-}
+
+} // _tsmain
+
+/////////////////////////////////////////////////////////////////////////////

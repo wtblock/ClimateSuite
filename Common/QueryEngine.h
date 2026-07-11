@@ -69,6 +69,8 @@ public:
 
 // protected methods
 protected:
+	bool DetectStationID(const CString& csQuery, CString& csStationID);
+
 	CString StripTrailingPunctuation(const CString& csInput)
 	{
 		CString cs = csInput;
@@ -83,6 +85,16 @@ protected:
 		}
 
 		return cs;
+	}
+
+	inline bool IsAlpha(TCHAR ch)
+	{
+		return (ch >= L'a' && ch <= L'z') || (ch >= L'A' && ch <= L'Z');
+	}
+
+	inline bool IsDigit(TCHAR ch)
+	{
+		return (ch >= L'0' && ch <= L'9');
 	}
 
 // public methods
@@ -103,19 +115,61 @@ public:
 	CString QueryStationsByState(const CString& csState);
 
 	// return monthly average temperatures for a given state
-	CString QueryMonthlyTemperaturesByState(const CString& csState);
+	CString QueryMonthlyTemperaturesByState
+	(
+		const CString& csState,
+		bool bExcludeEstimated,
+		bool bExcludeQC,
+		const CString& csDSFlagFilter
+	);
 
 	// return annual average temperatures for a given state
-	CString QueryAnnualAveragesByState(const CString& csState, bool bActive);
+	CString QueryAnnualAveragesByState
+	(
+		const CString& csState,
+		bool bActive,
+		bool bExcludeEstimated,
+		bool bExcludeQC,
+		const CString& csDSFlagFilter
+	);
+
+	CString QueryAnnualByStateCommon
+	(
+		const CString& csState,
+		int nMeasurementType,
+		const CString& csColumnName,   // "AvgValue", "MaxValue", "MinValue"
+		const CString& csOutputLabel,  // "AvgTemp", "MaxTemp", "MinTemp"
+		bool bActive
+	); 
 
 	// return annual maximum temperatures for a given state
-	CString QueryAnnualMaximumsByState(const CString& csState, bool bActive);
+	CString QueryAnnualMaximumsByState
+	(
+		const CString& csState,
+		bool bActive,
+		bool bExcludeEstimated,
+		bool bExcludeQC,
+		const CString& csDSFlagFilter
+	);
 
 	// return annual minimum temperatures for a given state
-	CString QueryAnnualMinimumsByState(const CString& csState, bool bActive);
+	CString QueryAnnualMinimumsByState
+	(
+		const CString& csState,
+		bool bActive,
+		bool bExcludeEstimated,
+		bool bExcludeQC,
+		const CString& csDSFlagFilter
+	);
 
 	// return temperature trend (slope) for a given state
-	CString QueryTemperatureTrendByState(const CString& csState);
+	CString QueryTemperatureTrendByState
+	(
+		const CString& csState,
+		bool bExcludeEstimated,
+		bool bExcludeQC,
+		const CString& csDSFlagFilter
+	);
 
 	// Converts natural-language state names into 2-letter postal codes.
 	// Removes punctuation and handles mixed case.
@@ -127,7 +181,21 @@ public:
 	// return a formatted list of active stations filtered by state
 	CString QueryActiveStationsByState(const CString& csState);
 
+	// the USHCN data source flags as described in the readme.txt file
+	CString QueryExplainDSFlags();
 
+	bool StationExists(const CString& csStationID);
+
+	CString QueryMonthlyTemperaturesByStation
+	(
+		const CString& csStationID,
+		int nMeasurementType,
+		bool bExcludeEstimated,
+		bool bExcludeQC,
+		const CString& csDSFlagFilter
+	);
+
+	CString QueryStationSummary(const CString& csStationID);
 
 // protected overrides
 protected:
