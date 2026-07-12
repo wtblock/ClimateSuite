@@ -97,6 +97,67 @@ protected:
 		return (ch >= L'0' && ch <= L'9');
 	}
 
+	// takes a tokenized query and the location of the "in" token
+	// and returns the postal code of the state taking into account
+	// states with multiword names and puctuation
+	inline CString GetState(vector<CString>& tokens, int nIn)
+	{
+		// an empty value means a state was not found
+		CString value;
+
+		// number of tokens in the query
+		int nTokens = (int)tokens.size();
+
+		// an nIn value of -1 means the "in" keyword was not present
+		if (nIn != -1)
+		{
+			// index of first word of state name
+			int nState1 = nIn + 1;
+
+			// index of optional second word of state name
+			int nState2 = nIn + 2;
+
+			// validate indices are in range
+			if (nState1 < nTokens)
+			{
+				// strip puctuation and uppercase
+				CString csState = NormalizeState(tokens[nState1]);
+
+				// a two character state name is a postal code
+				if (2 == csState.GetLength())
+				{
+					value = csState;
+				}
+				else
+				{
+					// look up the postal code of the state
+					CString csPostal = PostalCode[csState];
+
+					// a postal code equal to the state is a failure
+					// so test for a two word state name
+					if (csPostal == csState && nState2 < nTokens)
+					{
+						// append a space and the second word
+						csState += L" ";
+						csState += NormalizeState(tokens[nState2]);
+
+						// lookup the postal code for the two word name
+						csPostal = PostalCode[csState];
+						if (csPostal != csState)
+						{
+							value = csPostal;
+						}
+					}
+					else // the postal code was found
+					{
+						value = csPostal;
+					}
+				}
+			}
+		}
+		return value;
+	}
+
 // public methods
 public:
 	// dispatch a natural language query to the appropriate SQL query

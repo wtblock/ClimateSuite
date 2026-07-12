@@ -94,40 +94,43 @@ int _tmain(int argc, TCHAR* argv[], TCHAR* envp[])
 			L".  query_text is a natural language question about the data. \n"
 			L".\n"
 			L".  Examples:\n"
-			L".    List your table schemas.\n"
-			L".    What version of the data is in the database?\n"
+			L".    QueryUSHCN List your table schemas.\n"
+			L".    QueryUSHCN What version of the data is in the database?\n"
+			L".\n" 
+			L".    QueryUSHCN List stations.\n"
+			L".    QueryUSHCN List stations in Texas.\n"
+			L".    QueryUSHCN List stations in North Dakota.\n"
+			L".    QueryUSHCN Show stations in CA.\n"
+			L".\n" 
+			L".    QueryUSHCN Show active stations.\n"
+			L".    QueryUSHCN List active stations with city and state.\n"
+			L".    QueryUSHCN Show active stations in Colorado.\n"
+			L".\n" 
+			L".    QueryUSHCN Monthly temperatures in Texas.\n"
+			L".    QueryUSHCN Monthly temperatures in California.\n"
+			L".\n" 
+			L".    QueryUSHCN Annual averages in Oklahoma.\n"
+			L".    QueryUSHCN Annual averages in Colorado.\n"
+			L".\n"  
+			L".    QueryUSHCN Annual maximums in Texas.\n"
+			L".    QueryUSHCN Annual minimums in Montana.\n"
+			L".\n"  
+			L".    QueryUSHCN Temperature trend in Colorado.\n"
+			L".    QueryUSHCN Temperature trend in Texas.\n"
+			L".\n" 
+			L".    QueryUSHCN Pure raw annual averages in Oklahoma.\n"
+			L".    QueryUSHCN Monthly temperatures in Utah excluding estimated values.\n"
+			L".    QueryUSHCN Annual maximums in Kansas excluding QC flags.\n"
+			L".\n" 
+			L".    QueryUSHCN Show DSFLAG meanings.\n"
+			L".    QueryUSHCN Explain data source flags.\n"
+			L".    QueryUSHCN List DSFLAG values.\n"
+			L".\n" 
+			L".    QueryUSHCN Annual averages in Nevada using DSFLAG 2 only.\n"
+			L".    QueryUSHCN Monthly temperatures in Arizona with source B.\n"
 			L".\n"
-			L".    List stations.\n"
-			L".    List stations in Texas.\n"
-			L".    List stations in North Dakota.\n"
-			L".    Show stations in CA.\n"
-			L".\n"
-			L".    Show active stations.\n"
-			L".    List active stations with city and state.\n"
-			L".    Show active stations in Colorado.\n"
-			L".\n"
-			L".    Monthly temperatures in Texas.\n"
-			L".    Monthly temperatures in California.\n"
-			L".\n"
-			L".    Annual averages in Oklahoma.\n"
-			L".    Annual averages in Colorado.\n"
-			L".\n"
-			L".    Annual maximums in Texas.\n"
-			L".    Annual minimums in Montana.\n"
-			L".\n"
-			L".    Temperature trend in Colorado.\n"
-			L".    Temperature trend in Texas.\n"
-			L".\n"
-			L".    Pure raw annual averages in Oklahoma.\n"
-			L".    Monthly temperatures in Utah excluding estimated values.\n"
-			L".    Annual maximums in Kansas excluding QC flags.\n"
-			L".\n"
-			L".    Show DSFLAG meanings.\n"
-			L".    Explain data source flags.\n"
-			L".    List DSFLAG values.\n"
-			L".\n"
-			L".    Annual averages in Nevada using DSFLAG 2 only.\n"
-			L".    Monthly temperatures in Arizona with source B.\n"
+			L".    QueryUSHCN Minimum monthly temperatures for station USH00419532.\n"
+			L".    QueryUSHCN Maximum monthly temperatures for station USH00419532.\n"
 			L".\n"
 			L".  You may copy and paste any of the above queries.\n"
 			L".\n"
@@ -135,18 +138,18 @@ int _tmain(int argc, TCHAR* argv[], TCHAR* envp[])
 		return 3;
 	}
 
-	// display the executable path
-	csMessage.Format(L"Executable pathname: %s\n", (LPCTSTR)arrArgs[0]);
-	fErr.WriteString(L".\n");
-	fErr.WriteString(csMessage);
-	fErr.WriteString(L".\n");
+	//// display the executable path
+	//csMessage.Format(L"Executable pathname: %s\n", (LPCTSTR)arrArgs[0]);
+	//fErr.WriteString(L".\n");
+	//fErr.WriteString(csMessage);
+	//fErr.WriteString(L".\n");
 
-	// display the current directory
-	CString csWorkspace = CHelper::GetCurrentDirectory();
-	csMessage.Format(L"Workspace: %s\n", (LPCTSTR)csWorkspace);
-	fErr.WriteString(L".\n");
-	fErr.WriteString(csMessage);
-	fErr.WriteString(L".\n");
+	//// display the current directory
+	//CString csWorkspace = CHelper::GetCurrentDirectory();
+	//csMessage.Format(L"Workspace: %s\n", (LPCTSTR)csWorkspace);
+	//fErr.WriteString(L".\n");
+	//fErr.WriteString(csMessage);
+	//fErr.WriteString(L".\n");
 
 	// test to see if the database is present
 	const BOOL bDB = ::PathFileExists(L"ClimateUSHCN.db");

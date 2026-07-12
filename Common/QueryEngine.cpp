@@ -214,6 +214,23 @@ bool CQueryEngine::Dispatch(const CString& csQuery, CString& csResult)
 	CString csNormalized = csQuery;
 	csNormalized.MakeLower();
 
+	// tokenize the query
+	vector<CString> tokens;
+	int nStart = 0;
+	int nIn = -1;
+	int nToken = 0;
+	CString csToken = csNormalized.Tokenize(L" ", nStart);
+	while (!csToken.IsEmpty())
+	{
+		if (csToken == L"in")
+		{
+			nIn = nToken;
+		}
+		nToken++;
+		tokens.push_back(csToken);
+		csToken = csNormalized.Tokenize(L" ", nStart);
+	}
+
 	//---------------------------------------------------------------------
 	// Purity and data-source filters
 	//---------------------------------------------------------------------
@@ -406,16 +423,9 @@ bool CQueryEngine::Dispatch(const CString& csQuery, CString& csResult)
 		// detect "active stations"
 		if (csNormalized.Find(L"active") >= 0)
 		{
-			int nPos = csNormalized.Find(L"in ");
-			if (nPos >= 0)
+			if ( nIn != -1)
 			{
-				CString csTail = csQuery.Mid(nPos + 3).Trim();
-
-				// take only the first token after "in "
-				int nSpace = csTail.Find(L' ');
-				CString csState = (nSpace >= 0) ? csTail.Left(nSpace) : csTail;
-
-				csState = NormalizeState(csState);
+				CString csState = GetState(tokens, nIn);
 
 				csResult = QueryActiveStationsByState(csState);
 				return true;
@@ -426,16 +436,9 @@ bool CQueryEngine::Dispatch(const CString& csQuery, CString& csResult)
 		}
 
 		// detect "in <state>" pattern
-		int nPos = csNormalized.Find(L"in ");
-		if (nPos >= 0)
+		if (nIn != -1)
 		{
-			CString csTail = csQuery.Mid(nPos + 3).Trim();
-
-			// take only the first token after "in "
-			int nSpace = csTail.Find(L' ');
-			CString csState = (nSpace >= 0) ? csTail.Left(nSpace) : csTail;
-
-			csState = NormalizeState(csState);
+			CString csState = GetState(tokens, nIn);
 
 			csResult = QueryStationsByState(csState);
 			return true;
@@ -455,16 +458,9 @@ bool CQueryEngine::Dispatch(const CString& csQuery, CString& csResult)
 		csNormalized.Find(L"temperature") >= 0
 	)
 	{
-		int nPos = csNormalized.Find(L"in ");
-		if (nPos >= 0)
+		if (nIn != -1)
 		{
-			CString csTail = csQuery.Mid(nPos + 3).Trim();
-
-			// take only the first token after "in "
-			int nSpace = csTail.Find(L' ');
-			CString csState = (nSpace >= 0) ? csTail.Left(nSpace) : csTail;
-
-			csState = NormalizeState(csState);
+			CString csState = GetState(tokens, nIn);
 
 			csResult = QueryMonthlyTemperaturesByState
 			(
@@ -491,16 +487,9 @@ bool CQueryEngine::Dispatch(const CString& csQuery, CString& csResult)
 	{
 		bool bActive = (csNormalized.Find(L"active") >= 0);
 
-		int nPos = csNormalized.Find(L"in ");
-		if (nPos >= 0)
+		if (nIn != -1)
 		{
-			CString csTail = csQuery.Mid(nPos + 3).Trim();
-
-			// take only the first token after "in "
-			int nSpace = csTail.Find(L' ');
-			CString csState = (nSpace >= 0) ? csTail.Left(nSpace) : csTail;
-
-			csState = NormalizeState(csState);
+			CString csState = GetState(tokens, nIn);
 
 			csResult = QueryAnnualAveragesByState
 			(
@@ -529,16 +518,9 @@ bool CQueryEngine::Dispatch(const CString& csQuery, CString& csResult)
 	{
 		bool bActive = (csNormalized.Find(L"active") >= 0);
 
-		int nPos = csNormalized.Find(L"in ");
-		if (nPos >= 0)
+		if (nIn != -1)
 		{
-			CString csTail = csQuery.Mid(nPos + 3).Trim();
-
-			// take only the first token after "in "
-			int nSpace = csTail.Find(L' ');
-			CString csState = (nSpace >= 0) ? csTail.Left(nSpace) : csTail;
-
-			csState = NormalizeState(csState);
+			CString csState = GetState(tokens, nIn);
 
 			csResult = QueryAnnualMaximumsByState
 			(
@@ -567,16 +549,9 @@ bool CQueryEngine::Dispatch(const CString& csQuery, CString& csResult)
 	{
 		bool bActive = (csNormalized.Find(L"active") >= 0);
 
-		int nPos = csNormalized.Find(L"in ");
-		if (nPos >= 0)
+		if (nIn != -1)
 		{
-			CString csTail = csQuery.Mid(nPos + 3).Trim();
-
-			// take only the first token after "in "
-			int nSpace = csTail.Find(L' ');
-			CString csState = (nSpace >= 0) ? csTail.Left(nSpace) : csTail;
-
-			csState = NormalizeState(csState);
+			CString csState = GetState(tokens, nIn);
 
 			csResult = QueryAnnualMinimumsByState
 			(
@@ -604,16 +579,9 @@ bool CQueryEngine::Dispatch(const CString& csQuery, CString& csResult)
 		csNormalized.Find(L"temperature") >= 0
 	)
 	{
-		int nPos = csNormalized.Find(L"in ");
-		if (nPos >= 0)
+		if (nIn != -1)
 		{
-			CString csTail = csQuery.Mid(nPos + 3).Trim();
-
-			// take only the first token after "in "
-			int nSpace = csTail.Find(L' ');
-			CString csState = (nSpace >= 0) ? csTail.Left(nSpace) : csTail;
-
-			csState = NormalizeState(csState);
+			CString csState = GetState(tokens, nIn);
 
 			csResult = QueryTemperatureTrendByState
 			(
@@ -1117,8 +1085,8 @@ CString CQueryEngine::QueryStationSummary(const CString& csStationID)
 		L"Location: %s, %s\n"
 		L"Elevation: %s meters\n\n"
 		L"Available data:\n"
-		L"  - Monthly Minimum (MeasurementType = 1)\n"
-		L"  - Monthly Maximum (MeasurementType = 2)\n"
+		L"  - Monthly Maximum (MeasurementType = 1)\n"
+		L"  - Monthly Minimum (MeasurementType = 2)\n"
 		L"  - Monthly Average (MeasurementType = 3)\n",
 		csName, csStationID,
 		csLat, csLon,
