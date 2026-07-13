@@ -4,7 +4,6 @@
 
 #pragma once
 #include "CHelper.h"
-#include "ClimateDatabase.h"
 
 /////////////////////////////////////////////////////////////////////////////
 // a single month's temperature data that has been parsed from a line of text
@@ -39,6 +38,7 @@
 // and the constructor of this class parses a line of that text into the 
 // properties of this class.
 //
+
 class CClimateTemperature
 {
 // public definitions
@@ -47,10 +47,10 @@ public:
 	// values: maximum, minimum, and average 
 	typedef enum MEASURE_TYPE
 	{
-		 mtMissing = 0,
-		 mtMaximum = 1,
-		 mtMinimum = 2,
-		 mtAverage = 3,
+		mtMissing = 0,
+		mtMaximum = 1,
+		mtMinimum = 2,
+		mtAverage = 3,
 
 	} MEASURE_TYPE;
 
@@ -60,8 +60,8 @@ protected:
 	// values: maximum, minimum, and average 
 	MEASURE_TYPE m_eMeasurementType;
 
-	// temperature in degrees centigrade
-	float m_fCentigrade;
+	// temperature in hundredths of a degree centigrade (USHCN raw storage)
+	short m_sCentigradeRaw;
 
 	// Fragment of readme.txt file referenced at the top of this file:
 	// DMFLAG: data measurement flag, nine possible values :
@@ -157,19 +157,19 @@ protected:
 // public properties
 public:
 	// value to indicate missing data
-	inline static float GetMissingValue()
+	inline static short GetMissingValue()
 	{
-		return -9999.0f;
+		return -9999;
 	}
 	// value to indicate missing data
 	__declspec( property( get = GetMissingValue ) )
-		float MissingValue;
+		short MissingValue;
 	
 	// flag to indicate missing data
 	inline bool GetMissing()
 	{
-		const float fValue = Centigrade;
-		const bool value = CHelper::NearlyEqual( fValue, -9999.0f );
+		const short sValue = CentigradeRaw;
+		const bool value = sValue == -9999;
 		return value;
 	}
 	// flag to indicate missing data
@@ -177,7 +177,7 @@ public:
 		bool Missing;
 
 	// length of source value
-	inline int GetValueLength()
+	static inline int GetValueLength()
 	{
 		return 6;
 	}
@@ -186,7 +186,7 @@ public:
 		int ValueLength;
 	
 	// length of source flag
-	inline int GetFlagLength()
+	static inline int GetFlagLength()
 	{
 		return 1;
 	}
@@ -247,34 +247,58 @@ public:
 	__declspec(property(get = GetMeasurementName))
 		CString MeasurementName;
 
+	// temperature in hundredths of a degree centigrade (USHCN raw storage)
+	inline short GetCentigradeRaw()
+	{
+		// return value
+		const short value = m_sCentigradeRaw;
+
+		return value;
+	}
+	// temperature in hundredths of a degree centigrade (USHCN raw storage)
+	inline void SetCentigradeRaw( short value )
+	{
+		m_sCentigradeRaw = value;
+	}
+	// temperature in hundredths of a degree centigrade (USHCN raw storage)
+	__declspec( property( get = GetCentigradeRaw, put = SetCentigradeRaw ) )
+		short CentigradeRaw;
+	
 	// temperature in degrees centigrade
 	inline float GetCentigrade()
 	{
+		const short sRaw = CentigradeRaw;
+
 		// return value
-		const float value = m_fCentigrade;
+		const float value = float(sRaw) / 100.0f;
 
 		return value;
 	}
 	// temperature in degrees centigrade
 	inline void SetCentigrade( float value )
 	{
-		m_fCentigrade = value;
+		value *= 100.0f; // hundredths of a degree (raw storage)
+		float fRaw = CHelper::RoundToNearest(value);
+		CentigradeRaw = (short)fRaw;
 	}
 	// temperature in degrees fahrenheit
 	__declspec( property( get = GetCentigrade, put = SetCentigrade ) )
 		float Centigrade;
 	
-	// temperature in degrees fahrenheit
+	// temperature in tenths of a degree centigrade
 	inline float GetFahrenheit()
 	{
 		// value of missing data
-		const float fMissing = MissingValue;
+		const short sMissing = MissingValue;
 
-		// return value
-		float value = Centigrade;
-		if ( !CHelper::NearlyEqual( value, fMissing ))
+		float value = (float)sMissing;
+
+		short sRaw = CentigradeRaw;
+		if ( sRaw != sMissing )
 		{
-			value = value * 1.8f + 32.0f;
+			value = float(sRaw);
+			value /= 100.0f;
+			value *= 1.8f + 32.0f;
 		}
 
 		return value;
@@ -283,17 +307,19 @@ public:
 	inline void SetFahrenheit( float value )
 	{
 		// value of missing data
-		const float fMissing = MissingValue;
+		const short sMissing = MissingValue;
+		const float fMissing = (float)sMissing;
 
 		if ( CHelper::NearlyEqual( value, fMissing ))
 		{
-			Centigrade = value;
+			CentigradeRaw = sMissing;
 
 		} else
 		{
-			Centigrade = ( value - 32.0f ) / 1.8f;
+			float fCentigrade = ( value - 32.0f ) / 1.8f;
+			float fRaw = CHelper::RoundToNearest(fCentigrade * 100.0f);
+			CentigradeRaw = (short)fRaw;
 		}
-
 	}
 	// temperature in degrees fahrenheit
 	__declspec( property( get = GetFahrenheit, put = SetFahrenheit ) )
@@ -352,6 +378,13 @@ protected:
 
 // public methods
 public:
+	void WriteToDatabase
+	(
+		void* pDB,
+		LPCTSTR stationID,
+		int year,
+		int month
+	);
 
 // protected overrides
 protected:
@@ -364,7 +397,7 @@ public:
 	// default constructor
 	CClimateTemperature()
 	{
-		Centigrade = MissingValue;
+		CentigradeRaw = MissingValue;
 		MeasurementType = mtMissing;
 	}
 
@@ -395,7 +428,7 @@ public:
 	{
 		// parse the value from the source line
 		const CString csValue = source.Mid( nStart, ValueLength ).Trim();
-		const float fValue = (float)_tstof( csValue );
+		const short sValue = (short)_tstoi( csValue );
 
 		// parse the flags from the source line
 		nStart += ValueLength;
@@ -407,31 +440,22 @@ public:
 		nStart += FlagLength;
 
 		// is our data missing?
-		const float fMissing = MissingValue;
-		const bool bMissing = CHelper::NearlyEqual( fValue, fMissing );
+		const short sMissing = MissingValue;
+		const bool bMissing = sValue == sMissing;
 
 		// test for missing value
 		if ( bMissing )
 		{
-			Centigrade = fMissing;
+			CentigradeRaw = sMissing;
 			MeasurementType = mtMissing;
 
 		} else // data is not missing
 		{
 			// the file stores the data in 100ths of a degree centigrade
-			Centigrade = fValue / 100.0f;
+			CentigradeRaw = sValue;
 			MeasurementType = eType;
 		}
 	}
-
-	void WriteToDatabase
-	(
-		CClimateDatabase& db,
-		LPCTSTR stationID,
-		int year,
-		int month
-	);
-
 
 	// destructor
 	~CClimateTemperature()

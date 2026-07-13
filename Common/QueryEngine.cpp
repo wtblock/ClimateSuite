@@ -4,6 +4,7 @@
 #include "pch.h"
 #include "QueryEngine.h"
 #include "ClimateTemperature.h"
+#include "StationYear.h"
 #include "SmartArray.h"
 
 /////////////////////////////////////////////////////////////////////////////
@@ -172,6 +173,11 @@ bool CQueryEngine::DetectStationID(const CString& csQuery, CString& csStationID)
 		{
 			// Normalize to uppercase for DB lookup
 			CString csCandidate = tok;
+			csCandidate.Trim();
+
+			// remove trailing punctuation
+			csCandidate = CHelper::StripPunctuation(csCandidate);
+
 			csCandidate.MakeUpper();
 
 			if (StationExists(csCandidate))
@@ -376,17 +382,33 @@ bool CQueryEngine::Dispatch(const CString& csQuery, CString& csResult)
 	CString csStationID;
 	if (DetectStationID(csQuery, csStationID))  // you’d implement this
 	{
+		// decide measurement type: average / max / min
+		int nMeasureType = CClimateTemperature::MEASURE_TYPE::mtAverage;
+		if (csNormalized.Find(L"maximum") >= 0)
+			nMeasureType = CClimateTemperature::MEASURE_TYPE::mtMaximum;
+		else if (csNormalized.Find(L"minimum") >= 0)
+			nMeasureType = CClimateTemperature::MEASURE_TYPE::mtMinimum;
+
+		//---------------------------------------------------------------------
+		// reproduce original lines of source documents as a QC test
+		//---------------------------------------------------------------------
+		if (csNormalized.Find(L"reproduce") >= 0 &&
+			csNormalized.Find(L"decade") >= 0)
+		{
+			const int nTokens = (int)tokens.size();
+
+			const int decade = ParseDecadeNumber(tokens);
+			//const CClimateTemperature::MEASURE_TYPE eType = ParseMeasurementType(tokens);
+			//const CString csStation = ParseStationID(tokens);
+
+			csResult = QueryReproduceDecade(csStationID, decade, nMeasureType);
+			return true;
+		}
+
 		// Example: monthly temperature for a station
 		if (csNormalized.Find(L"monthly") >= 0 &&
 			csNormalized.Find(L"temperature") >= 0)
 		{
-			// decide measurement type: average / max / min
-			int nMeasureType = CClimateTemperature::MEASURE_TYPE::mtAverage;
-			if (csNormalized.Find(L"maximum") >= 0)
-				nMeasureType = CClimateTemperature::MEASURE_TYPE::mtMaximum;
-			else if (csNormalized.Find(L"minimum") >= 0)
-				nMeasureType = CClimateTemperature::MEASURE_TYPE::mtMinimum;
-
 			csResult = QueryMonthlyTemperaturesByStation
 			(
 				csStationID,
@@ -597,7 +619,6 @@ bool CQueryEngine::Dispatch(const CString& csQuery, CString& csResult)
 		return true;
 	}
 
-
 	//---------------------------------------------------------------------
 	// Step n: No match found
 	//---------------------------------------------------------------------
@@ -708,7 +729,7 @@ CString CQueryEngine::QueryMonthlyTemperaturesByState
 		L"SELECT "
 		L"m.Year, "
 		L"m.Month, "
-		L"AVG(m.Centigrade) AS AvgTemp "
+		L"AVG(m.CentigradeRaw) AS AvgTemp "
 		L"FROM Months m "
 		L"JOIN Stations s ON m.StationID = s.StationID "
 		L"WHERE s.State = '%s' "
@@ -804,8 +825,12 @@ CString CQueryEngine::QueryAnnualAveragesByState
 	const CString& /*csDSFlagFilter*/
 )
 {
-	return QueryAnnualByStateCommon(csState, 3, L"AvgValue", L"AvgTemp", bActive);
-
+	int nAverage = (int)CClimateTemperature::MEASURE_TYPE::mtAverage;
+	CString value = QueryAnnualByStateCommon
+	(
+		csState, nAverage, L"AvgValue", L"AvgTemp", bActive
+	);
+	return value;
 } // QueryAnnualAveragesByState
 
 /////////////////////////////////////////////////////////////////////////////
@@ -820,8 +845,12 @@ CString CQueryEngine::QueryAnnualMaximumsByState
 	const CString& /*csDSFlagFilter*/
 )
 {
-	return QueryAnnualByStateCommon(csState, 2, L"MaxValue", L"MaxTemp", bActive);
-
+	int nMaximum = (int)CClimateTemperature::MEASURE_TYPE::mtMaximum;
+	CString value = QueryAnnualByStateCommon
+	(
+		csState, nMaximum, L"MaxValue", L"MaxTemp", bActive
+	);
+	return value;
 } // QueryAnnualMaximumsByState
 
 /////////////////////////////////////////////////////////////////////////////
@@ -836,8 +865,13 @@ CString CQueryEngine::QueryAnnualMinimumsByState
 	const CString& /*csDSFlagFilter*/
 )
 {
-	return QueryAnnualByStateCommon(csState, 1, L"MinValue", L"MinTemp", bActive);
+	int nMinimum = (int)CClimateTemperature::MEASURE_TYPE::mtMinimum;
 
+	CString value = QueryAnnualByStateCommon
+	(
+		csState, nMinimum, L"MinValue", L"MinTemp", bActive
+	);
+	return value;
 } // QueryAnnualMinimumsByState
 
 /////////////////////////////////////////////////////////////////////////////
@@ -1015,7 +1049,7 @@ CString CQueryEngine::QueryMonthlyTemperaturesByStation
 	CString csSQL;
 	csSQL.Format
 	(
-		L"SELECT Year, Month, Centigrade, DMFlag, QCFlag, DSFlag "
+		L"SELECT Year, Month, CentigradeRaw, DMFlag, QCFlag, DSFlag "
 		L"FROM Months "
 		L"WHERE StationID = '%s' AND MeasurementType = %d ",
 		csStationID,
@@ -1044,7 +1078,7 @@ CString CQueryEngine::QueryMonthlyTemperaturesByStation
 	CSmartArray<CString> arrColumns;
 	arrColumns.append(L"Year");
 	arrColumns.append(L"Month");
-	arrColumns.append(L"Centigrade");
+	arrColumns.append(L"CentigradeRaw");
 	arrColumns.append(L"DMFlag");
 	arrColumns.append(L"QCFlag");
 	arrColumns.append(L"DSFlag");
@@ -1052,6 +1086,60 @@ CString CQueryEngine::QueryMonthlyTemperaturesByStation
 	return QuerySQL->FormatTable(arrColumns, arrRows);
 
 } // QueryMonthlyTemperaturesByStation
+
+/////////////////////////////////////////////////////////////////////////////
+CString CQueryEngine::QueryReproduceDecade
+(
+	const CString& csStation,
+	int nDecade,
+	int nMeasurementType
+)
+{
+	CString csResult;
+
+	if (csStation.IsEmpty())
+	{
+		csResult = L"Error: Station ID not specified.";
+		return csResult;
+	}
+
+	CClimateTemperature::MEASURE_TYPE eType =
+		(CClimateTemperature::MEASURE_TYPE)nMeasurementType;
+
+	// first year for this station + measurement type
+	CClimateDatabase* pDB = Database;
+	const int nFirstYear = pDB->GetFirstYear(csStation, eType);
+	if (nFirstYear <= 0)
+	{
+		csResult = L"Error: No data for station.";
+		return csResult;
+	}
+
+	int nStartYear = nFirstYear;
+	int nEndYear = nFirstYear + 9;
+
+	if (nDecade > 0)
+	{
+		nStartYear = nFirstYear + (nDecade - 1) * 10;
+		nEndYear = nStartYear + 9;
+	}
+	else // nDecade == -1 → last decade
+	{
+		const int nLastYear = pDB->GetLastYear(csStation, eType);
+		nEndYear = nLastYear;
+		nStartYear = nEndYear - 9;
+	}
+
+	for (int year = nStartYear; year <= nEndYear; ++year)
+	{
+		CStationYear stationYear(csStation, year, eType, pDB);
+		CString csLine = stationYear.ReproduceRawLine();
+		csResult += csLine;
+		csResult += L"\n";
+	}
+
+	return csResult;
+} // QueryReproduceDecade
 
 /////////////////////////////////////////////////////////////////////////////
 CString CQueryEngine::QueryStationSummary(const CString& csStationID)

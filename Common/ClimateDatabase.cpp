@@ -159,7 +159,7 @@ void CClimateDatabase::CreateSchema()
 		L" Year INTEGER, "
 		L" Month INTEGER, "
 		L" MeasurementType INTEGER, "
-		L" Centigrade REAL, "
+		L" CentigradeRaw INTEGER, "
 		L" DMFlag TEXT, "
 		L" QCFlag TEXT, "
 		L" DSFlag TEXT, "
@@ -228,5 +228,54 @@ bool CClimateDatabase::ExecuteTable
 
 	return (rc == SQLITE_DONE);
 } // ExecuteTable
+
+/////////////////////////////////////////////////////////////////////////////
+bool CClimateDatabase::LoadStationYear
+(
+	const CString& csStation,
+	int nYear,
+	int nType,
+	vector<shared_ptr<CClimateTemperature>>& months
+)
+{
+	months.clear();
+
+	sqlite3_stmt* stmt = Prepare(
+		L"SELECT Month, CentigradeRaw, DMFlag, QCFlag, DSFlag "
+		L"FROM Months "
+		L"WHERE StationID = ? AND Year = ? AND MeasurementType = ? "
+		L"ORDER BY Month;"
+	);
+
+	CClimateTemperature::MEASURE_TYPE eType = (CClimateTemperature::MEASURE_TYPE)nType;
+	BindText(stmt, 1, csStation);
+	BindInt(stmt, 2, nYear);
+	BindInt(stmt, 3, (int)eType);
+
+	while (Step(stmt))   // Step() returns true if SQLITE_ROW
+	{
+		int month = sqlite3_column_int(stmt, 0);
+		short raw = (short)sqlite3_column_int(stmt, 1);
+
+		CString dm = UTF8ToCString((const char*)sqlite3_column_text(stmt, 2));
+		CString qc = UTF8ToCString((const char*)sqlite3_column_text(stmt, 3));
+		CString ds = UTF8ToCString((const char*)sqlite3_column_text(stmt, 4));
+
+		auto pTemp = make_shared<CClimateTemperature>();
+
+		pTemp->CentigradeRaw = raw;
+		pTemp->DataMeasurementFlag = dm;
+		pTemp->QualityControlFlag = qc;
+		pTemp->DataSourceFlag = ds;
+
+		months.push_back(pTemp);
+	}
+
+	Finalize(stmt);
+
+	return months.size() == 12;
+
+} // LoadStationYear
+
 
 /////////////////////////////////////////////////////////////////////////////

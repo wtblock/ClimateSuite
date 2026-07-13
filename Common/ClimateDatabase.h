@@ -1,9 +1,10 @@
-/////////////////////////////////////////////////////////////////////////////
-// Copyright � 2026 by W. T. Block, all rights reserved
+﻿/////////////////////////////////////////////////////////////////////////////
+// Copyright © 2026 by W. T. Block, all rights reserved
 /////////////////////////////////////////////////////////////////////////////
 #pragma once
 #include "sqlite3.h"
 #include "SmartArray.h"
+#include "ClimateTemperature.h"
 
 /////////////////////////////////////////////////////////////////////////////
 // a wrapper class for the SQLite3.c code
@@ -57,6 +58,7 @@ public:
 	__declspec(property(get = GetMetadata, put = SetMetadata))
 		CString Metadata[];
 
+public:
 	/////////////////////////////////////////////////////////////////////////////
 	// Execute a SQL query and return a table of rows and columns.
 	//
@@ -75,9 +77,78 @@ public:
 		CSmartArray<CSmartArray<CString>>& arrRows
 	);
 
-public:
-	CClimateDatabase();
-	~CClimateDatabase();
+	bool LoadStationYear
+	(
+		const CString& csStation,
+		int nYear,
+		int nType,
+		vector<shared_ptr<CClimateTemperature>>& months
+	);
+
+	inline CString UTF8ToCString(const char* utf8)
+	{
+		if (utf8 == nullptr)
+			return CString();
+
+		int len = (int)strlen(utf8);
+		if (len == 0)
+			return CString();
+
+		// compute required UTF‑16 buffer size
+		int wlen = MultiByteToWideChar(CP_UTF8, 0, utf8, len, nullptr, 0);
+
+		CString result;
+		LPWSTR buffer = result.GetBuffer(wlen);
+
+		MultiByteToWideChar(CP_UTF8, 0, utf8, len, buffer, wlen);
+
+		result.ReleaseBuffer(wlen);
+		return result;
+	}
+
+	int GetFirstYear(const CString& stationID, CClimateTemperature::MEASURE_TYPE eType)
+	{
+		int year = 0;
+
+		sqlite3_stmt* stmt = Prepare(
+			L"SELECT MIN(Year) "
+			L"FROM Months "
+			L"WHERE StationID = ? AND MeasurementType = ?;"
+		);
+
+		BindText(stmt, 1, stationID);
+		BindInt(stmt, 2, (int)eType);
+
+		if (Step(stmt))   // Step() returns true if SQLITE_ROW
+		{
+			year = sqlite3_column_int(stmt, 0);
+		}
+
+		Finalize(stmt);
+		return year;
+	}
+
+	int GetLastYear(const CString& stationID, CClimateTemperature::MEASURE_TYPE eType)
+	{
+		int year = 0;
+
+		sqlite3_stmt* stmt = Prepare(
+			L"SELECT MAX(Year) "
+			L"FROM Months "
+			L"WHERE StationID = ? AND MeasurementType = ?;"
+		);
+
+		BindText(stmt, 1, stationID);
+		BindInt(stmt, 2, (int)eType);
+
+		if (Step(stmt))   // Step() returns true if SQLITE_ROW
+		{
+			year = sqlite3_column_int(stmt, 0);
+		}
+
+		Finalize(stmt);
+		return year;
+	}
 
 	bool Open(LPCTSTR path);
 	void Close();
@@ -96,6 +167,9 @@ public:
 	bool BindText(sqlite3_stmt* stmt, int index, LPCTSTR value);
 
 	void CreateSchema();
+
+	CClimateDatabase();
+	~CClimateDatabase();
 
 };
 

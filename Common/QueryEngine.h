@@ -5,6 +5,7 @@
 #include "QuerySQL.h"
 #include "ClimateDatabase.h"
 #include "KeyedCollection.h"
+#include "ClimateTemperature.h"
 
 /////////////////////////////////////////////////////////////////////////////
 // 
@@ -158,6 +159,49 @@ protected:
 		return value;
 	}
 
+	int ParseDecadeNumber(const vector<CString>& tokens)
+	{
+		for (int i = 0; i < (int)tokens.size(); ++i)
+		{
+			const CString& t = tokens[i];
+
+			if (t.CompareNoCase(L"first") == 0)  return 1;
+			if (t.CompareNoCase(L"second") == 0) return 2;
+			if (t.CompareNoCase(L"third") == 0)  return 3;
+			if (t.CompareNoCase(L"last") == 0)   return -1; // special case
+
+			// numeric decade: "decade 3"
+			if (t.SpanIncluding(L"0123456789").GetLength() == t.GetLength())
+			{
+				return _wtoi(t);
+			}
+		}
+		return 1; // default to first decade
+	}
+
+	CClimateTemperature::MEASURE_TYPE ParseMeasurementType(const vector<CString>& tokens)
+	{
+		for (const auto& t : tokens)
+		{
+			if (t.Find(L"max") >= 0)  return CClimateTemperature::MEASURE_TYPE::mtMaximum;
+			if (t.Find(L"min") >= 0)  return CClimateTemperature::MEASURE_TYPE::mtMinimum;
+			if (t.Find(L"avg") >= 0)  return CClimateTemperature::MEASURE_TYPE::mtAverage;
+		}
+		return CClimateTemperature::MEASURE_TYPE::mtMaximum; // default
+	}
+
+	CString ParseStationID(const vector<CString>& tokens)
+	{
+		for (const auto& t : tokens)
+		{
+			if (t.GetLength() == 11 && t.Left(3).CompareNoCase(L"USH") == 0)
+			{
+				return t;
+			}
+		}
+		return CString(); // empty if not found
+	}
+
 // public methods
 public:
 	// dispatch a natural language query to the appropriate SQL query
@@ -254,6 +298,13 @@ public:
 		bool bExcludeEstimated,
 		bool bExcludeQC,
 		const CString& csDSFlagFilter
+	);
+
+	CString QueryReproduceDecade
+	(
+		const CString& csStation,
+		int nDecade,
+		int nMeasurementType
 	);
 
 	CString QueryStationSummary(const CString& csStationID);

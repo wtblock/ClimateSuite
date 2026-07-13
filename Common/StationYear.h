@@ -3,6 +3,7 @@
 /////////////////////////////////////////////////////////////////////////////
 #pragma once
 #include "ClimateTemperature.h"
+#include "ClimateDatabase.h"
 #include <vector>
 
 /////////////////////////////////////////////////////////////////////////////
@@ -275,7 +276,7 @@ public:
 	inline float GetMaximum()
 	{
 		// value which indicates missing data
-		const float fMissing = CClimateTemperature::GetMissingValue();
+		const short sMissing = CClimateTemperature::GetMissingValue();
 
 		bool bFirst = true;
 
@@ -284,7 +285,7 @@ public:
 
 		// if the maximum has already been calculated, use the 
 		// persisted value;
-		if ( !CHelper::NearlyEqual( value, fMissing ))
+		if ( !CHelper::NearlyEqual( value, (float)sMissing ))
 		{
 			return value;
 		}
@@ -328,7 +329,7 @@ public:
 	inline float GetMinimum()
 	{
 		// value which indicates missing data
-		const float fMissing = CClimateTemperature::GetMissingValue();
+		const short sMissing = CClimateTemperature::GetMissingValue();
 
 		bool bFirst = true;
 
@@ -337,7 +338,7 @@ public:
 
 		// if the minimum has already been calculated, use the 
 		// persisted value;
-		if ( !CHelper::NearlyEqual( value, fMissing ) )
+		if (!CHelper::NearlyEqual(value, (float)sMissing))
 		{
 			return value;
 		}
@@ -381,14 +382,14 @@ public:
 	inline float GetAverage()
 	{
 		// value which indicates missing data
-		const float fMissing = CClimateTemperature::GetMissingValue();
+		const short sMissing = CClimateTemperature::GetMissingValue();
 
 		// begin with the persisted value
 		float value = m_fValue;
 
 		// if the average has already been calculated, use the 
 		// persisted value;
-		if ( !CHelper::NearlyEqual( value, fMissing ))
+		if (!CHelper::NearlyEqual(value, (float)sMissing))
 		{
 			return value;
 		}
@@ -446,10 +447,10 @@ public:
 	inline float GetValue()
 	{
 		// value which indicates missing data
-		const float fMissing = CClimateTemperature::GetMissingValue();
+		const short sMissing = CClimateTemperature::GetMissingValue();
 
 		// begin with the empty value
-		float value = fMissing;
+		float value = (float)sMissing;
 
 		// the value to calculate depend on the measurement type
 		CClimateTemperature::MEASURE_TYPE eType = MeasurementType;
@@ -473,7 +474,7 @@ public:
 			}
 			default :
 			{
-				value = fMissing;
+				value = (float)sMissing;
 			}
 		}
 
@@ -599,6 +600,10 @@ protected:
 
 // public methods
 public:
+	// used as a quality control test to verify the original USHCN
+	// can be reproduced from the database.
+	CString ReproduceRawLine();
+
 	// write our data into the database
 	void WriteToDatabase
 	(
@@ -619,10 +624,10 @@ public:
 	CStationYear()
 	{
 		// value which indicates missing data
-		const float fMissing = CClimateTemperature::GetMissingValue();
+		const short sMissing = CClimateTemperature::GetMissingValue();
 
 		// initialize the value to missing to force a calculation
-		Value = fMissing;
+		Value = (float)sMissing;
 
 		// number of valid readings
 		ValidReadings = -1;
@@ -631,14 +636,47 @@ public:
 		MeasurementType = CClimateTemperature::mtMissing;
 	}
 
+	CStationYear
+	(
+		CString csStation,
+		int nYear,
+		CClimateTemperature::MEASURE_TYPE eType,
+		CClimateDatabase* pDB
+	)
+	{
+		m_csStation = csStation;
+		m_csYear.Format(L"%04d", nYear);
+		m_eMeasurementType = eType;
+
+		m_arrMonths.clear();
+		// value which indicates missing data
+		const short sMissing = CClimateTemperature::GetMissingValue();
+
+		// initialize the value to missing to force a calculation
+		Value = (float)sMissing;
+
+		m_nValidReadings = 0;
+
+		// Load months from database
+		pDB->LoadStationYear(csStation, nYear, eType, m_arrMonths);
+
+		// Count valid readings
+		for (auto& pTemp : m_arrMonths)
+		{
+			if (!pTemp->Missing)
+				m_nValidReadings++;
+		}
+	}
+
+
 	// constructor using a source line of text and the measurement type
 	CStationYear( CString& source, CClimateTemperature::MEASURE_TYPE eType )
 	{
 		// value which indicates missing data
-		const float fMissing = CClimateTemperature::GetMissingValue();
+		short sMissing = CClimateTemperature::GetMissingValue();
 
 		// initialize the value to missing to force a calculation
-		Value = fMissing;
+		Value = (float)sMissing;
 
 		// number of valid readings
 		ValidReadings = -1;
