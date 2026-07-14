@@ -141,9 +141,14 @@ int _tmain(int argc, TCHAR* argv[], TCHAR* envp[])
 			L".    QueryUSHCN Verify annual averages for station USH00419532.\n"
 			L".    QueryUSHCN Verify annual counts for station USH00419532.\n"
 			L".\n"
+			L".    QueryUSHCN Verify greater-than counts for station USH00419532.\n"
+			L".    QueryUSHCN Verify months above 100F for station USH00419532.\n"
+			L".    QueryUSHCN Verify threshold counts for station USH00419532.\n"
+			L".\n"
 			L".  You may copy and paste any of the above queries.\n"
 			L".\n"
 		);
+
 
 
 		return 3;

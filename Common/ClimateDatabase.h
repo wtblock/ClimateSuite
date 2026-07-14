@@ -85,6 +85,14 @@ public:
 		vector<shared_ptr<CClimateTemperature>>& months
 	);
 
+	bool LoadGreaterCounts
+	(
+		const CString& csStation,
+		int nYear,
+		int nType,
+		vector<pair<int,int> >& counts
+	);
+
 	inline CString UTF8ToCString(const char* utf8)
 	{
 		if (utf8 == nullptr)

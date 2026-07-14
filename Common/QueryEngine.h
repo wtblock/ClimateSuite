@@ -300,6 +300,9 @@ public:
 		const CString& csDSFlagFilter
 	);
 
+	CString QueryVerifyGreaterCounts(const CString& csStation);
+
+
 	CString QueryVerifyAnnualCounts(const CString& csStation);
 
 	CString QueryVerifyAnnual

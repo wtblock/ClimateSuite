@@ -660,6 +660,8 @@ public:
 		// Load months from database
 		pDB->LoadStationYear(csStation, nYear, eType, m_arrMonths);
 
+		pDB->LoadGreaterCounts(csStation, nYear, MeasurementType, m_GreaterCounts);
+
 		// Count valid readings
 		for (auto& pTemp : m_arrMonths)
 		{

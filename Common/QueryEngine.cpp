@@ -405,6 +405,35 @@ bool CQueryEngine::Dispatch(const CString& csQuery, CString& csResult)
 			return true;
 		}
 
+		// verify greater-than counts for a station
+		if (csNormalized.Find(L"verify") >= 0 &&
+			csNormalized.Find(L"greater") >= 0 &&
+			csNormalized.Find(L"count") >= 0 &&
+			csNormalized.Find(L"station") >= 0)
+		{
+			csResult = QueryVerifyGreaterCounts(csStationID);
+			return true;
+		}
+
+		// alternate phrasing: "verify months above 100f"
+		if (csNormalized.Find(L"verify") >= 0 &&
+			csNormalized.Find(L"above") >= 0 &&
+			csNormalized.Find(L"station") >= 0)
+		{
+			csResult = QueryVerifyGreaterCounts(csStationID);
+			return true;
+		}
+
+		// alternate phrasing: "verify threshold counts"
+		if (csNormalized.Find(L"verify") >= 0 &&
+			csNormalized.Find(L"threshold") >= 0 &&
+			csNormalized.Find(L"count") >= 0 &&
+			csNormalized.Find(L"station") >= 0)
+		{
+			csResult = QueryVerifyGreaterCounts(csStationID);
+			return true;
+		}
+
 		// verify the annual values counted
 		if (csNormalized.Find(L"verify") >= 0 &&
 			csNormalized.Find(L"annual") >= 0 &&
@@ -1103,6 +1132,84 @@ CString CQueryEngine::QueryMonthlyTemperaturesByStation
 	return QuerySQL->FormatTable(arrColumns, arrRows);
 
 } // QueryMonthlyTemperaturesByStation
+
+/////////////////////////////////////////////////////////////////////////////
+CString CQueryEngine::QueryVerifyGreaterCounts(const CString& csStation)
+{
+	CString csResult;
+
+	CClimateDatabase* pDB = Database;
+
+	// We verify greater-than counts for all three measurement types
+	// because greater-than logic is independent of tmin/tmax/tavg.
+	const auto types = 
+	{
+		CClimateTemperature::mtMinimum,
+		CClimateTemperature::mtMaximum,
+		CClimateTemperature::mtAverage
+	};
+
+	for (auto eType : types)
+	{
+		int firstYear = pDB->GetFirstYear(csStation, eType);
+		int lastYear = pDB->GetLastYear(csStation, eType);
+
+		for (int year = firstYear; year <= lastYear; ++year)
+		{
+			// Load raw monthly values
+			vector<shared_ptr<CClimateTemperature>> months;
+			pDB->LoadStationYear(csStation, year, eType, months);
+
+			// Independent QC calculation of greater-than counts
+			// Thresholds: 90°F to 130°F in 5°F increments
+			vector<int> qcCounts;
+			for (int n = 90; n <= 130; n += 5)
+			{
+				int count = 0;
+
+				for (auto& m : months)
+				{
+					if (!m->Missing)
+					{
+						float fValue = m->Fahrenheit;
+						if (fValue > n)
+							count++;
+					}
+				}
+
+				qcCounts.push_back(count);
+			}
+
+			// Importer values
+			CStationYear stationYear(csStation, year, eType, pDB);
+			const auto& impCounts = stationYear.GreaterCounts;
+
+			// Output formatting
+			csResult.AppendFormat(
+				L"%s %d  ",
+				csStation.GetString(),
+				year
+			);
+
+			// Print each threshold comparison
+			int idx = 0;
+			for (int n = 90; n <= 130; n += 5)
+			{
+				csResult.AppendFormat(
+					L">%dF: %2d / %2d   ",
+					n,
+					impCounts[idx].second,
+					qcCounts[idx]
+				);
+				idx++;
+			}
+
+			csResult.Append(L"\n");
+		}
+	}
+
+	return csResult;
+} // QueryVerifyGreaterCounts
 
 /////////////////////////////////////////////////////////////////////////////
 CString CQueryEngine::QueryVerifyAnnualCounts(const CString& csStation)

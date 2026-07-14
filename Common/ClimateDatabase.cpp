@@ -277,5 +277,41 @@ bool CClimateDatabase::LoadStationYear
 
 } // LoadStationYear
 
+/////////////////////////////////////////////////////////////////////////////
+bool CClimateDatabase::LoadGreaterCounts
+(
+	const CString& csStation,
+	int nYear,
+	int nType,
+	vector<pair<int,int> >& counts
+)
+{
+	counts.clear();
+
+	sqlite3_stmt* stmt = Prepare
+	(
+		L"SELECT ThresholdF, Count "
+		L"FROM GreaterCounts "
+		L"WHERE StationID = ? AND Year = ? AND MeasurementType = ? "
+		L"ORDER BY ThresholdF;"
+	);
+
+	BindText(stmt, 1, csStation);
+	BindInt(stmt, 2, nYear);
+	BindInt(stmt, 3, nType);
+
+	while (Step(stmt))
+	{
+		int threshold = sqlite3_column_int(stmt, 0);
+		int count = sqlite3_column_int(stmt, 1);
+
+		counts.push_back(pair<int,int>(threshold, count));
+	}
+
+	Finalize(stmt);
+
+	return !counts.empty();
+} // LoadGreaterCounts
+
 
 /////////////////////////////////////////////////////////////////////////////
