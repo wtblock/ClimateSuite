@@ -405,6 +405,23 @@ bool CQueryEngine::Dispatch(const CString& csQuery, CString& csResult)
 			return true;
 		}
 
+		// verify the annual values counted
+		if (csNormalized.Find(L"verify") >= 0 &&
+			csNormalized.Find(L"annual") >= 0 &&
+			csNormalized.Find(L"count") >= 0)
+		{
+			csResult = QueryVerifyAnnualCounts(csStationID);
+			return true;
+		}
+
+		// verify the annual min, max, or avg values
+		if (csNormalized.Find(L"verify") >= 0 &&
+			csNormalized.Find(L"annual") >= 0)
+		{
+			csResult = QueryVerifyAnnual(csStationID, nMeasureType);
+			return true;
+		}
+
 		// Example: monthly temperature for a station
 		if (csNormalized.Find(L"monthly") >= 0 &&
 			csNormalized.Find(L"temperature") >= 0)
@@ -1086,6 +1103,127 @@ CString CQueryEngine::QueryMonthlyTemperaturesByStation
 	return QuerySQL->FormatTable(arrColumns, arrRows);
 
 } // QueryMonthlyTemperaturesByStation
+
+/////////////////////////////////////////////////////////////////////////////
+CString CQueryEngine::QueryVerifyAnnualCounts(const CString& csStation)
+{
+	CString csResult;
+
+	CClimateDatabase* pDB = Database;
+
+	// We must check counts for all three measurement types
+	// because counts are independent of tmin/tmax/tavg.
+	const auto types = 
+	{
+		CClimateTemperature::mtMinimum,
+		CClimateTemperature::mtMaximum,
+		CClimateTemperature::mtAverage
+	};
+
+	for (auto eType : types)
+	{
+		int firstYear = pDB->GetFirstYear(csStation, eType);
+		int lastYear = pDB->GetLastYear(csStation, eType);
+
+		for (int year = firstYear; year <= lastYear; ++year)
+		{
+			vector<shared_ptr<CClimateTemperature>> months;
+			pDB->LoadStationYear(csStation, year, eType, months);
+
+			int calcCount = 0;
+			for (auto& m : months)
+				if (!m->Missing)
+					calcCount++;
+
+			CStationYear stationYear(csStation, year, eType, pDB);
+			int impCount = stationYear.ValidReadings;
+
+			csResult.AppendFormat
+			(
+				L"%s %d  Count: %2d / %2d\n",
+				csStation.GetString(),
+				year,
+				impCount,
+				calcCount
+			);
+		}
+	}
+
+	return csResult;
+}
+
+
+/////////////////////////////////////////////////////////////////////////////
+CString CQueryEngine::QueryVerifyAnnual
+(
+	const CString& csStation,
+	int nMeasurementType
+)
+{
+	CString csResult;
+
+	CClimateDatabase* pDB = Database;
+
+	CClimateTemperature::MEASURE_TYPE eType =
+		(CClimateTemperature::MEASURE_TYPE)nMeasurementType;
+
+	const int firstYear = pDB->GetFirstYear(csStation, eType);
+	const int lastYear = pDB->GetLastYear(csStation, eType);
+
+	for (int year = firstYear; year <= lastYear; ++year)
+	{
+		// Load raw monthly values
+		vector<shared_ptr<CClimateTemperature>> months;
+		pDB->LoadStationYear(csStation, year, eType, months);
+
+		// Independent calculations
+		const short missing = CClimateTemperature::GetMissingValue();
+
+		float calcMin = +FLT_MAX;
+		float calcMax = -FLT_MAX;
+		float calcSum = 0;
+		int   calcCount = 0;
+
+		for (auto& m : months)
+		{
+			if (!m->Missing)
+			{
+				calcMin = min(calcMin, m->CentigradeRaw);
+				calcMax = max(calcMax, m->CentigradeRaw);
+				calcSum += m->CentigradeRaw;
+				calcCount++;
+			}
+		}
+
+		float calcAvg = (calcCount > 0 ? calcSum / calcCount : (float)missing);
+
+		// Importer values
+		CStationYear stationYear(csStation, year, eType, pDB);
+		float impValue = stationYear.Value;   // <-- the correct annual value
+		int   impCount = stationYear.ValidReadings;
+
+		// Choose correct comparison based on measurement type
+		float calcValueRaw = (eType == CClimateTemperature::mtMaximum) ? calcMax :
+			(eType == CClimateTemperature::mtMinimum) ? calcMin :
+			calcAvg;
+
+		// Convert raw hundredths-of-degree to degrees
+		float calcValue = calcValueRaw / 100.0f;
+
+		// Output with two decimal places
+		csResult.AppendFormat(
+			L"%s %d  Value: %8.2f / %8.2f   Count: %2d / %2d\n",
+			csStation.GetString(),
+			year,
+			impValue,
+			calcValue,
+			impCount,
+			calcCount
+		);
+	}
+
+	return csResult;
+} // QueryVerifyAnnual
 
 /////////////////////////////////////////////////////////////////////////////
 CString CQueryEngine::QueryReproduceDecade

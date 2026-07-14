@@ -300,6 +300,14 @@ public:
 		const CString& csDSFlagFilter
 	);
 
+	CString QueryVerifyAnnualCounts(const CString& csStation);
+
+	CString QueryVerifyAnnual
+	(
+		const CString& csStation,
+		int eType
+	);
+
 	CString QueryReproduceDecade
 	(
 		const CString& csStation,

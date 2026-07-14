@@ -136,9 +136,15 @@ int _tmain(int argc, TCHAR* argv[], TCHAR* envp[])
 			L".    QueryUSHCN Reproduce decade 3 for station USH00419532 maximums.\n"
 			L".    QueryUSHCN Reproduce last decade for station USH00419532 averages.\n"
 			L".\n"
+			L".    QueryUSHCN Verify annual maximums for station USH00419532.\n"
+			L".    QueryUSHCN Verify annual minimums for station USH00419532.\n"
+			L".    QueryUSHCN Verify annual averages for station USH00419532.\n"
+			L".    QueryUSHCN Verify annual counts for station USH00419532.\n"
+			L".\n"
 			L".  You may copy and paste any of the above queries.\n"
 			L".\n"
 		);
+
 
 		return 3;
 	}
