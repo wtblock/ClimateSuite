@@ -72,6 +72,12 @@
     <ClInclude Include="QuerySQL.h">
       <Filter>Header Files</Filter>
     </ClInclude>
+    <ClInclude Include="NaturalLanguage.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="ClimateYear.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="Common.cpp">
@@ -117,6 +123,12 @@
       <Filter>Source Files</Filter>
     </ClCompile>
     <ClCompile Include="QuerySQL.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="NaturalLanguage.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="ClimateYear.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
   </ItemGroup>

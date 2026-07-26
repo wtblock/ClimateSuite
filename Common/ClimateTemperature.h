@@ -298,7 +298,8 @@ public:
 		{
 			value = float(sRaw);
 			value /= 100.0f;
-			value *= 1.8f + 32.0f;
+			value *= 1.8f;
+			value += 32.0f;
 		}
 
 		return value;
@@ -443,13 +444,13 @@ public:
 		const short sMissing = MissingValue;
 		const bool bMissing = sValue == sMissing;
 
-		// test for missing value
-		if ( bMissing )
-		{
-			CentigradeRaw = sMissing;
-			MeasurementType = mtMissing;
+		//// test for missing value
+		//if ( bMissing )
+		//{
+		//	CentigradeRaw = sMissing;
+		//	MeasurementType = mtMissing;
 
-		} else // data is not missing
+		//} else // data is not missing
 		{
 			// the file stores the data in 100ths of a degree centigrade
 			CentigradeRaw = sValue;

@@ -133,88 +133,70 @@ CString CQuerySQL::DescribeSchema(CClimateDatabase* pDB)
 // This is generic and reusable.
 //
 /////////////////////////////////////////////////////////////////////////////
-CString CQuerySQL::FormatTable
-(
+CString CQuerySQL::FormatTable(
 	const CSmartArray<CString>& arrColumns,
-	const CSmartArray<CSmartArray<CString>>& arrRows
+	const CSmartArray<CSmartArray<CString>>& arrRows,
+	const CSmartArray<CString>* pUnitsRow // NEW optional parameter
 )
 {
-	CString csResult;
+	CString csOut;
 
-	// compute column widths
-	CSmartArray<int> arrWidths;
-	arrColumns.Count;
-
-	arrWidths.resize(arrColumns.Count);
-
-	for (long c = 0; c < arrColumns.Count; c++)
+	// Determine column widths
+	std::vector<int> colWidths(arrColumns.Count);
+	for (int i = 0; i < arrColumns.Count; i++)
 	{
-		auto pCol = arrColumns.get(c);
-		arrWidths.set(c, std::make_shared<int>(pCol ? pCol->GetLength() : 0));
+		colWidths[i] = arrColumns.get(i)->GetLength();
+
+		if (pUnitsRow)
+			colWidths[i] = max(colWidths[i], pUnitsRow->get(i)->GetLength());
 	}
 
+	// Also consider row data
 	for (long r = 0; r < arrRows.Count; r++)
 	{
 		auto pRow = arrRows.get(r);
-		if (!pRow)
-			continue;
-
-		for (long c = 0; c < pRow->Count; c++)
+		for (int c = 0; c < pRow->Count; c++)
 		{
-			auto pValue = pRow->get(c);
-			if (pValue)
-			{
-				int len = pValue->GetLength();
-				auto pWidth = arrWidths.get(c);
-				if (pWidth && len > *pWidth)
-					arrWidths.set(c, std::make_shared<int>(len));
-			}
+			colWidths[c] = max(colWidths[c], pRow->get(c)->GetLength());
 		}
 	}
 
-	// header
-	for (long c = 0; c < arrColumns.Count; c++)
+	// Print column titles
+	for (int i = 0; i < arrColumns.Count; i++)
 	{
-		auto pCol = arrColumns.get(c);
-		auto pWidth = arrWidths.get(c);
-
-		CString csTemp;
-		csTemp.Format(L"%-*s  ", pWidth ? *pWidth : 0, pCol ? pCol->GetString() : L"");
-		csResult += csTemp;
+		csOut.AppendFormat(L"%-*s  ", colWidths[i], arrColumns.get(i)->GetString());
 	}
-	csResult += L"\n";
+	csOut += L"\n";
 
-	// separator
-	for (long c = 0; c < arrColumns.Count; c++)
+	// Print units row (if provided)
+	if (pUnitsRow)
 	{
-		auto pWidth = arrWidths.get(c);
-		CString csTemp;
-		csTemp.Format(L"%-*s  ", pWidth ? *pWidth : 0, CString(L"-").Left(pWidth ? *pWidth : 0));
-		csResult += csTemp;
+		for (int i = 0; i < pUnitsRow->Count; i++)
+		{
+			csOut.AppendFormat(L"%-*s  ", colWidths[i], pUnitsRow->get(i)->GetString());
+		}
+		csOut += L"\n";
 	}
-	csResult += L"\n";
 
-	// rows
+	// Print separator
+	for (int i = 0; i < arrColumns.Count; i++)
+	{
+		csOut.AppendFormat(L"%-*s  ", colWidths[i], L"-");
+	}
+	csOut += L"\n";
+
+	// Print rows
 	for (long r = 0; r < arrRows.Count; r++)
 	{
 		auto pRow = arrRows.get(r);
-		if (!pRow)
-			continue;
-
-		for (long c = 0; c < pRow->Count; c++)
+		for (int c = 0; c < pRow->Count; c++)
 		{
-			auto pValue = pRow->get(c);
-			auto pWidth = arrWidths.get(c);
-
-			CString csTemp;
-			csTemp.Format(L"%-*s  ", pWidth ? *pWidth : 0, pValue ? pValue->GetString() : L"");
-			csResult += csTemp;
+			csOut.AppendFormat(L"%-*s  ", colWidths[c], pRow->get(c)->GetString());
 		}
-
-		csResult += L"\n";
+		csOut += L"\n";
 	}
 
-	return csResult;
+	return csOut;
 }
 
 /////////////////////////////////////////////////////////////////////////////

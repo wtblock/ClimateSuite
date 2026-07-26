@@ -1,9 +1,8 @@
 /////////////////////////////////////////////////////////////////////////////
-// Copyright © by W. T. Block, all rights reserved
+// Copyright © 2022 by W. T. Block, all rights reserved
 /////////////////////////////////////////////////////////////////////////////
-#pragma once
 
-#include "resource.h"
-#include "ClimateDatabase.h"
+#include "pch.h"
+#include "ClimateYear.h"
 
-using namespace std;
+

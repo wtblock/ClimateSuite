@@ -14,6 +14,11 @@
 using namespace std;
 using namespace Gdiplus;
 
+#pragma warning(disable: 4244)	
+#pragma warning(disable: 6031)	
+#pragma warning(disable: 6284)	
+#pragma warning(disable: 26451)	
+
 class CHelper
 {
 public:
@@ -756,7 +761,7 @@ public:
 
 	/////////////////////////////////////////////////////////////////////////////
 	// validate given string is numeric
-	bool ValidateNumeric(LPCTSTR value)
+	static bool ValidateNumeric(LPCTSTR value)
 	{
 		bool bValue = false;
 		TCHAR* stop;
@@ -838,10 +843,10 @@ public:
 	static inline CString MakeGUID()
 	{
 		GUID guid;
-		::CoCreateGuid(&guid);
+		HRESULT hr = ::CoCreateGuid(&guid);
 		const int nLen = 39; // make room for null character at the end
 		OLECHAR str[nLen];
-		::StringFromGUID2(guid, str, nLen);
+		int nRet = ::StringFromGUID2(guid, str, nLen);
 		CString csGuid(str);
 		csGuid.MakeLower();
 		return csGuid;
@@ -866,7 +871,7 @@ public:
 	{
 		const int nLen = 39; // allow for terminating null
 		OLECHAR str[nLen];
-		::StringFromGUID2(guid, str, nLen);
+		int nRet = ::StringFromGUID2(guid, str, nLen);
 		CString csGuid(str);
 		csGuid.MakeLower();
 		return csGuid;
@@ -878,7 +883,7 @@ public:
 	static inline CString CreateGUID()
 	{
 		GUID guid;
-		::CoCreateGuid(&guid);
+		HRESULT hr = ::CoCreateGuid(&guid);
 		CString value = MakeStringGUID(guid);
 		return value;
 	}
@@ -1052,7 +1057,7 @@ public:
 		CFile file;
 		if (!file.Open(csPath, CFile::modeRead | CFile::shareDenyWrite))
 		{
-			csError.Format(L"Failed to open image file: %s", csPath);
+			csError.Format(L"Failed to open image file: %s", csPath.GetString());
 			return nullptr;
 		}
 
@@ -1066,7 +1071,7 @@ public:
 		HRESULT hr = ::CreateStreamOnHGlobal(nullptr, TRUE, &pStream);
 		if (hr != S_OK)
 		{
-			csError.Format(L"Failed to create the stream: %s");
+			csError.Format(L"Failed to create the stream: %s", csPath.GetString());
 			return nullptr;
 		}
 
@@ -1081,7 +1086,7 @@ public:
 		if (!pBitmap || pBitmap->GetLastStatus() != Ok)
 		{
 			csError.Format
-			(L"Failed to load image from memory: %s", csPath);
+			(L"Failed to load image from memory: %s", csPath.GetString());
 			return nullptr;
 		}
 
@@ -1101,7 +1106,7 @@ public:
 		CFile file;
 		if (!file.Open(csPath, CFile::modeRead | CFile::shareDenyWrite))
 		{
-			csError.Format(L"Failed to open: %s", csPath);
+			csError.Format(L"Failed to open: %s", csPath.GetString());
 			return nullptr;
 		}
 
@@ -1116,7 +1121,7 @@ public:
 		if (hr != S_OK)
 		{
 			csError.Format
-			(L"Failed to create the stream: %s", csPath);
+			(L"Failed to create the stream: %s", csPath.GetString());
 			return nullptr;
 		}
 
@@ -1131,7 +1136,7 @@ public:
 		if (!pImage || pImage->GetLastStatus() != Ok)
 		{
 			csError.Format
-			(L"Failed to load image from memory: %s", csPath);
+			(L"Failed to load image from memory: %s", csPath.GetString());
 			return nullptr;
 		}
 
@@ -1536,14 +1541,14 @@ public:
 		CString csOutput;
 		if (pcscFile == 0)
 		{
-			csOutput.Format(_T("%s\n"), csMessage);
+			csOutput.Format(_T("%s\n"), csMessage.GetString());
 
 		}
 		else if (nLine == -1)
 		{
 			csOutput.Format
 			(
-				_T("%s error in file: %s\n"), csMessage, pcscFile
+				_T("%s error in file: %s\n"), csMessage.GetString(), pcscFile
 			);
 		}
 		else
@@ -1551,7 +1556,7 @@ public:
 			csOutput.Format
 			(
 				_T("%s error in file: %s at line: %06d\n"),
-				csMessage, pcscFile, nLine
+				csMessage.GetString(), pcscFile, nLine
 			);
 		}
 		return csMessage;
@@ -1687,7 +1692,7 @@ public:
 		{
 			value.Format
 			(
-				L"%s {%d}", csNoVersion, nVersion++
+				L"%s {%d}", csNoVersion.GetString(), nVersion++
 			);
 		}
 

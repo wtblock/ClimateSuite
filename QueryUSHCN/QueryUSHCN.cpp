@@ -1,11 +1,13 @@
-/////////////////////////////////////////////////////////////////////////////
-// Copyright � 2022 by W. T. Block, all rights reserved
+﻿/////////////////////////////////////////////////////////////////////////////
+// Copyright © 2022 by W. T. Block, all rights reserved
 /////////////////////////////////////////////////////////////////////////////
 
 #include "pch.h"
 #include "QueryUSHCN.h"
 #include "CHelper.h"
 #include "QueryEngine.h"
+#include "CommandLine.h"
+#include <memory>
 
 #ifdef _DEBUG
 #define new DEBUG_NEW
@@ -36,6 +38,9 @@ int _tmain(int argc, TCHAR* argv[], TCHAR* envp[])
 		return 2;
 	}
 
+	CCommandLine cl;
+	theApp.ParseCommandLine(cl);
+
 	// do some common command line argument corrections
 	vector<CString> arrArgs = CHelper::CorrectedCommandLine(argc, argv);
 	size_t nArgs = arrArgs.size();
@@ -47,8 +52,10 @@ int _tmain(int argc, TCHAR* argv[], TCHAR* envp[])
 	// display the number of arguments if not 1 to help the user 
 	// understand what went wrong if there is an error in the
 	// command line syntax
-	if (nArgs == 1)
+	if (nArgs < 3 && !cl.Dump)
 	{
+		CString csOutput = cl.Output;
+
 		fErr.WriteString(L".\n");
 		csMessage.Format
 		(
@@ -91,65 +98,19 @@ int _tmain(int argc, TCHAR* argv[], TCHAR* envp[])
 
 		fErr.WriteString
 		(
-			L".  query_text is a natural language question about the data. \n"
-			L".\n"
-			L".  Examples:\n"
-			L".    QueryUSHCN List your table schemas.\n"
-			L".    QueryUSHCN What version of the data is in the database?\n"
-			L".\n"
-			L".    QueryUSHCN List stations.\n"
-			L".    QueryUSHCN List stations in Texas.\n"
-			L".    QueryUSHCN List stations in North Dakota.\n"
-			L".    QueryUSHCN Show stations in CA.\n"
-			L".\n"
-			L".    QueryUSHCN Show active stations.\n"
-			L".    QueryUSHCN List active stations with city and state.\n"
-			L".    QueryUSHCN Show active stations in Colorado.\n"
-			L".\n"
-			L".    QueryUSHCN Monthly temperatures in Texas.\n"
-			L".    QueryUSHCN Monthly temperatures in California.\n"
-			L".\n"
-			L".    QueryUSHCN Annual averages in Oklahoma.\n"
-			L".    QueryUSHCN Annual averages in Colorado.\n"
-			L".\n"
-			L".    QueryUSHCN Annual maximums in Texas.\n"
-			L".    QueryUSHCN Annual minimums in Montana.\n"
-			L".\n"
-			L".    QueryUSHCN Temperature trend in Colorado.\n"
-			L".    QueryUSHCN Temperature trend in Texas.\n"
-			L".\n"
-			L".    QueryUSHCN Pure raw annual averages in Oklahoma.\n"
-			L".    QueryUSHCN Monthly temperatures in Utah excluding estimated values.\n"
-			L".    QueryUSHCN Annual maximums in Kansas excluding QC flags.\n"
-			L".\n"
-			L".    QueryUSHCN Show DSFLAG meanings.\n"
-			L".    QueryUSHCN Explain data source flags.\n"
-			L".    QueryUSHCN List DSFLAG values.\n"
-			L".\n"
-			L".    QueryUSHCN Annual averages in Nevada using DSFLAG 2 only.\n"
-			L".    QueryUSHCN Monthly temperatures in Arizona with source B.\n"
-			L".\n"
-			L".    QueryUSHCN Minimum monthly temperatures for station USH00419532.\n"
-			L".    QueryUSHCN Maximum monthly temperatures for station USH00419532.\n"
-			L".\n"
-			L".    QueryUSHCN Reproduce decade 1 for station USH00419532 minimums.\n"
-			L".    QueryUSHCN Reproduce decade 3 for station USH00419532 maximums.\n"
-			L".    QueryUSHCN Reproduce last decade for station USH00419532 averages.\n"
-			L".\n"
-			L".    QueryUSHCN Verify annual maximums for station USH00419532.\n"
-			L".    QueryUSHCN Verify annual minimums for station USH00419532.\n"
-			L".    QueryUSHCN Verify annual averages for station USH00419532.\n"
-			L".    QueryUSHCN Verify annual counts for station USH00419532.\n"
-			L".\n"
-			L".    QueryUSHCN Verify greater-than counts for station USH00419532.\n"
-			L".    QueryUSHCN Verify months above 100F for station USH00419532.\n"
-			L".    QueryUSHCN Verify threshold counts for station USH00419532.\n"
-			L".\n"
-			L".  You may copy and paste any of the above queries.\n"
-			L".\n"
+			csOutput
 		);
 
-
+		CCommandLine::PARAM_TYPES eType = cl.LastType;
+		if (eType != CCommandLine::paramHelp && eType != CCommandLine::paramNone)
+		{
+			fErr.WriteString
+			(
+				L".\n"
+				L".  You may copy and paste any of the above queries.\n"
+				L".\n"
+			);
+		}
 
 		return 3;
 	}
@@ -215,7 +176,7 @@ int _tmain(int argc, TCHAR* argv[], TCHAR* envp[])
 	CQueryEngine Engine(&db);
 
 	CString csResult;
-	if (Engine.Dispatch(csQuery, csResult))
+	if (Engine.ProcessQuery(csQuery, csResult))
 	{
 		fOut.WriteString(csResult);
 	}

@@ -39,7 +39,8 @@ public:
 	CString FormatTable
 	(
 		const CSmartArray<CString>& arrColumns,
-		const CSmartArray<CSmartArray<CString> >& arrRows
+		const CSmartArray<CSmartArray<CString> >& arrRows,
+		const CSmartArray<CString>* pUnitsRow = nullptr// NEW optional parameter	
 	);
 
 	// protected overrides

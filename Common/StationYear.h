@@ -306,7 +306,7 @@ public:
 				} else 
 				{
 					// maximize against the existing value and the measurement
-					value = max( value, node->Centigrade );
+					value = max( value, node->CentigradeRaw );
 				}
 			}
 		}
@@ -359,7 +359,7 @@ public:
 				} else
 				{
 					// minimize against the existing value and the measurement
-					value = min( value, node->Centigrade );
+					value = min( value, node->CentigradeRaw );
 				}
 			}
 		}
@@ -411,12 +411,12 @@ public:
 				// measured value
 				if ( nCount == 1 )
 				{
-					fSum = node->Centigrade;
+					fSum = node->CentigradeRaw;
 
 				} else
 				{
 					// add the value to the running sum
-					fSum += node->Centigrade;
+					fSum += node->CentigradeRaw;
 				}
 			}
 		}
