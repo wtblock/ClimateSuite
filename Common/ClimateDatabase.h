@@ -5,6 +5,10 @@
 #include "sqlite3.h"
 #include "SmartArray.h"
 #include "ClimateTemperature.h"
+#include "KeyedCollection.h"
+#include <vector>
+
+using namespace std;
 
 /////////////////////////////////////////////////////////////////////////////
 // a wrapper class for the SQLite3.c code
@@ -13,6 +17,9 @@ class CClimateDatabase
 // protected data
 protected:
 	sqlite3* m_db;
+
+	// map of state postal code keys with a vector of the member city names
+	CKeyedCollection<CString, vector<CString> > m_mapCities;
 
 // public properties
 public:
@@ -57,6 +64,48 @@ public:
 	// database metadata
 	__declspec(property(get = GetMetadata, put = SetMetadata))
 		CString Metadata[];
+
+	// retrieve a vector of state postal codes in alphabetical order 
+	vector<CString> GetStates()
+	{
+		vector<CString> value;
+		if (m_mapCities.Count == 0)
+		{
+			PopulateStates();
+		}
+
+		for (auto& node : m_mapCities.Items)
+		{
+			value.push_back(node.first);
+		}
+		return value;
+	}
+	// retrieve a vector of state postal codes in alphabetical order 
+	__declspec(property(get = GetStates))
+		vector<CString> States;
+
+	// retrieve a vector of city names in alphabetical order 
+	// given the state they are members of
+	vector<CString> GetCities( CString csPostalCode)
+	{
+		vector<CString> value;
+		if (m_mapCities.Count == 0)
+		{
+			PopulateStates();
+		}
+
+		if (m_mapCities.Exists[csPostalCode])
+		{
+			value = *m_mapCities.find(csPostalCode);
+		}
+
+		return value;
+	}
+	// retrieve a vector of city names in alphabetical order 
+	// given the state they are members of
+	__declspec(property(get = GetCities))
+		vector<CString> Cities[];
+
 
 public:
 	/////////////////////////////////////////////////////////////////////////////
@@ -175,6 +224,8 @@ public:
 	bool BindText(sqlite3_stmt* stmt, int index, LPCTSTR value);
 
 	void CreateSchema();
+
+	void PopulateStates();
 
 	CClimateDatabase();
 	~CClimateDatabase();

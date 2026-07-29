@@ -1,8 +1,10 @@
-/////////////////////////////////////////////////////////////////////////////
-// Copyright � 2026 by W. T. Block, all rights reserved
+﻿/////////////////////////////////////////////////////////////////////////////
+// Copyright © 2026 by W. T. Block, all rights reserved
 /////////////////////////////////////////////////////////////////////////////
 #include "pch.h"
 #include "ClimateDatabase.h"
+#include "KeyedCollection.h"
+#include <algorithm>   // for std::sort
 
 /////////////////////////////////////////////////////////////////////////////
 CClimateDatabase::CClimateDatabase()
@@ -313,5 +315,51 @@ bool CClimateDatabase::LoadGreaterCounts
 	return !counts.empty();
 } // LoadGreaterCounts
 
+/////////////////////////////////////////////////////////////////////////////
+void CClimateDatabase::PopulateStates()
+{
+	// Clear any existing cached data
+	m_mapCities.clear();
+
+	// Query all distinct (State, Location) pairs
+	CSmartArray<CSmartArray<CString>> rows;
+
+	CString sql =
+		L"SELECT DISTINCT State, Location "
+		L"FROM Stations "
+		L"WHERE State IS NOT NULL AND State <> '' "
+		L"ORDER BY State, Location;";
+
+	if (!ExecuteTable(sql, rows))
+		return;
+
+	// Build the keyed collection: State → vector<Location>
+	for (int i = 0; i < rows.Count; i++)
+	{
+		CString state = *rows.get(i)->get(0);
+		CString city = *rows.get(i)->get(1);
+
+		// If this state is not yet in the map, add it
+		if (!m_mapCities.Exists[state])
+		{
+			vector<CString> emptyList;
+			m_mapCities.add(state, emptyList);
+		}
+
+		// Append the city to the state's vector
+		auto pList = m_mapCities.find(state);
+		if (pList != nullptr)
+		{
+			pList->push_back(city);
+		}
+	}
+
+	// Sort each state's city list alphabetically
+	for (auto& kv : m_mapCities.Items)
+	{
+		auto& vec = *kv.second;
+		std::sort(vec.begin(), vec.end());
+	}
+} // PopulateStates
 
 /////////////////////////////////////////////////////////////////////////////
