@@ -6,34 +6,29 @@
 /////////////////////////////////////////////////////////////////////////////
 // COutputList / COutputWnd
 //
-// The output window subsystem for Photo Explorer. This pane provides a
-// centralized location for diagnostic messages, progress updates, warnings,
-// and error reporting. It is implemented as a dockable pane containing a
+// The output window subsystem for Climate Explorer. This pane provides a
+// centralized location for query progress updates, a SQL, formatted text,
+// and CSV reporting. It is implemented as a dockable pane containing a
 // tab control with three list boxes—one for each output category.
 //
 // Purpose:
-//   • Display progress messages during long-running operations.
-//   • Log warnings and non-fatal issues encountered while processing images.
-//   • Log errors that require user attention.
+//   • Display the SQL to implement queries.
+//   • Display the result of the query output as formatted text.
+//   • Display the result of the query output in command separated value format.
 //   • Provide a scrollable, dockable pane that integrates with the MFC
 //     docking architecture.
 //   • Allow users to copy, clear, or inspect output via context menus.
 //
 // Why this subsystem exists:
-//   Photo Explorer performs many background operations: metadata extraction,
-//   image loading, thumbnail generation, album labeling, and file I/O.
-//   Users need visibility into what the application is doing, especially
-//   when processing large batches of images. The output pane provides a
-//   structured, categorized, and persistent log of these operations.
+//   Climate Explorer performs many background operations: creating SQL queries and
+//   executing that query based on the user's imput. This provides feedback to
+//   offer a form of quality control to understand what is happening as it happens.
 //
 // Responsibilities:
 //   • Maintain three output channels:
-//       – Progress (m_wndOutputSQL)
-//       – Warnings (m_wndOutputText)
-//       – Errors (m_wndOutputCSV)
-//   • Append new messages to the appropriate list box.
-//   • Automatically switch to the relevant tab when new messages arrive.
-//   • Scroll to the bottom of the list to show the latest entry.
+//       – SQL (m_wndOutputSQL)
+//       – Formatted Text table (m_wndOutputText)
+//       – Comma Separted Value i.e. CSV (m_wndOutputCSV)
 //   • Provide context menu actions (copy, clear, view).
 //   • Manage fonts and appearance for readability.
 //   • Integrate with the docking system and respond to resizing events.
@@ -52,25 +47,24 @@
 //   • Dockable pane that can be repositioned anywhere in the UI.
 //   • Font customization for improved readability.
 //   • Simple property-based API for writing messages:
-//       – SQLText = "Loading image…"
-//       – FormattedText = "Metadata missing for file."
-//       – CSVText   = "Failed to save image."
+//       – SQLText = SQL Query text
+//       – FormattedText = A table formatted as a text string
+//       – CSVText   = Comma Separated Value string
 //
 // Internal Structure:
 //   • COutputList — derived from CListBox, handles context menu actions.
 //   • COutputWnd — derived from CDockablePane, contains:
 //       – m_wndTabs (tab control)
-//       – m_wndOutputSQL (progress list)
-//       – m_wndOutputText (warnings list)
-//       – m_wndOutputCSV (errors list)
-//       – m_csProgress / m_csWarning / m_csError (last written messages)
+//       – m_wndOutputSQL (SQL line list)
+//       – m_wndOutputText (Formatted table line list)
+//       – m_wndOutputCSV (lines of CSV)
 //       – m_pFont (custom font pointer)
 //   • ShowOutputTab — switches to the correct tab.
 //   • ScrollToBottom — ensures newest messages are visible.
 //   • ClearXXXOutput — resets individual channels.
 //
 // This subsystem provides a clean, organized, and responsive logging interface,
-// giving users full visibility into Photo Explorer’s internal operations and
+// giving users full visibility into Climate Explorer’s internal operations and
 // helping diagnose issues during metadata processing, image loading, and file
 // management.
 /////////////////////////////////////////////////////////////////////////////
@@ -100,49 +94,82 @@ public:
 	// write text to the progress tab
 	void SetSQLText(CString value)
 	{
-		if (value != m_csProgress)
+		if (value != m_csSQL)
 		{
-			m_csProgress = value;
-			m_wndOutputSQL.AddString(value);
-			ShowProgressOutput();
-			ScrollToBottom(m_wndOutputSQL);
+			m_csSQL = value;
+			m_wndOutputSQL.ResetContent();
+
+			// each row of the list box will get a separate line
+			// of text
+			int nStart = 0;
+			CString csToken = m_csSQL.Tokenize( L"\n", nStart );
+			while (!csToken.IsEmpty())
+			{
+				m_wndOutputSQL.AddString(csToken);
+				csToken = m_csSQL.Tokenize(L"\n", nStart);
+			}
+
+			//ShowOutputSQL();
+			//ScrollToBottom(m_wndOutputSQL);
 		}
 	}
 	// write text to the progress tab
 	__declspec(property(put = SetSQLText))
 		CString SQLText;
 
-	// write text to the warnings tab
+	// write text to the text tab
 	void SetFormattedText(CString value)
 	{
-		if (value != m_csWarning)
+		if (value != m_csText)
 		{
-			m_csWarning = value;
-			m_wndOutputText.AddString(value);
-			ShowWarningOutput();
-			ScrollToBottom(m_wndOutputText);
+			m_csText = value;
+			m_wndOutputText.ResetContent();
+
+			// each row of the list box will get a separate line
+			// of text
+			int nStart = 0;
+			CString csToken = m_csText.Tokenize( L"\n", nStart );
+			while (!csToken.IsEmpty())
+			{
+				m_wndOutputText.AddString(csToken);
+				csToken = m_csText.Tokenize(L"\n", nStart);
+			}
+
+			//ShowOutputText();
+			//ScrollToBottom(m_wndOutputText);
 		}
 	}
-	// write text to the warnings tab
+	// write text to the text tab
 	__declspec(property(put = SetFormattedText))
 		CString FormattedText;
 
-	// write text to the errors tab
+	// write text to the CSV tab
 	void SetCSVText(CString value)
 	{
-		if (value != m_csError)
+		if (value != m_csCSV)
 		{
-			m_csError = value;
-			m_wndOutputCSV.AddString(value);
-			ShowErrorOutput();
-			ScrollToBottom(m_wndOutputCSV);
+			m_csCSV = value;
+			m_wndOutputCSV.ResetContent();
+
+			// each row of the list box will get a separate line
+			// of text
+			int nStart = 0;
+			CString csToken = m_csCSV.Tokenize( L"\n", nStart );
+			while (!csToken.IsEmpty())
+			{
+				m_wndOutputCSV.AddString(csToken);
+				csToken = m_csCSV.Tokenize(L"\n", nStart);
+			}
+
+			//ShowOutputCSV();
+			//ScrollToBottom(m_wndOutputCSV);
 		}
 	}
-	// write text to the errors tab
+	// write text to the CSV tab
 	__declspec(property(put = SetCSVText))
 		CString CSVText;
 
-	// public methods
+// public methods
 public:
 	void ScrollToBottom(COutputList& listBox)
 	{
@@ -154,17 +181,17 @@ public:
 	}
 
 	// show the error output
-	inline void ShowErrorOutput()
+	inline void ShowOutputCSV()
 	{
 		ShowOutputTab(m_wndOutputCSV);
 	}
 	// show the warning output
-	inline void ShowWarningOutput()
+	inline void ShowOutputText()
 	{
 		ShowOutputTab(m_wndOutputText);
 	}
 	// show the progress output
-	inline void ShowProgressOutput()
+	inline void ShowOutputSQL()
 	{
 		ShowOutputTab(m_wndOutputSQL);
 	}
@@ -197,9 +224,9 @@ protected:
 	COutputList m_wndOutputSQL;
 	COutputList m_wndOutputText;
 	COutputList m_wndOutputCSV;
-	CString m_csProgress;
-	CString m_csError;
-	CString m_csWarning;
+	CString m_csSQL;
+	CString m_csCSV;
+	CString m_csText;
 	CFont* m_pFont;
 
 protected:

@@ -108,14 +108,8 @@ protected:
 	// 3. SQL query
 	CString m_csSQL;
 
-	// 4A. Units (degF, degC, raw)
-	CString m_csUnits;
-
 	// 4B. Pure meaning no estimated data
 	bool m_bPure;
-
-	// 4C. Active Stations only
-	bool m_bActive;
 
 	// 4D. Scope (National, State, or Location)
 	CString m_csScope;
@@ -138,11 +132,20 @@ protected:
 	// 4J. Threshold (90F, 95F, ... 125F) temperatures to count
 	int m_nThreshold;
 
-	// 4K. Output (Plot, Table, Map + Plot)
+	// 4K. Threshold versus Temperature query
+	int m_bTemperature;
+
+	// 5A. Units (degF, degC, raw)
+	CString m_csUnits;
+
+	// 5B. Output (Plot, Table, Map + Plot)
 	CString m_csOutput;
 
-	// 4L. Layout (Full, Half, Quarter)
+	// 5C. Layout (Full, Half, Quarter)
 	CString m_csLayout;
+
+	// 5D. Placement (append, insert, or replace)
+	CString m_csPlacement;
 
 
 // public properties
@@ -707,20 +710,6 @@ public:
 	__declspec(property(get = GetSQL, put = SetSQL))
 		CString SQL;
 
-	// 4A. Units (degF, degC, raw)
-	CString GetUnits()
-	{
-		return m_csUnits;
-	}
-	// 4A. Units (degF, degC, raw)
-	void SetUnits(CString value)
-	{
-		m_csUnits = value;
-	}
-	// 4A. Units (degF, degC, raw)
-	__declspec(property(get = GetUnits, put = SetUnits))
-		CString Units;
-
 	// 4B. Pure meaning no estimated data
 	bool GetPure()
 	{
@@ -734,20 +723,6 @@ public:
 	// 4B. Pure meaning no estimated data
 	__declspec(property(get = GetPure, put = SetPure))
 		bool Pure;
-
-	// 4C. Active Stations only
-	bool GetActive()
-	{
-		return m_bActive;
-	}
-	// 4C. Active Stations only
-	void SetActive(bool value)
-	{
-		m_bActive = value;
-	}
-	// 4C. Active Stations only
-	__declspec(property(get = GetActive, put = SetActive))
-		bool Active;
 
 	// 4D. Scope (National, State, or Location)
 	CString GetScope()
@@ -823,25 +798,38 @@ public:
 	__declspec(property(get = GetYearEnd, put = SetYearEnd))
 		long YearEnd;
 
-	// 4I. Type (Maximum, Minimum, Average)
+	// 4I. Type ("Maximum", "Minimum", "Average", and "Threshold"
+	// where "Threshold" sets the type to mtMaximum and enables 
+	// Threshold boolean
 	CString GetMeasurementText()
 	{
 		CString value(L"Maximum");
-		switch (MeasurementType)
+		const bool bTemperature = Temperature;
+		if (bTemperature)
 		{
-		case CClimateTemperature::mtAverage:
-			value = L"Average";
-			break;
-		case CClimateTemperature::mtMinimum:
-			value = L"Minimum";
-			break;
+			switch (MeasurementType)
+			{
+			case CClimateTemperature::mtAverage:
+				value = L"Average";
+				break;
+			case CClimateTemperature::mtMinimum:
+				value = L"Minimum";
+			}
+		}
+		else
+		{
+			value = L"Threshold";
 		}
 		return value;
 	}
-	// 4I. Type (Maximum, Minimum, Average)
+	// 4I. Type ("Maximum", "Minimum", "Average", and "Threshold"
+	// where "Threshold" sets the type to mtMaximum and enables 
+	// Threshold boolean
 	void SetMeasurementText(CString value)
 	{
 		value.MakeLower();
+		Temperature = true;
+		MeasurementType = CClimateTemperature::mtMaximum;
 		if (value == L"average")
 		{
 			MeasurementType = CClimateTemperature::mtAverage;
@@ -850,12 +838,14 @@ public:
 		{
 			MeasurementType = CClimateTemperature::mtMinimum;
 		}
-		else
+		else if (value == L"threshold")
 		{
-			MeasurementType = CClimateTemperature::mtMaximum;
+			Temperature = false;
 		}
 	}
-	// 4I. Type (Maximum, Minimum, Average)
+	// 4I. Type ("Maximum", "Minimum", "Average", and "Threshold"
+	// where "Threshold" sets the type to mtMaximum and enables 
+	// Threshold boolean
 	__declspec(property(get = GetMeasurementText, put = SetMeasurementText))
 		CString MeasurementText;
 
@@ -905,33 +895,80 @@ public:
 	__declspec(property(get = GetThreshold, put = SetThreshold))
 		int Threshold;
 
-	// 4K. Output (Plot, Table, Map + Plot)
+	// 4K. Threshold versus Temperature query
+	bool GetTemperature()
+	{
+		return m_bTemperature;
+	}
+	// 4K. Threshold versus Temperature query
+	void SetTemperature(bool value)
+	{
+		m_bTemperature = value;
+	}
+	// 4K. Threshold versus Temperature query
+	__declspec(property(get = GetTemperature, put = SetTemperature))
+		bool Temperature;
+
+
+	// ===============================================
+	// Render Properties 
+	// ===============================================
+
+	// 5A. Units (degF, degC, raw)
+	CString GetUnits()
+	{
+		return m_csUnits;
+	}
+	// 5A. Units (degF, degC, raw)
+	void SetUnits(CString value)
+	{
+		m_csUnits = value;
+	}
+	// 5A. Units (degF, degC, raw)
+	__declspec(property(get = GetUnits, put = SetUnits))
+		CString Units;
+
+	// 5B. Output (Plot, Table, Map + Plot)
 	CString GetOutput()
 	{
 		return m_csOutput;
 	}
-	// 4K. Output (Plot, Table, Map + Plot)
+	// 5B. Output (Plot, Table, Map + Plot)
 	void SetOutput(CString value)
 	{
 		m_csOutput = value;
 	}
-	// 4K. Output (Plot, Table, Map + Plot)
+	// 5B. Output (Plot, Table, Map + Plot)
 	__declspec(property(get = GetOutput, put = SetOutput))
 		CString Output;
 
-	// 4L. Layout (Full, Half, Quarter)
+	// 5C. Layout (Full, Half, Quarter)
 	CString GetLayout()
 	{
 		return m_csLayout;
 	}
-	// 4L. Layout (Full, Half, Quarter)
+	// 5C. Layout (Full, Half, Quarter)
 	void SetLayout(CString value)
 	{
 		m_csLayout = value;
 	}
-	// 4L. Layout (Full, Half, Quarter)
+	// 5C. Layout (Full, Half, Quarter)
 	__declspec(property(get = GetLayout, put = SetLayout))
 		CString Layout;
+
+	// 5D. Placement (append, insert, or replace)
+	CString GetPlacement()
+	{
+		return m_csPlacement;
+	}
+	// 5D. Placement (append, insert, or replace)
+	void SetPlacement(CString value)
+	{
+		m_csPlacement = value;
+	}
+	// 5D. Placement (append, insert, or replace)
+	__declspec(property(get = GetPlacement, put = SetPlacement))
+		CString Placement;
 
 
 // protected methods
@@ -945,8 +982,12 @@ protected:
 		m_nPages = 2;
 		Height = HeightOfPage;
 	}
+
+	void InitializeProperties();
+
 	BOOL PromptForFileName(CString& strFilePath);
 
+	CString BuildPickerSQL();
 
 // public methods
 public:

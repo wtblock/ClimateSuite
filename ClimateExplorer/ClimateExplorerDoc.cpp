@@ -32,6 +32,18 @@ END_MESSAGE_MAP()
 /////////////////////////////////////////////////////////////////////////////
 CClimateExplorerDoc::CClimateExplorerDoc()
 {
+	InitializeProperties();
+
+} // CClimateExplorerDoc
+
+/////////////////////////////////////////////////////////////////////////////
+CClimateExplorerDoc::~CClimateExplorerDoc()
+{
+}
+
+/////////////////////////////////////////////////////////////////////////////
+void CClimateExplorerDoc::InitializeProperties()
+{
 	HeightOfPage = 11.0;
 	WidthOfPage = 8.5;
 
@@ -41,9 +53,13 @@ CClimateExplorerDoc::CClimateExplorerDoc()
 	ExportDPI = 400;
 	ExportQuality = 75;
 
+	Title = L"Climate Explorer";
+	ISBN = L"ISBN: ";
+
 	CClimateExplorerApp* pApp = (CClimateExplorerApp*)AfxGetApp();
 	if (pApp)
 	{
+		Subtitle = pApp->DatabaseVersion;
 		Publisher = pApp->Publisher;
 		Copyright = pApp->Copyright;
 		Description = pApp->DatabaseCredits;
@@ -51,9 +67,7 @@ CClimateExplorerDoc::CClimateExplorerDoc()
 
 	QueryType = L"Picker";
 	NaturalLanguage = L"None";
-	Units = L"degF";
 	Pure = true;
-	Active = true;
 	Scope = L"National";
 	State = L"None";
 	Location = L"None";
@@ -61,15 +75,12 @@ CClimateExplorerDoc::CClimateExplorerDoc()
 	YearEnd = 2025;
 	MeasurementText = L"Maximum";
 	ThresholdText = L"90";
+
+	Units = L"degF";
 	Output = L"Plot";
 	Layout = L"Full";
 
-} // CClimateExplorerDoc
-
-/////////////////////////////////////////////////////////////////////////////
-CClimateExplorerDoc::~CClimateExplorerDoc()
-{
-}
+} // InitializeProperties
 
 /////////////////////////////////////////////////////////////////////////////
 BOOL CClimateExplorerDoc::OnSaveDocument(CString& csPath)
@@ -427,16 +438,7 @@ BOOL CClimateExplorerDoc::OnNewDocument()
 	if (!CBaseDoc::OnNewDocument())
 		return FALSE;
 
-	Title = L"Climate Explorer";
-	ISBN = L"ISBN: ";
-	CClimateExplorerApp* pApp = (CClimateExplorerApp*)AfxGetApp();
-	if (pApp)
-	{
-		Subtitle = pApp->DatabaseVersion;
-		Publisher = pApp->Publisher;
-		Copyright = pApp->Copyright;
-		Description = pApp->DatabaseCredits;
-	}
+	InitializeProperties();
 
 	CMainFrame* pFrame = (CMainFrame*)AfxGetMainWnd();
 	if (pFrame != nullptr)
@@ -664,8 +666,21 @@ void CClimateExplorerDoc::OnCloseDocument()
 /////////////////////////////////////////////////////////////////////////////
 void CClimateExplorerDoc::OnExecuteQuery()
 {
-	// TODO: Add your command handler code here
+	// 1. Build SQL from picker properties
+	CString csSQL = BuildPickerSQL();
 
+	// 2. Store SQL on the document
+	SQL = csSQL;
+
+	// 3. Write SQL to the Output window (SQL tab)
+	CMainFrame* pFrame = (CMainFrame*)AfxGetMainWnd();
+	if (pFrame != nullptr && pFrame->OutputPane != nullptr)
+	{
+		pFrame->OutputPane->SQLText = csSQL;
+	}
+
+	// 4. Mark document modified (optional)
+	SetModifiedFlag(TRUE);
 } // OnExecuteQuery
 
 /////////////////////////////////////////////////////////////////////////////
@@ -674,5 +689,88 @@ void CClimateExplorerDoc::OnUpdateExecuteQuery(CCmdUI* pCmdUI)
 	// TODO: Add your command update UI handler code here
 
 } // OnUpdateExecuteQuery
+
+/////////////////////////////////////////////////////////////////////////////
+CString CClimateExplorerDoc::BuildPickerSQL()
+{
+	CString sql;
+
+	if (!Temperature)   // Threshold mode
+	{
+		// Convert threshold to raw hundredths of °C
+		double dThreshold = Threshold;
+		double dRaw = dThreshold;
+		CString csUnits = Units;
+
+		if (csUnits == L"degF")
+		{
+			dRaw = (dThreshold - 32.0) * 5.0 / 9.0;
+			dRaw *= 100;
+		}
+		else if (csUnits == L"degC")
+		{
+			dRaw *= 100;
+		}
+
+		int nRaw = (int)dRaw;
+
+		sql.Format
+		(
+			L"SELECT m.Year,\n"
+			L"       100.0 * SUM(CASE WHEN m.CentigradeRaw >= %d THEN 1 ELSE 0 END)\n"
+			L"             / SUM(CASE WHEN m.CentigradeRaw > -9000 THEN 1 ELSE 0 END) AS Percent\n"
+			L"FROM Months m\n"
+			L"JOIN Stations s ON m.StationID = s.StationID\n"
+			L"WHERE m.MeasurementType = 1\n"
+			L"  AND m.CentigradeRaw > -9000\n"
+			L"  AND m.Year >= %d\n"
+			L"  AND m.Year <= %d\n"
+			L"GROUP BY m.Year\n"
+			L"ORDER BY m.Year;\n",
+			nRaw,
+			YearStart,
+			YearEnd
+		);
+
+		return sql;
+	}
+
+	int nMeasureType = (int)MeasurementType;
+
+	sql.Format
+	(
+		L"SELECT m.Year, m.Month, AVG(m.CentigradeRaw) AS AvgTemp\n"
+		L"FROM Months m\n"
+		L"JOIN Stations s ON m.StationID = s.StationID\n"
+		L"WHERE m.MeasurementType = %d\n"
+		L"  AND m.CentigradeRaw > -9000\n",
+		nMeasureType
+	);
+
+	sql.AppendFormat(L"  AND m.Year >= %d\n", YearStart);
+	sql.AppendFormat(L"  AND m.Year <= %d\n", YearEnd);
+
+	if (Pure)
+	{
+		sql += L"  AND m.DMFLAG != 'E'\n";
+		sql += L"  AND TRIM(m.QCFlag) = ''\n";
+	}
+
+	if (Scope == L"State" && State != L"None")
+	{
+		sql.AppendFormat(L"  AND s.State = '%s'\n", State.GetString());
+	}
+
+	if (Scope == L"Location" && Location != L"None")
+	{
+		sql.AppendFormat(L"  AND m.StationID = '%s'\n", Location.GetString());
+	}
+
+	sql +=
+		L"GROUP BY m.Year, m.Month\n"
+		L"ORDER BY m.Year, m.Month;\n";
+
+	return sql;
+} // BuildPickerSQL
 
 /////////////////////////////////////////////////////////////////////////////

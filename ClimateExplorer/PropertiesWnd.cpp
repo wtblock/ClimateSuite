@@ -119,6 +119,64 @@ void CPropertiesWnd::PopulateLocationsForState(const CString& scope, const CStri
 } // PopulateLocationsForState
 
 /////////////////////////////////////////////////////////////////////////////
+void CPropertiesWnd::PopulateThresholdForUnits()
+{
+	m_pPropThreshold->RemoveAllOptions();
+	CClimateExplorerDoc* pDoc = ClimateExplorerDocument;
+	if (pDoc == nullptr)
+	{
+		return;
+	}
+
+	CString csUnits = pDoc->Units;
+
+	vector<CString> arrF = { L"90", L"95", L"100", L"105", L"110", L"115", L"120", L"125" };
+	vector<CString> arrC = { L"30", L"35", L"40", L"45", L"50", L"55" };
+	vector<CString> arrR = { L"3000", L"3500", L"4000", L"4500", L"5000", L"5500" };
+
+	CString value;
+	if (csUnits == L"degF")
+	{
+		for (auto& node : arrF)
+		{
+			if (value.IsEmpty())
+			{
+				value = node;
+			}
+			m_pPropThreshold->AddOption(node);
+		}
+		
+	}
+	else if (csUnits == L"degC")
+	{
+		for (auto& node : arrC)
+		{
+			if (value.IsEmpty())
+			{
+				value = node;
+			}
+			m_pPropThreshold->AddOption(node);
+		}
+	}
+	else
+	{
+		for (auto& node : arrR)
+		{
+			if (value.IsEmpty())
+			{
+				value = node;
+			}
+			m_pPropThreshold->AddOption(node);
+		}
+	}
+
+	m_pPropThreshold->SetValue(_variant_t(value));
+
+	pDoc->ThresholdText = value;
+
+} // PopulateThresholdForUnits
+
+/////////////////////////////////////////////////////////////////////////////
 LRESULT CPropertiesWnd::OnPropertyChange
 (
 	WPARAM /*WP*/, // not used
@@ -294,17 +352,9 @@ LRESULT CPropertiesWnd::OnPropertyChange
 		{
 			pDoc->SQL = CString(varIn);
 		}
-		else if (csName == L"Units")
-		{
-			pDoc->Units = CString(varIn);
-		}
 		else if (csName == L"Pure")
 		{
 			pDoc->Pure = bool(varIn);
-		}
-		else if (csName == L"Active")
-		{
-			pDoc->Active = bool(varIn);
 		}
 		else if (csName == L"Scope")
 		{
@@ -366,6 +416,14 @@ LRESULT CPropertiesWnd::OnPropertyChange
 		{
 			pDoc->ThresholdText = CString(varIn);
 		}
+	}
+	else if (csGroup == L"Render Properties")
+	{
+		if (csName == L"Units")
+		{
+			pDoc->Units = CString(varIn);
+			PopulateThresholdForUnits();
+		}
 		else if (csName == L"Output")
 		{
 			CString value = CString(varIn);
@@ -385,6 +443,10 @@ LRESULT CPropertiesWnd::OnPropertyChange
 		else if (csName == L"Layout")
 		{
 			pDoc->Layout = CString(varIn);
+		}
+		else if (csName == L"Placement")
+		{
+			pDoc->Placement = CString(varIn);
 		}
 	}
 
@@ -490,17 +552,7 @@ void CPropertiesWnd::UpdatePropertiesFromDocument(CClimateExplorerDoc* pDoc)
 				CString value = pDoc->SQL;
 				pProp->SetValue(value);
 			}
-			else if (csName == L"Units")
-			{
-				CString value = pDoc->Units;
-				pProp->SetValue(value);
-			}
 			else if (csName == L"Pure")
-			{
-				bool value = pDoc->Pure;
-				pProp->SetValue(_variant_t(value));
-			}
-			else if (csName == L"Active")
 			{
 				bool value = pDoc->Pure;
 				pProp->SetValue(_variant_t(value));
@@ -976,34 +1028,6 @@ void CPropertiesWnd::InitPropList()
 	pQueryGroup->AddSubItem(pPropSQL);
 
 	// ---------------------------------------------------------------
-	// 4A. Units (degF, degC, raw)
-	// ---------------------------------------------------------------
-	CMFCPropertyGridProperty* pPropUnits =
-		new CMFCPropertyGridProperty
-		(
-			L"Units",
-			(_variant_t)L"degF",
-			L"Select the output units for the query:\n"
-			L"  • degF — Fahrenheit\n"
-			L"  • degC — Celsius\n"
-			L"  • raw — unconverted database values"
-		);
-
-	// Add dropdown options
-	pPropUnits->AddOption(L"degF");
-	pPropUnits->AddOption(L"degC");
-	pPropUnits->AddOption(L"raw");
-
-	// Default selection
-	pPropUnits->SetValue((_variant_t)L"degF");
-
-	// remember the property
-	m_pPropUnits = pPropUnits;
-
-	// Add to group
-	pQueryGroup->AddSubItem(pPropUnits);
-
-	// ---------------------------------------------------------------
 	// 4B. Pure (boolean)
 	// ---------------------------------------------------------------
 	CMFCPropertyGridProperty* pPropPure =
@@ -1019,23 +1043,6 @@ void CPropertiesWnd::InitPropList()
 
 	// Add to group
 	pQueryGroup->AddSubItem(pPropPure);
-
-	// ---------------------------------------------------------------
-	// 4C. Active (boolean)
-	// ---------------------------------------------------------------
-	CMFCPropertyGridProperty* pPropActive =
-		new CMFCPropertyGridProperty
-		(
-			L"Active",
-			(_variant_t)true,
-			L"Include only active stations in the query."
-		);
-
-	// remember the property
-	m_pPropActive = pPropActive;
-
-	// Add to group
-	pQueryGroup->AddSubItem(pPropActive);
 
 	// ---------------------------------------------------------------
 	// 4D. Scope (National, State, or Location)
@@ -1155,7 +1162,7 @@ void CPropertiesWnd::InitPropList()
 	pQueryGroup->AddSubItem(pPropEndYear);
 
 	// ---------------------------------------------------------------
-	// 4I. Type (Maximum, Minimum, Average)
+	// 4I. Type (Maximum, Minimum, Average, or Threshold)
 	// ---------------------------------------------------------------
 	CMFCPropertyGridProperty* pPropType =
 		new CMFCPropertyGridProperty
@@ -1165,13 +1172,15 @@ void CPropertiesWnd::InitPropList()
 			L"Select the measurement type:\n"
 			L"  • Maximum — daily/monthly high\n"
 			L"  • Minimum — daily/monthly low\n"
-			L"  • Average — mean temperature"
+			L"  • Average — mean temperature\n"
+			L"  • Threshold — percent maximums over a threshold value."
 		);
 
 	// Add dropdown options
 	pPropType->AddOption(L"Maximum");
 	pPropType->AddOption(L"Minimum");
 	pPropType->AddOption(L"Average");
+	pPropType->AddOption(L"Threshold");
 
 	// Default selection
 	pPropType->SetValue((_variant_t)L"Maximum");
@@ -1209,8 +1218,51 @@ void CPropertiesWnd::InitPropList()
 	// Add to group
 	pQueryGroup->AddSubItem(pPropThreshold);
 
+
+	// ===============================================
+	// Render Properties 
+	// ===============================================
+
+	CMFCPropertyGridProperty* pRenderGroup =
+		new CMFCPropertyGridProperty(L"Render Properties");
+
+	pRenderGroup->SetDescription
+	(
+		L"Properties that define how the query is rendered."
+	);
+
+	m_wndPropList.AddProperty(pRenderGroup);
+
 	// ---------------------------------------------------------------
-	// 4K. Output (Plot, Table, Map + Plot)
+	// 5A. Units (degF, degC, raw)
+	// ---------------------------------------------------------------
+	CMFCPropertyGridProperty* pPropUnits =
+		new CMFCPropertyGridProperty
+		(
+			L"Units",
+			(_variant_t)L"degF",
+			L"Select the output units for the query:\n"
+			L"  • degF — Fahrenheit\n"
+			L"  • degC — Celsius\n"
+			L"  • raw — unconverted database values"
+		);
+
+	// Add dropdown options
+	pPropUnits->AddOption(L"degF");
+	pPropUnits->AddOption(L"degC");
+	pPropUnits->AddOption(L"raw");
+
+	// Default selection
+	pPropUnits->SetValue((_variant_t)L"degF");
+
+	// remember the property
+	m_pPropUnits = pPropUnits;
+
+	// Add to group
+	pRenderGroup->AddSubItem(pPropUnits);
+
+	// ---------------------------------------------------------------
+	// 5B. Output (Plot, Table, Map + Plot)
 	// ---------------------------------------------------------------
 	CMFCPropertyGridProperty* pPropOutput =
 		new CMFCPropertyGridProperty
@@ -1232,10 +1284,10 @@ void CPropertiesWnd::InitPropList()
 	m_pPropOutput = pPropOutput;
 
 	// Add to group
-	pQueryGroup->AddSubItem(pPropOutput);
+	pRenderGroup->AddSubItem(pPropOutput);
 
 	// ---------------------------------------------------------------
-	// 4L. Layout (Full, Half, Quarter)
+	// 5C. Layout (Full, Half, Quarter)
 	// ---------------------------------------------------------------
 	CMFCPropertyGridProperty* pPropLayout =
 		new CMFCPropertyGridProperty
@@ -1260,7 +1312,32 @@ void CPropertiesWnd::InitPropList()
 	m_pPropLayout = pPropLayout;
 
 	// Add to group
-	pQueryGroup->AddSubItem(pPropLayout);
+	pRenderGroup->AddSubItem(pPropLayout);
+
+	// ---------------------------------------------------------------
+	// 5D. Placement (append, insert, or replace)
+	// ---------------------------------------------------------------
+	CMFCPropertyGridProperty* pPropPlacement =
+		new CMFCPropertyGridProperty
+		(
+			L"Placement",
+			(_variant_t)L"Append",
+			L"Select the placement of the output in the document."
+		);
+
+	// Add dropdown options
+	pPropPlacement->AddOption(L"Append");
+	pPropPlacement->AddOption(L"Insert");
+	pPropPlacement->AddOption(L"Replace");
+
+	// Default selection
+	pPropPlacement->SetValue((_variant_t)L"Append");
+
+	// remember the property
+	m_pPropPlacement = pPropPlacement;
+
+	// Add to group
+	pRenderGroup->AddSubItem(pPropPlacement);
 
 } // InitPropList
 

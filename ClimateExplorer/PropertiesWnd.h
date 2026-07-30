@@ -94,7 +94,6 @@ protected:
 	CMFCPropertyGridProperty* m_pPropSQL = nullptr;
 	CMFCPropertyGridProperty* m_pPropUnits = nullptr;
 	CMFCPropertyGridProperty* m_pPropPure = nullptr;
-	CMFCPropertyGridProperty* m_pPropActive = nullptr;
 	CMFCPropertyGridProperty* m_pPropScope = nullptr;
 	CMFCPropertyGridProperty* m_pPropState = nullptr;
 	CMFCPropertyGridProperty* m_pPropLocation = nullptr;
@@ -104,6 +103,7 @@ protected:
 	CMFCPropertyGridProperty* m_pPropThreshold = nullptr;
 	CMFCPropertyGridProperty* m_pPropOutput = nullptr;
 	CMFCPropertyGridProperty* m_pPropLayout = nullptr;
+	CMFCPropertyGridProperty* m_pPropPlacement = nullptr;
 
 // public properties
 public:
@@ -136,7 +136,6 @@ public:
 		CClimateExplorerDoc* pDoc = ClimateExplorerDocument;
 		m_pPropUnits->Enable(bEnable);
 		m_pPropPure->Enable(bEnable);
-		m_pPropActive->Enable(bEnable);
 		m_pPropScope->SetValue(COleVariant(L"National"));
 		m_pPropScope->Enable(bEnable);
 		m_pPropState->SetValue(COleVariant(L"None"));
@@ -147,8 +146,6 @@ public:
 		m_pPropYearEnd->Enable(bEnable);
 		m_pPropType->Enable(bEnable);
 		m_pPropThreshold->Enable(bEnable);
-		m_pPropOutput->Enable(bEnable);
-		m_pPropLayout->Enable(bEnable);
 	}
 
 	void UpdateTableOfContents();
@@ -172,6 +169,7 @@ public:
 	void UpdatePropertiesFromDocument(CClimateExplorerDoc* pDoc);
 	void PopulateStatesForScope(const CString& scope);
 	void PopulateLocationsForState(const CString& scope, const CString& state);
+	void PopulateThresholdForUnits();
 
 // protected methods
 protected:

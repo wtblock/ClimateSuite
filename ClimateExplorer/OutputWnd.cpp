@@ -8,6 +8,8 @@
 #include "Resource.h"
 #include "MainFrm.h"
 
+#include "CHelper.h"
+
 #ifdef _DEBUG
 #define new DEBUG_NEW
 #undef THIS_FILE
@@ -211,6 +213,24 @@ void COutputList::OnContextMenu(CWnd* /*pWnd*/, CPoint point)
 /////////////////////////////////////////////////////////////////////////////
 void COutputList::OnEditCopy()
 {
+	bool bShiftDown = false;
+
+		CWnd* pParent = GetParent();
+	if (pParent != 0)
+	{
+		const BOOL bTab = pParent->IsKindOf(RUNTIME_CLASS(CMFCTabCtrl));
+		if (bTab)
+		{
+			CMFCTabCtrl* pParentTab = (CMFCTabCtrl*)pParent;
+
+			// Get the tab index of the message panel
+			const int nMessageWndTab = pParentTab->GetTabFromHwnd(GetSafeHwnd());
+
+			bShiftDown = CHelper::ShiftKeyDown();
+		}
+	}
+
+
 	// Get the number of items in the list box
 	int itemCount = GetCount();
 	if (itemCount == LB_ERR || itemCount == 0)
@@ -220,6 +240,12 @@ void COutputList::OnEditCopy()
 	CStringA strContentA; // Use CStringA for ASCII
 	CString strContentW;  // Use CString for Unicode
 
+	// add the prefix for the command line of QueryUSHCN
+	if (bShiftDown)
+	{
+		strContentA = L"QueryUSHCN sql \"";
+	}
+
 	// Iterate through the list box items and append them to the string
 	for (int i = 0; i < itemCount; ++i)
 	{
@@ -227,7 +253,23 @@ void COutputList::OnEditCopy()
 		GetText(i, strItemText); // Directly retrieve into a CString
 
 		CStringA strItemTextA(strItemText); // Convert to ASCII CStringA
-		strContentA += strItemTextA + "\n";
+		strContentA += strItemTextA;
+
+		// add a line feed for readability
+		if (bShiftDown)
+		{
+			strContentA += L" ";
+		}
+		else
+		{
+			strContentA += L"\n";
+		}
+	}
+
+	// add the closing double quote
+	if (bShiftDown)
+	{
+		strContentA += L"\"";
 	}
 
 	// Convert ASCII string to Unicode string
