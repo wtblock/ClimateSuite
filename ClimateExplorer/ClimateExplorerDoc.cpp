@@ -73,7 +73,7 @@ void CClimateExplorerDoc::InitializeProperties()
 	Location = L"None";
 	YearStart = 1900;
 	YearEnd = 2025;
-	MeasurementText = L"Maximum";
+	Subtype = L"Maximum";
 	ThresholdText = L"90";
 
 	Units = L"degF";
@@ -679,7 +679,10 @@ void CClimateExplorerDoc::OnExecuteQuery()
 		pFrame->OutputPane->SQLText = csSQL;
 	}
 
-	// 4. Mark document modified (optional)
+	// 4. Execute the query to generate output
+	ExecutePickerQuery();
+
+	// 5. Mark document modified (optional)
 	SetModifiedFlag(TRUE);
 } // OnExecuteQuery
 
@@ -695,7 +698,9 @@ CString CClimateExplorerDoc::BuildPickerSQL()
 {
 	CString sql;
 
-	if (!Temperature)   // Threshold mode
+	CString csSubtype = Subtype;
+
+	if (csSubtype == L"Threshold")   // Threshold mode
 	{
 		// Convert threshold to raw hundredths of °C
 		double dThreshold = Threshold;
@@ -728,6 +733,25 @@ CString CClimateExplorerDoc::BuildPickerSQL()
 			L"GROUP BY m.Year\n"
 			L"ORDER BY m.Year;\n",
 			nRaw,
+			YearStart,
+			YearEnd
+		);
+
+		return sql;
+	}
+
+	if (csSubtype == L"Stations") // stations mode
+	{
+		sql.Format
+		(
+			L"SELECT m.Year,\n"
+			L"       COUNT(DISTINCT m.StationID) AS ActiveStations\n"
+			L"FROM Months m\n"
+			L"WHERE m.CentigradeRaw > -9000\n"
+			L"  AND m.Year >= %d\n"
+			L"  AND m.Year <= %d\n"
+			L"GROUP BY m.Year\n"
+			L"ORDER BY m.Year;\n",
 			YearStart,
 			YearEnd
 		);
@@ -772,5 +796,352 @@ CString CClimateExplorerDoc::BuildPickerSQL()
 
 	return sql;
 } // BuildPickerSQL
+
+/////////////////////////////////////////////////////////////////////////////
+// FormatTemperatureText
+/////////////////////////////////////////////////////////////////////////////
+void CClimateExplorerDoc::FormatTemperatureText()
+{
+	CString cs;
+	CString csUnits = Units;
+	CString csUnitLine;
+	csUnitLine.Format(L"               % 8s\n", csUnits);
+
+	cs += L"Year   Month   Temperature\n";
+	cs += csUnitLine;
+	cs += L"---------------------------\n";
+
+	for (const auto& r : m_arrTemperatureRows)
+	{
+		CString line;
+		double dUnit = ConvertUnits[r.dTemperature];
+		CString csTemp = FormatValue[dUnit];
+		line.Format(L"%4d   %2d      %s\n", r.nYear, r.nMonth, csTemp);
+		cs += line;
+	}
+
+	CMainFrame* pFrame = (CMainFrame*)AfxGetMainWnd();
+	if (pFrame != nullptr && pFrame->OutputPane != nullptr)
+	{
+		pFrame->OutputPane->FormattedText = cs;
+	}
+
+} // FormatTemperatureText
+
+/////////////////////////////////////////////////////////////////////////////
+// FormatThresholdText
+/////////////////////////////////////////////////////////////////////////////
+void CClimateExplorerDoc::FormatThresholdText()
+{
+	CString cs;
+
+	cs += L"Year   Percent\n";
+	cs += L"----------------\n";
+
+	for (const auto& r : m_arrThresholdRows)
+	{
+		CString line;
+		line.Format(L"%4d   %.2f\n", r.nYear, r.dPercent);
+		cs += line;
+	}
+
+	CMainFrame* pFrame = (CMainFrame*)AfxGetMainWnd();
+	if (pFrame != nullptr && pFrame->OutputPane != nullptr)
+	{
+		pFrame->OutputPane->FormattedText = cs;
+	}
+
+} // FormatThresholdText
+
+/////////////////////////////////////////////////////////////////////////////
+// FormatStationText
+/////////////////////////////////////////////////////////////////////////////
+void CClimateExplorerDoc::FormatStationText()
+{
+	CString cs;
+
+	cs += L"Year   Count\n";
+	cs += L"-------------\n";
+
+	for (const auto& r : m_arrStationRows)
+	{
+		CString line;
+		line.Format(L"%4d   %d\n", r.nYear, r.nCount);
+		cs += line;
+	}
+
+	CMainFrame* pFrame = (CMainFrame*)AfxGetMainWnd();
+	if (pFrame != nullptr && pFrame->OutputPane != nullptr)
+	{
+		pFrame->OutputPane->FormattedText = cs;
+	}
+
+} // FormatStationText
+
+/////////////////////////////////////////////////////////////////////////////
+// FormatTemperatureCSV
+/////////////////////////////////////////////////////////////////////////////
+void CClimateExplorerDoc::FormatTemperatureCSV()
+{
+	CString cs;
+
+	cs += L"Year,Month,Temperature\n";
+
+	for (const auto& r : m_arrTemperatureRows)
+	{
+		CString line;
+		double dUnit = ConvertUnits[r.dTemperature];
+		CString csTemp = FormatValue[dUnit];
+		csTemp.TrimLeft();
+		line.Format(L"%d,%d,%s\n", r.nYear, r.nMonth, csTemp.GetString());
+		cs += line;
+	}
+
+	CMainFrame* pFrame = (CMainFrame*)AfxGetMainWnd();
+	if (pFrame != nullptr && pFrame->OutputPane != nullptr)
+	{
+		pFrame->OutputPane->CSVText = cs;
+	}
+
+} // FormatTemperatureCSV
+
+/////////////////////////////////////////////////////////////////////////////
+// FormatThresholdCSV
+/////////////////////////////////////////////////////////////////////////////
+void CClimateExplorerDoc::FormatThresholdCSV()
+{
+	CString cs;
+
+	cs += L"Year,Percent\n";
+
+	for (const auto& r : m_arrThresholdRows)
+	{
+		CString line;
+		line.Format(L"%d,%.2f\n", r.nYear, r.dPercent);
+		cs += line;
+	}
+
+	CMainFrame* pFrame = (CMainFrame*)AfxGetMainWnd();
+	if (pFrame != nullptr && pFrame->OutputPane != nullptr)
+	{
+		pFrame->OutputPane->CSVText = cs;
+	}
+
+} // FormatThresholdCSV
+
+/////////////////////////////////////////////////////////////////////////////
+// FormatStationCSV
+/////////////////////////////////////////////////////////////////////////////
+void CClimateExplorerDoc::FormatStationCSV()
+{
+	CString cs;
+
+	cs += L"Year,Count\n";
+
+	for (const auto& r : m_arrStationRows)
+	{
+		CString line;
+		line.Format(L"%d,%d\n", r.nYear, r.nCount);
+		cs += line;
+	}
+
+	CMainFrame* pFrame = (CMainFrame*)AfxGetMainWnd();
+	if (pFrame != nullptr && pFrame->OutputPane != nullptr)
+	{
+		pFrame->OutputPane->CSVText = cs;
+	}
+
+} // FormatStationCSV
+
+/////////////////////////////////////////////////////////////////////////////
+// ConvertTemperatureRows
+/////////////////////////////////////////////////////////////////////////////
+void CClimateExplorerDoc::ConvertTemperatureRows
+(
+	const CSmartArray<CSmartArray<CString>>& arrRaw
+)
+{
+	m_arrTemperatureRows.clear();
+
+	for (auto& pRow : arrRaw.Items)
+	{
+		CClimateTempRow r;
+
+		int nCol = 0;
+		for (auto& pCol : pRow->Items)
+		{
+			switch (nCol)
+			{
+			case 0: 
+				r.nYear = _ttoi(*pCol); 
+				break;
+			case 1: 
+				r.nMonth = _ttoi(*pCol); 
+				break;
+			case 2: 
+				r.dTemperature = _ttof(*pCol);
+			}
+			nCol++;
+		}
+
+		m_arrTemperatureRows.push_back(r);
+	}
+
+} // ConvertTemperatureRows
+
+/////////////////////////////////////////////////////////////////////////////
+// ConvertThresholdRows
+/////////////////////////////////////////////////////////////////////////////
+void CClimateExplorerDoc::ConvertThresholdRows
+(
+	const CSmartArray<CSmartArray<CString>>& arrRaw
+)
+{
+	m_arrThresholdRows.clear();
+
+	for (auto& pRow : arrRaw.Items)
+	{
+		CClimateThresholdRow r;
+
+		int nCol = 0;
+		for (auto& pCol : pRow->Items)
+		{
+			switch (nCol)
+			{
+			case 0: 
+				r.nYear = _ttoi(*pCol); 
+				break;
+			case 1: 
+				r.dPercent = _ttof(*pCol);
+			}
+			nCol++;
+		}
+
+		m_arrThresholdRows.push_back(r);
+	}
+
+} // ConvertThresholdRows
+
+/////////////////////////////////////////////////////////////////////////////
+// ConvertStationRows
+/////////////////////////////////////////////////////////////////////////////
+void CClimateExplorerDoc::ConvertStationRows
+(
+	const CSmartArray<CSmartArray<CString>>& arrRaw
+)
+{
+	m_arrStationRows.clear();
+
+	for (auto& pRow : arrRaw.Items)
+	{
+		CClimateStationRow r;
+
+		int nCol = 0;
+		for (auto& pCol : pRow->Items)
+		{
+			switch (nCol)
+			{
+			case 0: 
+				r.nYear = _ttoi(*pCol); 
+				break;
+			case 1: 
+				r.nCount = _ttoi(*pCol);
+			}
+			nCol++;
+		}
+
+		m_arrStationRows.push_back(r);
+	}
+
+} // ConvertStationRows
+
+/////////////////////////////////////////////////////////////////////////////
+// ExecutePickerQuery
+/////////////////////////////////////////////////////////////////////////////
+void CClimateExplorerDoc::ExecutePickerQuery()
+{
+	// -------------------------------------------------------------
+	// 1. Clear previous results
+	// -------------------------------------------------------------
+	m_arrTemperatureRows.clear();
+	m_arrThresholdRows.clear();
+	m_arrStationRows.clear();
+
+	// -------------------------------------------------------------
+	// 2. Execute SQL
+	// -------------------------------------------------------------
+	CSmartArray<CSmartArray<CString>> arrRawRows;
+	CString csSQL = SQL;
+	ClimateDatabase->ExecuteTable(csSQL, arrRawRows);
+
+	// -------------------------------------------------------------
+	// 3. Branch based on Subtype
+	// -------------------------------------------------------------
+	CString csSubtype = Subtype;
+
+	if 
+	(
+		csSubtype == L"Maximum" ||
+		csSubtype == L"Minimum" ||
+		csSubtype == L"Average"
+	)
+	{
+		ConvertTemperatureRows(arrRawRows);
+		FormatTemperatureText();
+		FormatTemperatureCSV();
+		return;
+	}
+
+	if (csSubtype == L"Threshold")
+	{
+		ConvertThresholdRows(arrRawRows);
+		FormatThresholdText();
+		FormatThresholdCSV();
+		return;
+	}
+
+	if (csSubtype == L"Stations")
+	{
+		ConvertStationRows(arrRawRows);
+		FormatStationText();
+		FormatStationCSV();
+		return;
+	}
+
+} // ExecutePickerQuery
+
+/////////////////////////////////////////////////////////////////////////////
+std::unique_ptr<Gdiplus::Bitmap>
+CClimateExplorerDoc::RenderStationPlot(const CRect& rcLandscapePixels)
+{
+	// rcLandscapePixels.Width()  ≈ 4000
+	// rcLandscapePixels.Height() ≈ 2925
+	int nWidth = rcLandscapePixels.Width();
+	int nHeight = rcLandscapePixels.Height();
+#ifdef _DEBUG
+#undef new
+#endif
+	std::unique_ptr<Gdiplus::Bitmap> pBitmap
+	(
+		new Gdiplus::Bitmap( nWidth, nHeight)
+	);
+#ifdef _DEBUG
+#define new DEBUG_NEW
+#endif
+
+	Gdiplus::Graphics graphics(pBitmap.get());
+
+	graphics.SetSmoothingMode(Gdiplus::SmoothingModeHighQuality);
+	graphics.SetInterpolationMode(Gdiplus::InterpolationModeHighQualityBicubic);
+	graphics.SetTextRenderingHint(Gdiplus::TextRenderingHintClearTypeGridFit);
+
+	// Background
+	graphics.Clear(Gdiplus::Color(255, 255, 255));
+
+	// Axes, labels, curve drawing will go here...
+
+	return pBitmap;
+
+} // RenderStationPlot
 
 /////////////////////////////////////////////////////////////////////////////

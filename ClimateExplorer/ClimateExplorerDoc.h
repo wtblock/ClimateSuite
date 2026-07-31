@@ -1,5 +1,5 @@
-/////////////////////////////////////////////////////////////////////////////
-// Copyright � 2026, by W. T. Block, all rights reserved
+﻿/////////////////////////////////////////////////////////////////////////////
+// Copyright © 2026, by W. T. Block, all rights reserved
 /////////////////////////////////////////////////////////////////////////////
 #pragma once
 #include "BaseDoc.h"
@@ -7,6 +7,7 @@
 #include "ClimateExplorerView.h"
 #include "ClimateDatabase.h"
 #include "ClimateTemperature.h"
+#include "NaturalLanguage.h"
 #include "Page.h"
 #include "SmartArray.h"
 
@@ -19,9 +20,66 @@ public:
 	typedef CKeyedCollection<CString, MAP_IMAGES> MAP_ALBUM;
 	typedef CKeyedCollection<CString, CString> MAP_INDEX;
 
+	/////////////////////////////////////////////////////////////////////////////
+	// Row structures for each Subtype
+	/////////////////////////////////////////////////////////////////////////////
+
+	struct CClimateTempRow
+	{
+		int     nYear;
+		int     nMonth;
+		double  dTemperature;
+
+		CClimateTempRow()
+			: nYear(0)
+			, nMonth(0)
+			, dTemperature(0.0)
+		{
+		}
+	};
+
+	struct CClimateThresholdRow
+	{
+		int     nYear;
+		double  dPercent;
+
+		CClimateThresholdRow()
+			: nYear(0)
+			, dPercent(0.0)
+		{
+		}
+	};
+
+	struct CClimateStationRow
+	{
+		int     nYear;
+		int     nCount;
+
+		CClimateStationRow()
+			: nYear(0)
+			, nCount(0)
+		{
+		}
+	};
+
 // protected data
 protected:
 	DECLARE_DYNCREATE(CClimateExplorerDoc)
+
+	// ---------------------------------------------------------------------
+	// Temperature results: Year, Month, Temperature
+	// ---------------------------------------------------------------------
+	std::vector<CClimateTempRow> m_arrTemperatureRows;
+
+	// ---------------------------------------------------------------------
+	// Threshold results: Year, Percent
+	// ---------------------------------------------------------------------
+	std::vector<CClimateThresholdRow> m_arrThresholdRows;
+
+	// ---------------------------------------------------------------------
+	// Station count results: Year, Count
+	// ---------------------------------------------------------------------
+	std::vector<CClimateStationRow> m_arrStationRows;
 
 	// collection of albums (folders) where each album is a collection
 	// of bitmaps
@@ -126,14 +184,14 @@ protected:
 	// 4H. Ending Year
 	long m_lYearEnd; 
 
-	// 4I. Type (Maximum, Minimum, Average)
+	// 4Ia. Subtype (Maximum, Minimum, Average, Threshold, and Stations)
+	CString m_csSubtype;
+
+	// 4Ib. Type (Maximum, Minimum, Average)
 	CClimateTemperature::MEASURE_TYPE m_eMeasurementType;
 
 	// 4J. Threshold (90F, 95F, ... 125F) temperatures to count
 	int m_nThreshold;
-
-	// 4K. Threshold versus Temperature query
-	int m_bTemperature;
 
 	// 5A. Units (degF, degC, raw)
 	CString m_csUnits;
@@ -164,6 +222,54 @@ public:
 	// the climate database is a relational database of USHCN data
 	__declspec(property(get = GetClimateDatabase))
 		CClimateDatabase* ClimateDatabase;
+
+	// ---------------------------------------------------------------------
+	// TemperatureRows property
+	// ---------------------------------------------------------------------
+	const std::vector<CClimateTempRow>& GetTemperatureRows() const
+	{
+		return m_arrTemperatureRows;
+	}
+
+	void SetTemperatureRows(const std::vector<CClimateTempRow>& arrRows)
+	{
+		m_arrTemperatureRows = arrRows;
+	}
+
+	__declspec(property(get = GetTemperatureRows, put = SetTemperatureRows))
+		std::vector<CClimateTempRow> TemperatureRows;
+
+	// ---------------------------------------------------------------------
+	// ThresholdRows property
+	// ---------------------------------------------------------------------
+	const std::vector<CClimateThresholdRow>& GetThresholdRows() const
+	{
+		return m_arrThresholdRows;
+	}
+
+	void SetThresholdRows(const std::vector<CClimateThresholdRow>& arrRows)
+	{
+		m_arrThresholdRows = arrRows;
+	}
+
+	__declspec(property(get = GetThresholdRows, put = SetThresholdRows))
+		std::vector<CClimateThresholdRow> ThresholdRows;
+
+	// ---------------------------------------------------------------------
+	// StationRows property
+	// ---------------------------------------------------------------------
+	const std::vector<CClimateStationRow>& GetStationRows() const
+	{
+		return m_arrStationRows;
+	}
+
+	void SetStationRows(const std::vector<CClimateStationRow>& arrRows)
+	{
+		m_arrStationRows = arrRows;
+	}
+
+	__declspec(property(get = GetStationRows, put = SetStationRows))
+		std::vector<CClimateStationRow> StationRows;
 
 	// number of albums in the document
 	UINT GetAlbumCount()
@@ -798,37 +904,17 @@ public:
 	__declspec(property(get = GetYearEnd, put = SetYearEnd))
 		long YearEnd;
 
-	// 4I. Type ("Maximum", "Minimum", "Average", and "Threshold"
-	// where "Threshold" sets the type to mtMaximum and enables 
-	// Threshold boolean
-	CString GetMeasurementText()
+	// 4I. Subtype ("Maximum", "Minimum", "Average", "Threshold", and "Stations")
+	CString GetSubtype()
 	{
-		CString value(L"Maximum");
-		const bool bTemperature = Temperature;
-		if (bTemperature)
-		{
-			switch (MeasurementType)
-			{
-			case CClimateTemperature::mtAverage:
-				value = L"Average";
-				break;
-			case CClimateTemperature::mtMinimum:
-				value = L"Minimum";
-			}
-		}
-		else
-		{
-			value = L"Threshold";
-		}
-		return value;
+		return m_csSubtype;
 	}
-	// 4I. Type ("Maximum", "Minimum", "Average", and "Threshold"
-	// where "Threshold" sets the type to mtMaximum and enables 
-	// Threshold boolean
-	void SetMeasurementText(CString value)
+	// 4I. Subtype ("Maximum", "Minimum", "Average", "Threshold", and "Stations")
+	void SetSubtype(CString value)
 	{
+		m_csSubtype = value;
 		value.MakeLower();
-		Temperature = true;
+
 		MeasurementType = CClimateTemperature::mtMaximum;
 		if (value == L"average")
 		{
@@ -838,16 +924,10 @@ public:
 		{
 			MeasurementType = CClimateTemperature::mtMinimum;
 		}
-		else if (value == L"threshold")
-		{
-			Temperature = false;
-		}
 	}
-	// 4I. Type ("Maximum", "Minimum", "Average", and "Threshold"
-	// where "Threshold" sets the type to mtMaximum and enables 
-	// Threshold boolean
-	__declspec(property(get = GetMeasurementText, put = SetMeasurementText))
-		CString MeasurementText;
+	// 4I. Subtype ("Maximum", "Minimum", "Average", "Threshold", and "Stations")
+	__declspec(property(get = GetSubtype, put = SetSubtype))
+		CString Subtype;
 
 	// 4I. Type (Maximum, Minimum, Average)
 	CClimateTemperature::MEASURE_TYPE GetMeasurementType()
@@ -895,20 +975,6 @@ public:
 	__declspec(property(get = GetThreshold, put = SetThreshold))
 		int Threshold;
 
-	// 4K. Threshold versus Temperature query
-	bool GetTemperature()
-	{
-		return m_bTemperature;
-	}
-	// 4K. Threshold versus Temperature query
-	void SetTemperature(bool value)
-	{
-		m_bTemperature = value;
-	}
-	// 4K. Threshold versus Temperature query
-	__declspec(property(get = GetTemperature, put = SetTemperature))
-		bool Temperature;
-
 
 	// ===============================================
 	// Render Properties 
@@ -927,6 +993,44 @@ public:
 	// 5A. Units (degF, degC, raw)
 	__declspec(property(get = GetUnits, put = SetUnits))
 		CString Units;
+
+	// 5A. natural language unit type
+	CNaturalLanguage::UnitType GetUnitType()
+	{
+		CNaturalLanguage::UnitType value = CNaturalLanguage::UnitType::DegF;
+		CString csUnits = Units.MakeLower();
+		if (csUnits == L"degc")
+		{
+			value = CNaturalLanguage::UnitType::DegC;
+		}
+		else if (csUnits == L"raw")
+		{
+			value = CNaturalLanguage::UnitType::Raw;
+		}
+		
+		return value;
+	}
+	// 5A. natural language unit type
+	void SetUnitType(CNaturalLanguage::UnitType value)
+	{
+		CString csUnits = L"degF";
+		switch (value)
+		{
+		case CNaturalLanguage::UnitType::DegF :
+			csUnits = L"degF";
+			break;
+		case CNaturalLanguage::UnitType::DegC :
+			csUnits = L"degC";
+			break;
+		case CNaturalLanguage::UnitType::Raw :
+			csUnits = L"raw";
+		}
+
+		Units = csUnits;
+	}
+	// 5A. natural language unit type
+	__declspec(property(get = GetUnitType, put = SetUnitType))
+		CNaturalLanguage::UnitType UnitType;
 
 	// 5B. Output (Plot, Table, Map + Plot)
 	CString GetOutput()
@@ -970,6 +1074,52 @@ public:
 	__declspec(property(get = GetPlacement, put = SetPlacement))
 		CString Placement;
 
+	// format the given value based on current units
+	CString GetFormatValue(double value)
+	{
+		CString csOut;
+
+		// Format using right‑justified, fixed width
+		switch (UnitType)
+		{
+		case CNaturalLanguage::UnitType::Raw:
+			csOut.Format(L"% 6.0f", value);
+			break;
+		case CNaturalLanguage::UnitType::DegC:
+			csOut.Format(L"% 7.2f", value);
+			break;
+		case CNaturalLanguage::UnitType::DegF:
+			csOut.Format(L"% 8.3f", value);
+			break;
+		}
+
+		return csOut;
+	}
+	// format the given value based on current units
+	__declspec(property(get = GetFormatValue))
+		CString FormatValue[];
+
+	// convert from raw units to the user's choice
+	double GetConvertUnits(double dRaw)
+	{
+		double value = dRaw;
+		CNaturalLanguage::UnitType eType = UnitType;
+		switch (eType)
+		{
+		case CNaturalLanguage::UnitType::DegC :
+			value /= 100;
+			break;
+		case CNaturalLanguage::UnitType::DegF:
+			value /= 100;
+			value *= 1.8f;
+			value += 32.0f;
+		}
+		return value;
+	}
+	// convert from raw units to the user's choice
+	__declspec(property(get = GetConvertUnits))
+		double ConvertUnits[];
+
 
 // protected methods
 protected:
@@ -988,6 +1138,33 @@ protected:
 	BOOL PromptForFileName(CString& strFilePath);
 
 	CString BuildPickerSQL();
+
+	// -------------------------------------------------------------
+	// Conversion methods
+	// -------------------------------------------------------------
+	void ConvertTemperatureRows(const CSmartArray<CSmartArray<CString>>& arrRaw);
+
+	void ConvertThresholdRows(const CSmartArray<CSmartArray<CString>>& arrRaw);
+
+	void ConvertStationRows(const CSmartArray<CSmartArray<CString>>& arrRaw);
+
+	// -------------------------------------------------------------
+	// Text formatting methods
+	// -------------------------------------------------------------
+	void FormatTemperatureText();
+
+	void FormatThresholdText();
+
+	void FormatStationText();
+
+	// -------------------------------------------------------------
+	// CSV formatting methods
+	// -------------------------------------------------------------
+	void FormatTemperatureCSV();
+
+	void FormatThresholdCSV();
+
+	void FormatStationCSV();
 
 // public methods
 public:
@@ -1040,6 +1217,14 @@ public:
 		}
 		return value;
 	}
+
+	// -------------------------------------------------------------
+	// Execute the SQL stored in the SQL property
+	// -------------------------------------------------------------
+	void ExecutePickerQuery();
+
+	std::unique_ptr<Gdiplus::Bitmap>
+		RenderStationPlot(const CRect& rcLandscapePixels);
 
 #ifdef _DEBUG
 	virtual void AssertValid() const;

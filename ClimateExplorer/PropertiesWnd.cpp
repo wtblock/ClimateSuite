@@ -408,9 +408,29 @@ LRESULT CPropertiesWnd::OnPropertyChange
 		{
 			pDoc->YearEnd = long(varIn);
 		}
-		else if (csName == L"Type")
+		else if (csName == L"Subtype")
 		{
-			pDoc->MeasurementText = CString(varIn);
+			CString csSubtype = CString(varIn);
+			pDoc->Subtype = csSubtype;
+
+			if (csSubtype == L"Threshold")
+			{
+				m_pPropThreshold->Show();
+				m_pPropUnits->Show();
+			}
+			else
+			{
+				m_pPropThreshold->Show(FALSE);
+			}
+
+			if (csSubtype == L"Stations")
+			{
+				m_pPropUnits->Show(FALSE);
+			}
+			else
+			{
+				m_pPropUnits->Show();
+			}
 		}
 		else if (csName == L"Threshold")
 		{
@@ -582,9 +602,9 @@ void CPropertiesWnd::UpdatePropertiesFromDocument(CClimateExplorerDoc* pDoc)
 				long value = pDoc->YearEnd;
 				pProp->SetValue(value);
 			}
-			else if (csName == L"Type")
+			else if (csName == L"Subtype")
 			{
-				CString value = pDoc->MeasurementText;
+				CString value = pDoc->Subtype;
 				pProp->SetValue(value);
 			}
 			else if (csName == L"Threshold")
@@ -1162,18 +1182,19 @@ void CPropertiesWnd::InitPropList()
 	pQueryGroup->AddSubItem(pPropEndYear);
 
 	// ---------------------------------------------------------------
-	// 4I. Type (Maximum, Minimum, Average, or Threshold)
+	// 4I. Subtype (Maximum, Minimum, Average, Threshold, or Stations)
 	// ---------------------------------------------------------------
 	CMFCPropertyGridProperty* pPropType =
 		new CMFCPropertyGridProperty
 		(
-			L"Type",
+			L"Subtype",
 			(_variant_t)L"Maximum",
 			L"Select the measurement type:\n"
 			L"  • Maximum — daily/monthly high\n"
 			L"  • Minimum — daily/monthly low\n"
 			L"  • Average — mean temperature\n"
-			L"  • Threshold — percent maximums over a threshold value."
+			L"  • Threshold — percent maximums over a threshold value.\n"
+			L"  • Stations — number of active stations."
 		);
 
 	// Add dropdown options
@@ -1181,6 +1202,7 @@ void CPropertiesWnd::InitPropList()
 	pPropType->AddOption(L"Minimum");
 	pPropType->AddOption(L"Average");
 	pPropType->AddOption(L"Threshold");
+	pPropType->AddOption(L"Stations");
 
 	// Default selection
 	pPropType->SetValue((_variant_t)L"Maximum");
@@ -1214,6 +1236,7 @@ void CPropertiesWnd::InitPropList()
 
 	// remember the property
 	m_pPropThreshold = pPropThreshold;
+	m_pPropThreshold->Show(FALSE);
 
 	// Add to group
 	pQueryGroup->AddSubItem(pPropThreshold);
