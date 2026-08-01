@@ -198,6 +198,7 @@
     <ClInclude Include="ClimateExplorerView.h" />
     <ClInclude Include="CommandLine.h" />
     <ClInclude Include="framework.h" />
+    <ClInclude Include="GraphPlotter.h" />
     <ClInclude Include="MainFrm.h" />
     <ClInclude Include="MultilineTextDialog.h" />
     <ClInclude Include="OutputWnd.h" />
@@ -221,6 +222,7 @@
     <ClCompile Include="ClimateExplorerDoc.cpp" />
     <ClCompile Include="ClimateExplorerView.cpp" />
     <ClCompile Include="CommandLine.cpp" />
+    <ClCompile Include="GraphPlotter.cpp" />
     <ClCompile Include="MainFrm.cpp" />
     <ClCompile Include="MultilineTextDialog.cpp" />
     <ClCompile Include="OutputWnd.cpp" />

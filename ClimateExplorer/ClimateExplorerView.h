@@ -3,6 +3,7 @@
 /////////////////////////////////////////////////////////////////////////////
 #pragma once
 #include "BaseView.h"
+#include "ImagePlus.h"
 
 /////////////////////////////////////////////////////////////////////////////
 class CClimateExplorerDoc;
@@ -51,16 +52,17 @@ class CClimateExplorerDoc;
 /////////////////////////////////////////////////////////////////////////////
 class CClimateExplorerView : public CBaseView
 {
-	// protected data
+// protected data
 protected:
 
-	// public properties
+// public properties
 public:
 
-	// protected methods
+// protected methods
 protected:
+	CImagePlus* m_pTestImage;   // temporary test image
 
-	// public methods
+// public methods
 public:
 	CClimateExplorerDoc* GetDocument() const;
 

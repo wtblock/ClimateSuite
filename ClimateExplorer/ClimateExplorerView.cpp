@@ -10,6 +10,7 @@
 #include "ThumbnailDialog.h"
 #include "ImagePlus.h"
 #include "PdfWriter.h"
+#include "GraphPlotter.h"
 
 /////////////////////////////////////////////////////////////////////////////
 #ifdef _DEBUG
@@ -41,9 +42,8 @@ END_MESSAGE_MAP()
 
 /////////////////////////////////////////////////////////////////////////////
 CClimateExplorerView::CClimateExplorerView() noexcept
-{
-	
-
+{	
+	m_pTestImage = nullptr;
 }
 
 /////////////////////////////////////////////////////////////////////////////
@@ -1060,7 +1060,27 @@ void CClimateExplorerView::OnInitialUpdate()
 
 	CSize sizeTotal(nWidth, nHeight);
 	SetScrollSizes(MM_HIENGLISH, sizeTotal);
-}
+
+//
+	// -------------------------------------------------------------
+	// Define a test rectangle (landscape pixel size)
+	// -------------------------------------------------------------
+	CRect rcPixels(0, 0, 4000, 2925);
+
+	// -------------------------------------------------------------
+	// Generate the graph bitmap
+	// -------------------------------------------------------------
+	CGraphPlotter plotter;
+	auto pBmp = plotter.RenderStationCount(rcPixels);
+
+	// -------------------------------------------------------------
+	// Wrap in CImagePlus
+	// -------------------------------------------------------------
+	m_pTestImage = new CImagePlus(pBmp);
+
+	m_pTestImage->Save(L".\\GraphTest.jpg");
+//
+} // OnInitialUpdate
 
 /////////////////////////////////////////////////////////////////////////////
 void CClimateExplorerView::OnFilePrintPreview()
