@@ -6,46 +6,24 @@
 #include <gdiplus.h>
 #include <vector>
 #include <cmath>
-
-using namespace Gdiplus;
+#include <string>
 
 /////////////////////////////////////////////////////////////////////////////
 CGraphPlotter::CGraphPlotter()
 {
-	// -------------------------------------------------------------
-	// Default line appearance
-	// -------------------------------------------------------------
-	LineColor = RGB(0, 0, 128);   // dark blue
-	LineStyle = Gdiplus::DashStyleSolid;
-	LineWeight = 10;              // pixels
+	SetDefaults();
 
-	// -------------------------------------------------------------
-	// Default trend line appearance
-	// -------------------------------------------------------------
-	TrendLine = FALSE;
-	TrendLineColor = RGB(139, 0, 0);   // dark red
-	TrendLineStyle = Gdiplus::DashStyleDash;
-	TrendLineWeight = 10;                // pixels
-
-	// -------------------------------------------------------------
-	// Default grid appearance
-	// -------------------------------------------------------------
-	GridColor = RGB(220, 220, 220);   // light gray
-	GridLineStyle = Gdiplus::DashStyleDot;
-	GridLineWeight = 10;                    // pixels
-
-	// test data using the output of station count
-	std::vector< std::pair<int, int> > arrTest = 
+	std::vector< std::pair<int, int> > arrTest =
 	{
-		{ 1868,    1 }, { 1869,    2 }, { 1870,    1 }, { 1871,    3 },
-		{ 1872,    7 }, { 1873,    9 }, { 1874,   12 }, { 1875,   12 },
-		{ 1876,   12 }, { 1877,   14 }, { 1878,   15 }, { 1879,   17 },
-		{ 1880,   18 }, { 1881,   19 }, { 1882,   20 }, { 1883,   22 },
-		{ 1884,   30 }, { 1885,   40 }, { 1886,   42 }, { 1887,   73 },
-		{ 1888,  100 }, { 1889,  133 }, { 1890,  146 }, { 1891,  241 },
-		{ 1892,  294 }, { 1893,  524 }, { 1894,  565 }, { 1895,  612 },
-		{ 1896,  662 }, { 1897,  711 }, { 1898,  737 }, { 1899,  758 },
-		{ 1900,  783 }, { 1901,  802 }, { 1902,  827 }, { 1903,  863 },
+		//{ 1868,    1 }, { 1869,    2 }, { 1870,    1 }, { 1871,    3 },
+		//{ 1872,    7 }, { 1873,    9 }, { 1874,   12 }, { 1875,   12 },
+		//{ 1876,   12 }, { 1877,   14 }, { 1878,   15 }, { 1879,   17 },
+		//{ 1880,   18 }, { 1881,   19 }, { 1882,   20 }, { 1883,   22 },
+		//{ 1884,   30 }, { 1885,   40 }, { 1886,   42 }, { 1887,   73 },
+		//{ 1888,  100 }, { 1889,  133 }, { 1890,  146 }, { 1891,  241 },
+		//{ 1892,  294 }, { 1893,  524 }, { 1894,  565 }, { 1895,  612 },
+		//{ 1896,  662 }, { 1897,  711 }, { 1898,  737 }, { 1899,  758 },
+		/*{ 1900,  783 },*/ { 1901,  802 }, { 1902,  827 }, { 1903,  863 },
 		{ 1904,  899 }, { 1905,  914 }, { 1906,  940 }, { 1907,  971 },
 		{ 1908,  986 }, { 1909, 1012 }, { 1910, 1014 }, { 1911, 1041 },
 		{ 1912, 1048 }, { 1913, 1070 }, { 1914, 1086 }, { 1915, 1094 },
@@ -76,14 +54,24 @@ CGraphPlotter::CGraphPlotter()
 		{ 2012, 1003 }, { 2013,  960 }, { 2014,  942 }, { 2015,  924 },
 		{ 2016,  913 }, { 2017,  904 }, { 2018,  880 }, { 2019,  861 },
 		{ 2020,  848 }, { 2021,  841 }, { 2022,  825 }, { 2023,  815 },
-		{ 2024,  802 }, { 2025,  789 }, { 2026,  753 },
+		{ 2024,  802 }, { 2025,  789 }, /*{ 2026,  753 },*/
 	};
 
 	for (auto& node : arrTest)
 	{
-		Years->push_back((int)node.first);
-		Counts->push_back((int)node.second);
+		Years.push_back(node.first);
+		Values.push_back(node.second);
 	}
+
+} // CGraphPlotter
+
+/////////////////////////////////////////////////////////////////////////////
+CGraphPlotter::CGraphPlotter(std::vector<double> years, std::vector<double>values)
+{
+	SetDefaults();
+	Years = years;
+	Values = values;
+
 } // CGraphPlotter
 
 /////////////////////////////////////////////////////////////////////////////
@@ -93,1240 +81,1095 @@ CGraphPlotter::~CGraphPlotter()
 } // ~CGraphPlotter
 
 /////////////////////////////////////////////////////////////////////////////
-// CreatePlotBitmap
-//
-// Creates a high-resolution GDI+ Bitmap sized to the landscape pixel
-// rectangle provided by the caller. This bitmap is the foundation for
-// all graph rendering operations.
-//
-// Behavior:
-//   • Allocates a 32bpp ARGB bitmap
-//   • Applies high-quality rendering settings
-//   • Returns the bitmap wrapped in shared_ptr
-/////////////////////////////////////////////////////////////////////////////
-std::shared_ptr<Gdiplus::Bitmap>
-CGraphPlotter::CreatePlotBitmap(const CRect& rcPixels)
+void CGraphPlotter::SetDefaults()
 {
-	// width and height in pixels
-	const INT nWidth = rcPixels.Width();
-	const INT nHeight = rcPixels.Height();
+	// -------------------------------------------------------------
+	// Curve line appearance
+	// -------------------------------------------------------------
+	LineColor = RGB(0, 0, 128); // dark blue
+	LineStyle = Gdiplus::DashStyleSolid;
+	LineThicknessInches = 0.015; // ~6 px at 400 DPI
 
-	// MFC DEBUG_NEW interferes with GDI+ operator new
-#ifdef _DEBUG
-#undef new
-#endif
+	// -------------------------------------------------------------
+	// Trend line appearance
+	// -------------------------------------------------------------
+	TrendLine = FALSE;
+	TrendLineColor = RGB(139, 0, 0); // dark red
+	TrendLineStyle = Gdiplus::DashStyleDash;
+	TrendLineThicknessInches = 0.015; // ~6 px at 400 DPI
 
-	std::shared_ptr<Gdiplus::Bitmap> pBitmap
-	(
-		new Gdiplus::Bitmap(nWidth, nHeight)
-	);
+	// -------------------------------------------------------------
+	// Grid appearance
+	// -------------------------------------------------------------
+	GridColor = RGB(220, 220, 220); // light gray
+	GridLineStyle = Gdiplus::DashStyleDot;
+	GridLineThicknessInches = 0.020; // ~4 px at 400 DPI
 
-#ifdef _DEBUG
-#define new DEBUG_NEW
-#endif
+	// -------------------------------------------------------------
+	// Text sizes (points)
+	// -------------------------------------------------------------
+	TitleFontSizePoints = 14.0; // prominent title
+	AxisLabelFontSizePoints = 12.0; // "Year", "Count"
+	TickLabelFontSizePoints = 10.0; // numeric labels
 
-	// create graphics object
-	Gdiplus::Graphics graphics(pBitmap.get());
+	// -------------------------------------------------------------
+	// Padding (inches)
+	// -------------------------------------------------------------
+	LeftPaddingInches = 0.50; // 200 px
+	RightPaddingInches = 0.50; // 200 px
+	TopPaddingInches = 0.375; // 150 px
+	BottomPaddingInches = 0.50; // 200 px
 
-	// high-quality rendering settings
-	graphics.SetSmoothingMode(Gdiplus::SmoothingModeHighQuality);
-	graphics.SetInterpolationMode(Gdiplus::InterpolationModeHighQualityBicubic);
-	graphics.SetPixelOffsetMode(Gdiplus::PixelOffsetModeHighQuality);
-	graphics.SetTextRenderingHint(Gdiplus::TextRenderingHintClearTypeGridFit);
+	// -------------------------------------------------------------
+	// Tick mark length (inches)
+	// -------------------------------------------------------------
+	TickLengthInches = 0.030; // 12 px
 
-	// clear background to white
-	graphics.Clear(Gdiplus::Color(255, 255, 255));
-
-	return pBitmap;
-} // CreatePlotBitmap
-
-/////////////////////////////////////////////////////////////////////////////
-// GetPlotInterior
-//
-// Defines the interior plotting rectangle inside the bitmap.
-// Padding ensures axes, labels, and titles have room.
-//
-// Default padding:
-//   • Left   = 200 px
-//   • Right  = 200 px
-//   • Top    = 150 px
-//   • Bottom = 200 px
-/////////////////////////////////////////////////////////////////////////////
-CRect CGraphPlotter::GetPlotInterior(const CRect& rcPixels)
-{
-	const INT nLeftPadding = 200;
-	const INT nRightPadding = 200;
-	const INT nTopPadding = 150;
-	const INT nBottomPadding = 200;
-
-	CRect rcInterior
-	(
-		rcPixels.left + nLeftPadding,
-		rcPixels.top + nTopPadding,
-		rcPixels.right - nRightPadding,
-		rcPixels.bottom - nBottomPadding
-	);
-
-	return rcInterior;
-} // GetPlotInterior
+} // SetDefaults
 
 /////////////////////////////////////////////////////////////////////////////
 // RenderPlot
 //
-// Updated to use Excel-style “nice number” ticks.
-// Generates tick arrays for both axes and passes them to:
+// Updated to use Excel-style “nice number” ticks. Generates tick arrays
+// for both axes and passes them to all rendering functions. The primary
+// curve and optional running-average curve are mapped using tick ranges
+// for proper Excel-style scaling.
+//
+// Rendering sequence:
 //
 //   • DrawGrid
-//   • DrawAxes
 //   • DrawTicks
-//   • DrawCurve
-//   • DrawTrendLine
-//   • DrawTitle
-//   • DrawAxisLabels
 //   • DrawAxisNumbers
+//   • DrawAxisLabels
+//   • DrawCurve
+//   • DrawRunningAverage10 (optional)
+//   • DrawTitle
 //
-// All other rendering behavior remains unchanged.
+// All geometry is inch-based. All text uses point-based font sizes.
+//
 /////////////////////////////////////////////////////////////////////////////
-std::shared_ptr<Gdiplus::Bitmap> CGraphPlotter::RenderPlot
-(
-	const CRect& rcPixels,
-	const std::vector<double>& xValues,
-	const std::vector<double>& yValues,
-	const CString& csTitle
-)
+std::unique_ptr<Bitmap> CGraphPlotter::RenderPlot(const CRect& rcPixels)
 {
-	// width and height in pixels
-	const INT nWidth = rcPixels.Width();
-	const INT nHeight = rcPixels.Height();
+	// -------------------------------------------------------------
+	// Convert pixel rectangle to inches (based on 400 DPI)
+	// -------------------------------------------------------------
+	const double dpi = 400.0;
 
+	const double widthInches = static_cast<double>(rcPixels.Width()) / dpi;
+	const double heightInches = static_cast<double>(rcPixels.Height()) / dpi;
+
+	// -------------------------------------------------------------
+	// Create the bitmap at 400 DPI
+	// -------------------------------------------------------------
 #ifdef _DEBUG
 #undef new
 #endif
-
-	std::shared_ptr<Gdiplus::Bitmap> pBitmap
+	std::unique_ptr<Bitmap> pBmp
 	(
-		new Gdiplus::Bitmap(nWidth, nHeight)
+		new Bitmap(rcPixels.Width(), rcPixels.Height(), PixelFormat32bppARGB)
 	);
-
 #ifdef _DEBUG
 #define new DEBUG_NEW
 #endif
 
-	// graphics object
-	Gdiplus::Graphics g(pBitmap.get());
-
-	// high-quality rendering
-	g.SetSmoothingMode(Gdiplus::SmoothingModeHighQuality);
-	g.SetInterpolationMode(Gdiplus::InterpolationModeHighQualityBicubic);
-	g.SetPixelOffsetMode(Gdiplus::PixelOffsetModeHighQuality);
-	g.SetTextRenderingHint(Gdiplus::TextRenderingHintClearTypeGridFit);
-
-	// clear background
-	g.Clear(Gdiplus::Color(255, 255, 255));
+	pBmp->SetResolution(dpi, dpi);
 
 	// -------------------------------------------------------------
-	// Compute axis ranges
+	// Graphics object
 	// -------------------------------------------------------------
-	double xMin = DBL_MAX;
-	double xMax = -DBL_MAX;
-	double yMin = DBL_MAX;
-	double yMax = -DBL_MAX;
+	Graphics g(pBmp.get());
+	g.SetPageUnit(UnitInch);
+	g.SetSmoothingMode(SmoothingModeHighQuality);
+	g.SetTextRenderingHint(TextRenderingHintClearTypeGridFit);
 
-	for (size_t i = 0; i < xValues.size(); ++i)
+	// -------------------------------------------------------------
+	// Background
+	// -------------------------------------------------------------
+	SolidBrush brWhite(Color(255, 255, 255, 255));
+	g.FillRectangle(&brWhite, 0.0f, 0.0f, (REAL)widthInches, (REAL)heightInches);
+
+	// -------------------------------------------------------------
+	// Interior rectangle (in inches)
+	// -------------------------------------------------------------
+	const double left = LeftPaddingInches;
+	const double right = widthInches - RightPaddingInches;
+	const double top = TopPaddingInches;
+	const double bottom = heightInches - BottomPaddingInches;
+
+	// -------------------------------------------------------------
+	// Compute real data ranges
+	// -------------------------------------------------------------
+	double xMin = Years.front();
+	double xMax = Years.front();
+	double yMin = Values.front();
+	double yMax = Values.front();
+
+	for (size_t i = 1; i < Years.size(); i++)
 	{
-		if (xValues[i] < xMin) xMin = xValues[i];
-		if (xValues[i] > xMax) xMax = xValues[i];
+		xMin = min(xMin, Years[i]);
+		xMax = max(xMax, Years[i]);
+		yMin = min(yMin, Values[i]);
+		yMax = max(yMax, Values[i]);
 	}
 
-	for (size_t i = 0; i < yValues.size(); ++i)
-	{
-		if (yValues[i] < yMin) yMin = yValues[i];
-		if (yValues[i] > yMax) yMax = yValues[i];
-	}
+	// -------------------------------------------------------------
+	// Generate tick arrays from real ranges
+	// -------------------------------------------------------------
+	std::vector<double> xTicks;
+	std::vector<double> yTicks;
+
+	GenerateTicks(xMin, xMax, 10, xTicks);
+	GenerateTicks(yMin, yMax, 10, yTicks);
 
 	// -------------------------------------------------------------
-	// Fixed interior plot rectangle (padding)
+	// Tick range (Excel-style)
 	// -------------------------------------------------------------
-	const INT nLeftPadding = 200;
-	const INT nRightPadding = 200;
-	const INT nTopPadding = 150;
-	const INT nBottomPadding = 200;
-
-	CRect rcInterior
-	(
-		rcPixels.left + nLeftPadding,
-		rcPixels.top + nTopPadding,
-		rcPixels.right - nRightPadding,
-		rcPixels.bottom - nBottomPadding
-	);
+	const double xTickMin = xTicks.front();
+	const double xTickMax = xTicks.back();
+	const double yTickMin = yTicks.front();
+	const double yTickMax = yTicks.back();
 
 	// -------------------------------------------------------------
-	// Generate Excel-style tick arrays
+	// Draw grid
 	// -------------------------------------------------------------
-	const int targetTickCountX = 10;
-	const int targetTickCountY = 10;
-
-	std::vector<double> xTicks = MakeNiceTicks
-	(
-		xMin,
-		xMax,
-		targetTickCountX
-	);
-
-	std::vector<double> yTicks = MakeNiceTicks
-	(
-		yMin,
-		yMax,
-		targetTickCountY
-	);
+	DrawGrid(g, left, top, right, bottom, xTicks, yTicks);
 
 	// -------------------------------------------------------------
-	// Draw grid lines (interior ticks only)
+	// Draw ticks
 	// -------------------------------------------------------------
-	DrawGrid
-	(
-		g,
-		rcInterior,
-		xTicks,
-		yTicks,
-		xMin,
-		xMax,
-		yMin,
-		yMax
-	);
+	DrawTicks(g, left, top, right, bottom, xTicks, yTicks);
 
 	// -------------------------------------------------------------
-	// Draw axes (unchanged)
+	// Draw axis numbers
 	// -------------------------------------------------------------
-	DrawAxes
-	(
-		g,
-		rcInterior
-	);
+	DrawAxisNumbers(g, left, top, right, bottom, xTicks, yTicks);
 
 	// -------------------------------------------------------------
-	// Draw tick marks (ticks at all tick values)
+	// Draw axis labels
 	// -------------------------------------------------------------
-	DrawTicks
-	(
-		g,
-		rcInterior,
-		xTicks,
-		yTicks,
-		xMin,
-		xMax,
-		yMin,
-		yMax
-	);
+	DrawAxisLabels(g, left, top, right, bottom);
 
 	// -------------------------------------------------------------
-	// Draw curve (unchanged)
+	// Draw title
 	// -------------------------------------------------------------
-	DrawCurve
-	(
-		g,
-		rcInterior,
-		xValues,
-		yValues,
-		xMin,
-		xMax,
-		yMin,
-		yMax
-	);
+	DrawTitle(g, left, top, right);
 
 	// -------------------------------------------------------------
-	// Draw trend line (unchanged)
+	// Draw curve
 	// -------------------------------------------------------------
-	DrawTrendLine
-	(
-		g,
-		rcInterior,
-		xValues,
-		yValues,
-		xMin,
-		xMax,
-		yMin,
-		yMax
-	);
+	DrawCurve(g, left, top, right, bottom, xTickMin, xTickMax, yTickMin, yTickMax);
 
 	// -------------------------------------------------------------
-	// Draw title (unchanged)
+	// Draw trend line
 	// -------------------------------------------------------------
-	DrawTitle
-	(
-		g,
-		rcPixels,
-		csTitle
-	);
+	DrawRunningAverage10(g, left, top, right, bottom, xTickMin, xTickMax, yTickMin, yTickMax);
 
-	// -------------------------------------------------------------
-	// Draw axis titles (centered using tick arrays)
-	// -------------------------------------------------------------
-	DrawAxisLabels
-	(
-		g,
-		rcPixels,
-		rcInterior,
-		xTicks,
-		yTicks,
-		xMin,
-		xMax,
-		yMin,
-		yMax,
-		L"Year",
-		L"Count"
-	);
-
-	// -------------------------------------------------------------
-	// Draw numeric axis labels (uses tick arrays)
-	// -------------------------------------------------------------
-	DrawAxisNumbers
-	(
-		g,
-		rcInterior,
-		xTicks,
-		yTicks,
-		xMin,
-		xMax,
-		yMin,
-		yMax,
-		L"Year",
-		L"Count"
-	);
-
-	return pBitmap;
-
+	return pBmp;
 } // RenderPlot
-
-/////////////////////////////////////////////////////////////////////////////
-// DrawGrid
-//
-// Updated to use Excel-style “nice number” ticks.
-// Draws vertical and horizontal grid lines at *interior* tick positions.
-//
-// Uses:
-//   • m_clrGridColor
-//   • m_nGridLineStyle
-//   • m_nGridLineWeight
-/////////////////////////////////////////////////////////////////////////////
-void CGraphPlotter::DrawGrid
-(
-	Gdiplus::Graphics& g,
-	const CRect& rcInterior,
-	const std::vector<double>& xTicks,
-	const std::vector<double>& yTicks,
-	double xMin, double xMax,
-	double yMin, double yMax
-)
-{
-	// convert COLORREF → GDI+ Color
-	Gdiplus::Color clrGrid
-	(
-		255,
-		GetRValue(m_clrGridColor),
-		GetGValue(m_clrGridColor),
-		GetBValue(m_clrGridColor)
-	);
-
-	// create pen
-	Gdiplus::Pen penGrid(clrGrid, (Gdiplus::REAL)m_nGridLineWeight);
-	penGrid.SetDashStyle((Gdiplus::DashStyle)m_nGridLineStyle);
-
-	// interior dimensions
-	const INT left = rcInterior.left;
-	const INT right = rcInterior.right;
-	const INT top = rcInterior.top;
-	const INT bottom = rcInterior.bottom;
-
-	const double width = static_cast<double>(rcInterior.Width());
-	const double height = static_cast<double>(rcInterior.Height());
-
-	// -------------------------------------------------------------
-	// Vertical grid lines (interior ticks only)
-	// -------------------------------------------------------------
-	for (size_t i = 1; i + 1 < xTicks.size(); ++i)
-	{
-		const double t = xTicks[i];
-
-		const double xPixelD =
-			left + ((t - xMin) * (width / (xMax - xMin)));
-
-		const INT xPixel = static_cast<INT>(std::round(xPixelD));
-
-		g.DrawLine
-		(
-			&penGrid,
-			(Gdiplus::REAL)xPixel,
-			(Gdiplus::REAL)top,
-			(Gdiplus::REAL)xPixel,
-			(Gdiplus::REAL)bottom
-		);
-	}
-
-	// -------------------------------------------------------------
-	// Horizontal grid lines (interior ticks only)
-	// -------------------------------------------------------------
-	for (size_t j = 1; j + 1 < yTicks.size(); ++j)
-	{
-		const double t = yTicks[j];
-
-		const double yPixelD =
-			bottom - ((t - yMin) * (height / (yMax - yMin)));
-
-		const INT yPixel = static_cast<INT>(std::round(yPixelD));
-
-		g.DrawLine
-		(
-			&penGrid,
-			(Gdiplus::REAL)left,
-			(Gdiplus::REAL)yPixel,
-			(Gdiplus::REAL)right,
-			(Gdiplus::REAL)yPixel
-		);
-	}
-
-} // DrawGrid
-
-/////////////////////////////////////////////////////////////////////////////
-// DrawAxes
-//
-// Draws the left Y-axis and bottom X-axis inside the interior plot
-// rectangle. Uses:
-//   • m_clrLineColor
-//   • m_nLineStyle
-//   • m_nLineWeight
-//
-// No tick marks or labels yet — those come later.
-/////////////////////////////////////////////////////////////////////////////
-void CGraphPlotter::DrawAxes
-(
-	Gdiplus::Graphics& g,
-	const CRect& rcInterior
-)
-{
-	// convert COLORREF → GDI+ Color
-	Gdiplus::Color clrAxis
-	(
-		255,
-		GetRValue(m_clrLineColor),
-		GetGValue(m_clrLineColor),
-		GetBValue(m_clrLineColor)
-	);
-
-	// create pen
-	Gdiplus::Pen penAxis(clrAxis, (Gdiplus::REAL)m_nLineWeight);
-	penAxis.SetDashStyle((Gdiplus::DashStyle)m_nLineStyle);
-
-	// interior dimensions
-	const INT left = rcInterior.left;
-	const INT right = rcInterior.right;
-	const INT top = rcInterior.top;
-	const INT bottom = rcInterior.bottom;
-
-	// -------------------------------------------------------------
-	// Draw Y-axis (left)
-	// -------------------------------------------------------------
-	g.DrawLine
-	(
-		&penAxis,
-		(Gdiplus::REAL)left,
-		(Gdiplus::REAL)top,
-		(Gdiplus::REAL)left,
-		(Gdiplus::REAL)bottom
-	);
-
-	// -------------------------------------------------------------
-	// Draw X-axis (bottom)
-	// -------------------------------------------------------------
-	g.DrawLine
-	(
-		&penAxis,
-		(Gdiplus::REAL)left,
-		(Gdiplus::REAL)bottom,
-		(Gdiplus::REAL)right,
-		(Gdiplus::REAL)bottom
-	);
-
-} // DrawAxes
-
-/////////////////////////////////////////////////////////////////////////////
-// DrawTicks
-//
-// Updated to use Excel-style “nice number” ticks.
-// Draws tick marks at *all* tick positions (including ends).
-//
-// Uses:
-//   • m_clrLineColor
-//   • m_nLineStyle
-//   • m_nLineWeight
-/////////////////////////////////////////////////////////////////////////////
-void CGraphPlotter::DrawTicks
-(
-	Gdiplus::Graphics& g,
-	const CRect& rcInterior,
-	const std::vector<double>& xTicks,
-	const std::vector<double>& yTicks,
-	double xMin, double xMax,
-	double yMin, double yMax
-)
-{
-	// convert COLORREF → GDI+ Color
-	Gdiplus::Color clrTick
-	(
-		255,
-		GetRValue(m_clrLineColor),
-		GetGValue(m_clrLineColor),
-		GetBValue(m_clrLineColor)
-	);
-
-	// create pen
-	Gdiplus::Pen penTick(clrTick, (Gdiplus::REAL)m_nLineWeight);
-	penTick.SetDashStyle((Gdiplus::DashStyle)m_nLineStyle);
-
-	// interior dimensions
-	const INT left = rcInterior.left;
-	const INT right = rcInterior.right;
-	const INT top = rcInterior.top;
-	const INT bottom = rcInterior.bottom;
-
-	const double width = static_cast<double>(rcInterior.Width());
-	const double height = static_cast<double>(rcInterior.Height());
-
-	const INT nTickSize = 12;   // length of tick marks in pixels
-
-	// -------------------------------------------------------------
-	// X-axis tick marks (bottom axis)
-	// -------------------------------------------------------------
-	for (size_t i = 0; i < xTicks.size(); ++i)
-	{
-		const double t = xTicks[i];
-
-		const double xPixelD =
-			left + ((t - xMin) * (width / (xMax - xMin)));
-
-		const INT xPixel = static_cast<INT>(std::round(xPixelD));
-
-		g.DrawLine
-		(
-			&penTick,
-			(Gdiplus::REAL)xPixel,
-			(Gdiplus::REAL)bottom,
-			(Gdiplus::REAL)xPixel,
-			(Gdiplus::REAL)(bottom + nTickSize)
-		);
-	}
-
-	// -------------------------------------------------------------
-	// Y-axis tick marks (left axis)
-	// -------------------------------------------------------------
-	for (size_t j = 0; j < yTicks.size(); ++j)
-	{
-		const double t = yTicks[j];
-
-		const double yPixelD =
-			bottom - ((t - yMin) * (height / (yMax - yMin)));
-
-		const INT yPixel = static_cast<INT>(std::round(yPixelD));
-
-		g.DrawLine
-		(
-			&penTick,
-			(Gdiplus::REAL)left,
-			(Gdiplus::REAL)yPixel,
-			(Gdiplus::REAL)(left - nTickSize),
-			(Gdiplus::REAL)yPixel
-		);
-	}
-
-} // DrawTicks
-
-/////////////////////////////////////////////////////////////////////////////
-// DrawCurve
-//
-// Draws the main data curve inside the interior plot rectangle.
-// Maps (x, y) data values to pixel coordinates using linear scaling.
-//
-// Uses:
-//   • m_clrLineColor
-//   • m_nLineStyle
-//   • m_nLineWeight
-/////////////////////////////////////////////////////////////////////////////
-void CGraphPlotter::DrawCurve
-(
-	Gdiplus::Graphics& g,
-	const CRect& rcInterior,
-	const std::vector<double>& xValues,
-	const std::vector<double>& yValues,
-	double xMin, double xMax,
-	double yMin, double yMax
-)
-{
-	// convert COLORREF → GDI+ Color
-	Gdiplus::Color clrCurve
-	(
-		255,
-		GetRValue(m_clrLineColor),
-		GetGValue(m_clrLineColor),
-		GetBValue(m_clrLineColor)
-	);
-
-	// create pen
-	Gdiplus::Pen penCurve(clrCurve, (Gdiplus::REAL)m_nLineWeight);
-	penCurve.SetDashStyle((Gdiplus::DashStyle)m_nLineStyle);
-
-	// interior dimensions
-	const INT left = rcInterior.left;
-	const INT right = rcInterior.right;
-	const INT top = rcInterior.top;
-	const INT bottom = rcInterior.bottom;
-
-	const double width = (double)rcInterior.Width();
-	const double height = (double)rcInterior.Height();
-
-	// -------------------------------------------------------------
-	// Compute scale factors
-	// -------------------------------------------------------------
-	const double xScale = width / (xMax - xMin);
-	const double yScale = height / (yMax - yMin);
-
-	// -------------------------------------------------------------
-	// Convert data points → pixel coordinates
-	// -------------------------------------------------------------
-	std::vector<Gdiplus::PointF> points;
-	points.reserve(xValues.size());
-
-	for (size_t i = 0; i < xValues.size(); ++i)
-	{
-		const double xVal = xValues[i];
-		const double yVal = yValues[i];
-
-		// map x → pixel
-		const double xPixel =
-			left + (xVal - xMin) * xScale;
-
-		// map y → pixel (invert Y axis)
-		const double yPixel =
-			bottom - (yVal - yMin) * yScale;
-
-		points.emplace_back
-		(
-			(Gdiplus::REAL)xPixel,
-			(Gdiplus::REAL)yPixel
-		);
-	}
-
-	// -------------------------------------------------------------
-	// Draw polyline
-	// -------------------------------------------------------------
-	if (points.size() >= 2)
-	{
-		g.DrawLines(&penCurve, points.data(), (INT)points.size());
-	}
-
-} // DrawCurve
-
-/////////////////////////////////////////////////////////////////////////////
-// DrawTrendLine
-//
-// Draws a 10-year moving average trend line inside the interior plot
-// rectangle. Uses the trend-line appearance properties:
-//
-//   • m_clrTrendLineColor
-//   • m_nTrendLineStyle
-//   • m_nTrendLineWeight
-//
-// If m_bTrendLine is FALSE, the method returns immediately.
-//
-// The moving average is computed over a fixed window of 10 points.
-// Later this can be replaced with a time-based window or a more
-// sophisticated smoothing algorithm.
-/////////////////////////////////////////////////////////////////////////////
-void CGraphPlotter::DrawTrendLine
-(
-	Gdiplus::Graphics& g,
-	const CRect& rcInterior,
-	const std::vector<double>& xValues,
-	const std::vector<double>& yValues,
-	double xMin, double xMax,
-	double yMin, double yMax
-)
-{
-	// trend line disabled?
-	if (!m_bTrendLine)
-	{
-		return;
-	}
-
-	// convert COLORREF → GDI+ Color
-	Gdiplus::Color clrTrend
-	(
-		255,
-		GetRValue(m_clrTrendLineColor),
-		GetGValue(m_clrTrendLineColor),
-		GetBValue(m_clrTrendLineColor)
-	);
-
-	// create pen
-	Gdiplus::Pen penTrend(clrTrend, (Gdiplus::REAL)m_nTrendLineWeight);
-	penTrend.SetDashStyle((Gdiplus::DashStyle)m_nTrendLineStyle);
-
-	// interior dimensions
-	const INT left = rcInterior.left;
-	const INT right = rcInterior.right;
-	const INT top = rcInterior.top;
-	const INT bottom = rcInterior.bottom;
-
-	const double width = (double)rcInterior.Width();
-	const double height = (double)rcInterior.Height();
-
-	// -------------------------------------------------------------
-	// Compute scale factors
-	// -------------------------------------------------------------
-	const double xScale = width / (xMax - xMin);
-	const double yScale = height / (yMax - yMin);
-
-	// -------------------------------------------------------------
-	// Compute 10-year moving average
-	// -------------------------------------------------------------
-	const size_t n = yValues.size();
-	const size_t window = 10;
-
-	if (n < window)
-	{
-		return; // not enough data
-	}
-
-	std::vector<double> avgX;
-	std::vector<double> avgY;
-
-	avgX.reserve(n - window + 1);
-	avgY.reserve(n - window + 1);
-
-	for (size_t i = 0; i <= n - window; ++i)
-	{
-		double sum = 0.0;
-
-		for (size_t j = 0; j < window; ++j)
-		{
-			sum += yValues[i + j];
-		}
-
-		const double mean = sum / (double)window;
-
-		avgX.push_back(xValues[i + window / 2]); // center of window
-		avgY.push_back(mean);
-	}
-
-	// -------------------------------------------------------------
-	// Convert averaged points → pixel coordinates
-	// -------------------------------------------------------------
-	std::vector<Gdiplus::PointF> points;
-	points.reserve(avgX.size());
-
-	for (size_t i = 0; i < avgX.size(); ++i)
-	{
-		const double xVal = avgX[i];
-		const double yVal = avgY[i];
-
-		const double xPixel =
-			left + (xVal - xMin) * xScale;
-
-		const double yPixel =
-			bottom - (yVal - yMin) * yScale;
-
-		points.emplace_back
-		(
-			(Gdiplus::REAL)xPixel,
-			(Gdiplus::REAL)yPixel
-		);
-	}
-
-	// -------------------------------------------------------------
-	// Draw trend polyline
-	// -------------------------------------------------------------
-	if (points.size() >= 2)
-	{
-		g.DrawLines(&penTrend, points.data(), (INT)points.size());
-	}
-
-} // DrawTrendLine
-
-/////////////////////////////////////////////////////////////////////////////
-// DrawTitle
-//
-// Draws the plot title centered at the top of the bitmap.
-// Uses the main line color for now. Later this can be replaced with
-// a dedicated title color and font selection.
-//
-// Title is drawn above the interior plot rectangle.
-/////////////////////////////////////////////////////////////////////////////
-void CGraphPlotter::DrawTitle
-(
-	Gdiplus::Graphics& g,
-	const CRect& rcPixels,
-	const CString& csTitle
-)
-{
-	if (csTitle.IsEmpty())
-	{
-		return;
-	}
-
-	Gdiplus::Color clrTitle
-	(
-		255,
-		GetRValue(m_clrLineColor),
-		GetGValue(m_clrLineColor),
-		GetBValue(m_clrLineColor)
-	);
-
-	Gdiplus::SolidBrush brushTitle(clrTitle);
-
-	// Larger title font
-	Gdiplus::Font fontTitle(L"Segoe UI", 72.0f, Gdiplus::FontStyleBold, Gdiplus::UnitPixel);
-
-	// Taller title rectangle
-	Gdiplus::RectF rcTitle
-	(
-		(Gdiplus::REAL)rcPixels.left,
-		(Gdiplus::REAL)rcPixels.top,
-		(Gdiplus::REAL)rcPixels.Width(),
-		200.0f
-	);
-
-	Gdiplus::StringFormat fmt;
-	fmt.SetAlignment(Gdiplus::StringAlignmentCenter);
-	fmt.SetLineAlignment(Gdiplus::StringAlignmentCenter);
-
-	g.DrawString(csTitle, -1, &fontTitle, rcTitle, &fmt, &brushTitle);
-
-} // DrawTitle
 
 /////////////////////////////////////////////////////////////////////////////
 // DrawAxisLabels
 //
-// Updated to use Excel-style “nice number” ticks.
-// Centers the Y-axis label between the first and last tick values.
+// Draws the axis titles (“Year”, “Count”, etc.) using inch-based
+// geometry. Font size, color, and alignment are user-configurable.
+// Vertical axis labels are rotated -90 degrees around a precise
+// anchor point.
 //
-// Uses:
-//   • LineColor (temporary text color)
-//   • m_nFontSizeAxisLabel (recommended default: 32)
+// PARAMETERS:
+//
+//   g             Graphics object (UnitInch mode)
+//   leftInches    Left boundary of the interior plot area
+//   topInches     Top boundary of the interior plot area
+//   rightInches   Right boundary of the interior plot area
+//   bottomInches  Bottom boundary of the interior plot area
+//
+// NOTES:
+//
+//   • Uses AxisLabelFontSizePoints.
+//   • Rotation uses RotateTransform / ResetTransform.
+//   • All measurements are in inches.
+//
 /////////////////////////////////////////////////////////////////////////////
 void CGraphPlotter::DrawAxisLabels
 (
-	Gdiplus::Graphics& g,
-	const CRect& rcPixels,
-	const CRect& rcInterior,
+	Graphics& g,
+	double     leftInches,
+	double     topInches,
+	double     rightInches,
+	double     bottomInches
+)
+{
+	const REAL fontSize = (REAL)AxisLabelFontSizePoints;
+
+	Gdiplus::Font font
+	(
+		L"Segoe UI",
+		fontSize,
+		FontStyleRegular,
+		UnitPoint
+	);
+
+	SolidBrush br
+	(
+		Color
+		(
+			255,
+			GetRValue(LineColor),
+			GetGValue(LineColor),
+			GetBValue(LineColor)
+		)
+	);
+
+	// -------------------------------------------------------------
+	// X-axis label
+	// -------------------------------------------------------------
+	{
+		StringFormat fmt;
+		fmt.SetAlignment(StringAlignmentCenter);
+		fmt.SetLineAlignment(StringAlignmentNear);
+
+		const double width = rightInches - leftInches;
+
+		RectF rc
+		(
+			(REAL)leftInches,
+			(REAL)(bottomInches + 0.25),
+			(REAL)width,
+			(REAL)0.35
+		);
+
+		g.DrawString
+		(
+			L"Year",
+			-1,
+			&font,
+			rc,
+			&fmt,
+			&br
+		);
+	}
+
+	// -------------------------------------------------------------
+	// Y-axis label (rotated)
+	// -------------------------------------------------------------
+	{
+		StringFormat fmt;
+		fmt.SetAlignment(StringAlignmentCenter);
+		fmt.SetLineAlignment(StringAlignmentCenter);
+
+		const double height = bottomInches - topInches;
+
+		GraphicsState state = g.Save();
+
+		g.TranslateTransform
+		(
+			(REAL)(leftInches - 0.40),
+			(REAL)(topInches + height / 2.0)
+		);
+
+		g.RotateTransform(-90.0f);
+
+		RectF rc
+		(
+			(REAL)(-height / 2.0),
+			(REAL)-0.20f,
+			(REAL)height,
+			(REAL)0.40f
+		);
+
+		g.DrawString
+		(
+			L"Count",
+			-1,
+			&font,
+			rc,
+			&fmt,
+			&br
+		);
+
+		g.Restore(state);
+	}
+} // DrawAxisLabels
+
+/////////////////////////////////////////////////////////////////////////////
+// GenerateTicks
+//
+// Computes “nice number” tick positions for both axes using the same
+// algorithm employed by Excel and other professional charting tools.
+// The function analyzes the data range, selects an aesthetically
+// pleasing tick interval, and generates arrays of tick positions.
+//
+// PARAMETERS:
+//
+//   dataMin        Minimum data value
+//   dataMax        Maximum data value
+//   maxTicks       Maximum number of ticks desired
+//   outTicks       Output vector of tick positions
+//
+// NOTES:
+//
+//   • Produces evenly spaced ticks using nice-number intervals.
+//   • Ensures ticks fall on round values (1, 2, 5 × 10^n).
+//   • Used for grid lines, tick marks, axis numbers, and scaling.
+//   • All values are in data units (not inches).
+//
+/////////////////////////////////////////////////////////////////////////////
+void CGraphPlotter::GenerateTicks
+(
+	double dataMin,
+	double dataMax,
+	int maxTicks,
+	std::vector<double>& outTicks
+)
+{
+	outTicks.clear();
+
+	if (dataMax <= dataMin)
+		return;
+
+	// -------------------------------------------------------------
+	// Compute raw range
+	// -------------------------------------------------------------
+	const double range = dataMax - dataMin;
+
+	// -------------------------------------------------------------
+	// Compute nice range
+	// -------------------------------------------------------------
+	const double exponent = floor(log10(range));
+	const double fraction = range / pow(10.0, exponent);
+
+	double niceFraction;
+
+	if (fraction < 1.5)
+		niceFraction = 1.0;
+	else if (fraction < 3.0)
+		niceFraction = 2.0;
+	else if (fraction < 7.0)
+		niceFraction = 5.0;
+	else
+		niceFraction = 10.0;
+
+	const double niceRange = niceFraction * pow(10.0, exponent);
+
+	// -------------------------------------------------------------
+	// Compute tick spacing
+	// -------------------------------------------------------------
+	const double spacing = niceRange / (double)maxTicks;
+
+	// -------------------------------------------------------------
+	// Compute nice minimum and maximum
+	// -------------------------------------------------------------
+	const double niceMin = floor(dataMin / spacing) * spacing;
+	const double niceMax = ceil(dataMax / spacing) * spacing;
+
+	// -------------------------------------------------------------
+	// Generate ticks
+	// -------------------------------------------------------------
+	for (double v = niceMin; v <= niceMax + (spacing * 0.5); v += spacing)
+	{
+		outTicks.push_back(v);
+	}
+} // GenerateTicks
+
+/////////////////////////////////////////////////////////////////////////////
+// DrawGrid
+//
+// Renders the background grid inside the plot area using inch-based
+// geometry. Grid lines are drawn at positions defined by the tick
+// arrays generated in RenderPlot. Grid color, dash style, and line
+// thickness are user-configurable.
+//
+// PARAMETERS:
+//
+//   g             Graphics object (UnitInch mode)
+//   leftInches    Left boundary of the interior plot area
+//   topInches     Top boundary of the interior plot area
+//   rightInches   Right boundary of the interior plot area
+//   bottomInches  Bottom boundary of the interior plot area
+//   xTicks        Tick positions for the horizontal axis (data units)
+//   yTicks        Tick positions for the vertical axis   (data units)
+//
+// NOTES:
+//
+//   • Uses GridColor, GridLineStyle, GridLineThicknessInches.
+//   • Tick arrays determine exact grid line placement.
+//   • All measurements are in inches.
+//
+/////////////////////////////////////////////////////////////////////////////
+void CGraphPlotter::DrawGrid
+(
+	Graphics& g,
+	double                      leftInches,
+	double                      topInches,
+	double                      rightInches,
+	double                      bottomInches,
 	const std::vector<double>& xTicks,
-	const std::vector<double>& yTicks,
-	double xMin, double xMax,
-	double yMin, double yMax,
-	const CString& csXLabel,
-	const CString& csYLabel
+	const std::vector<double>& yTicks
 )
 {
 	// -------------------------------------------------------------
-	// Colors and fonts
+	// Pen for grid lines
 	// -------------------------------------------------------------
-	COLORREF rgbLine = LineColor;
-
-	Gdiplus::Color clrText
+	Pen penGrid
 	(
-		255,
-		GetRValue(rgbLine),
-		GetGValue(rgbLine),
-		GetBValue(rgbLine)
+		Color
+		(
+			255,
+			GetRValue(GridColor),
+			GetGValue(GridColor),
+			GetBValue(GridColor)
+		),
+		(REAL)GridLineThicknessInches
 	);
 
-	Gdiplus::SolidBrush brushText(clrText);
-
-	Gdiplus::Font fontLabel
-	(
-		L"Segoe UI",
-		(Gdiplus::REAL)32,   // larger axis title font
-		Gdiplus::FontStyleBold,
-		Gdiplus::UnitPixel
-	);
-
-	Gdiplus::StringFormat fmtCenter;
-	fmtCenter.SetAlignment(Gdiplus::StringAlignmentCenter);
-	fmtCenter.SetLineAlignment(Gdiplus::StringAlignmentCenter);
+	penGrid.SetDashStyle(GridLineStyle);
 
 	// -------------------------------------------------------------
-	// Geometry
+	// Compute interior dimensions
 	// -------------------------------------------------------------
-	const INT left = rcInterior.left;
-	const INT right = rcInterior.right;
-	const INT top = rcInterior.top;
-	const INT bottom = rcInterior.bottom;
-
-	const double width = static_cast<double>(rcInterior.Width());
-	const double height = static_cast<double>(rcInterior.Height());
+	const double widthInches = rightInches - leftInches;
+	const double heightInches = bottomInches - topInches;
 
 	// -------------------------------------------------------------
-	// X-axis label (centered horizontally under the axis)
+	// Determine data ranges from tick arrays
 	// -------------------------------------------------------------
+	if (xTicks.size() < 2 || yTicks.size() < 2)
+		return;
+
+	const double xMin = xTicks.front();
+	const double xMax = xTicks.back();
+
+	const double yMin = yTicks.front();
+	const double yMax = yTicks.back();
+
+	const double xRange = xMax - xMin;
+	const double yRange = yMax - yMin;
+
+	if (xRange <= 0.0 || yRange <= 0.0)
+		return;
+
+	// -------------------------------------------------------------
+	// Vertical grid lines (from xTicks)
+	// -------------------------------------------------------------
+	for (double xv : xTicks)
 	{
-		const INT xCenter = (left + right) / 2;
-		const INT yPos = bottom + 100;   // increased from +80
+		const double t = (xv - xMin) / xRange;
+		const double x = leftInches + (widthInches * t);
 
-		Gdiplus::RectF rcText
+		g.DrawLine
 		(
-			(Gdiplus::REAL)(xCenter - 4000),
-			(Gdiplus::REAL)(yPos - 2000),
-			(Gdiplus::REAL)8000,
-			(Gdiplus::REAL)4000
-		);
-
-		g.DrawString
-		(
-			csXLabel,
-			-1,
-			&fontLabel,
-			rcText,
-			&fmtCenter,
-			&brushText
+			&penGrid,
+			(REAL)x,
+			(REAL)topInches,
+			(REAL)x,
+			(REAL)bottomInches
 		);
 	}
 
 	// -------------------------------------------------------------
-	// Y-axis label (centered between first and last tick values)
+	// Horizontal grid lines (from yTicks)
 	// -------------------------------------------------------------
-	if (!yTicks.empty())
+	for (double yv : yTicks)
 	{
-		const double tMin = yTicks.front();
-		const double tMax = yTicks.back();
-		const double tMid = (tMin + tMax) * 0.5;
+		const double t = (yv - yMin) / yRange;
+		const double y = bottomInches - (heightInches * t);
 
-		const double yPixelD =
-			bottom - ((tMid - yMin) * (height / (yMax - yMin)));
-
-		const INT yCenter = static_cast<INT>(std::round(yPixelD));
-		const INT xPos = left - 120;
-
-		// Rotation transform
-		Gdiplus::Matrix m;
-		m.RotateAt
+		g.DrawLine
 		(
-			-90.0f,
-			Gdiplus::PointF
-			(
-				(Gdiplus::REAL)xPos,
-				(Gdiplus::REAL)yCenter
-			)
+			&penGrid,
+			(REAL)leftInches,
+			(REAL)y,
+			(REAL)rightInches,
+			(REAL)y
 		);
+	}
+} // DrawGrid
 
-		g.SetTransform(&m);
-
-		Gdiplus::RectF rcText
+/////////////////////////////////////////////////////////////////////////////
+// DrawTicks
+//
+// Draws tick marks along both axes using inch-based geometry. Tick
+// length, line thickness, and color are user-configurable. Tick
+// positions are defined by the tick arrays generated in RenderPlot.
+//
+// PARAMETERS:
+//
+//   g             Graphics object (UnitInch mode)
+//   leftInches    Left boundary of the interior plot area
+//   topInches     Top boundary of the interior plot area
+//   rightInches   Right boundary of the interior plot area
+//   bottomInches  Bottom boundary of the interior plot area
+//   xTicks        Tick positions for the horizontal axis (data units)
+//   yTicks        Tick positions for the vertical axis   (data units)
+//
+// NOTES:
+//
+//   • Uses TickLengthInches and LineThicknessInches.
+//   • Tick arrays determine exact tick placement.
+//   • All measurements are in inches.
+//
+/////////////////////////////////////////////////////////////////////////////
+void CGraphPlotter::DrawTicks
+(
+	Graphics& g,
+	double                      leftInches,
+	double                      topInches,
+	double                      rightInches,
+	double                      bottomInches,
+	const std::vector<double>& xTicks,
+	const std::vector<double>& yTicks
+)
+{
+	// -------------------------------------------------------------
+	// Pen for tick marks
+	// -------------------------------------------------------------
+	Pen penTicks
+	(
+		Color
 		(
-			(Gdiplus::REAL)(xPos - 2000),
-			(Gdiplus::REAL)(yCenter - 1990),   // raised slightly
-			(Gdiplus::REAL)4000,
-			(Gdiplus::REAL)4000
-		);
+			255,
+			GetRValue(LineColor),
+			GetGValue(LineColor),
+			GetBValue(LineColor)
+		),
+		(REAL)LineThicknessInches
+	);
 
-		g.DrawString
+	penTicks.SetDashStyle(LineStyle);
+
+	// -------------------------------------------------------------
+	// Compute interior dimensions
+	// -------------------------------------------------------------
+	const double widthInches = rightInches - leftInches;
+	const double heightInches = bottomInches - topInches;
+
+	// -------------------------------------------------------------
+	// Determine data ranges from tick arrays
+	// -------------------------------------------------------------
+	if (xTicks.size() < 2 || yTicks.size() < 2)
+		return;
+
+	const double xMin = xTicks.front();
+	const double xMax = xTicks.back();
+
+	const double yMin = yTicks.front();
+	const double yMax = yTicks.back();
+
+	const double xRange = xMax - xMin;
+	const double yRange = yMax - yMin;
+
+	if (xRange <= 0.0 || yRange <= 0.0)
+		return;
+
+	// -------------------------------------------------------------
+	// Horizontal axis ticks (bottom axis)
+	// -------------------------------------------------------------
+	for (double xv : xTicks)
+	{
+		const double t = (xv - xMin) / xRange;
+		const double x = leftInches + (widthInches * t);
+
+		g.DrawLine
 		(
-			csYLabel,
-			-1,
-			&fontLabel,
-			rcText,
-			&fmtCenter,
-			&brushText
+			&penTicks,
+			(REAL)x,
+			(REAL)bottomInches,
+			(REAL)x,
+			(REAL)(bottomInches + TickLengthInches)
 		);
-
-		g.ResetTransform();
 	}
 
-} // DrawAxisLabels
+	// -------------------------------------------------------------
+	// Vertical axis ticks (left axis)
+	// -------------------------------------------------------------
+	for (double yv : yTicks)
+	{
+		const double t = (yv - yMin) / yRange;
+		const double y = bottomInches - (heightInches * t);
+
+		g.DrawLine
+		(
+			&penTicks,
+			(REAL)leftInches,
+			(REAL)y,
+			(REAL)(leftInches - TickLengthInches),
+			(REAL)y
+		);
+	}
+} // DrawTicks
 
 /////////////////////////////////////////////////////////////////////////////
 // DrawAxisNumbers
 //
-// Updated to use Excel-style “nice number” ticks.
-// Draws numeric labels at each tick position for both axes.
+// Renders numeric labels for both axes using inch-based geometry.
+// Font size, color, and alignment are user-configurable. Numeric
+// labels are placed at positions defined by the tick arrays
+// generated in RenderPlot.
 //
-// Uses:
-//   • LineColor (temporary text color)
-//   • m_nFontSizeAxis (recommended default: 26)
+// PARAMETERS:
+//
+//   g             Graphics object (UnitInch mode)
+//   leftInches    Left boundary of the interior plot area
+//   topInches     Top boundary of the interior plot area
+//   rightInches   Right boundary of the interior plot area
+//   bottomInches  Bottom boundary of the interior plot area
+//   xTicks        Tick positions for the horizontal axis (data units)
+//   yTicks        Tick positions for the vertical axis   (data units)
+//
+// NOTES:
+//
+//   • Uses TickLabelFontSizePoints.
+//   • Tick arrays determine exact label placement.
+//   • All measurements are in inches.
+//
 /////////////////////////////////////////////////////////////////////////////
 void CGraphPlotter::DrawAxisNumbers
 (
-	Gdiplus::Graphics& g,
-	const CRect& rcInterior,
+	Graphics& g,
+	double                      leftInches,
+	double                      topInches,
+	double                      rightInches,
+	double                      bottomInches,
 	const std::vector<double>& xTicks,
-	const std::vector<double>& yTicks,
-	double xMin, double xMax,
-	double yMin, double yMax,
-	const CString& csXLabel,
-	const CString& csYLabel
+	const std::vector<double>& yTicks
 )
 {
 	// -------------------------------------------------------------
-	// Colors and fonts
+	// Validate tick arrays
 	// -------------------------------------------------------------
-	COLORREF rgbText = LineColor;
+	if (xTicks.size() < 2 || yTicks.size() < 2)
+		return;
 
-	Gdiplus::Color clrText
-	(
-		255,
-		GetRValue(rgbText),
-		GetGValue(rgbText),
-		GetBValue(rgbText)
-	);
+	// -------------------------------------------------------------
+	// Compute interior dimensions
+	// -------------------------------------------------------------
+	const double widthInches = rightInches - leftInches;
+	const double heightInches = bottomInches - topInches;
 
-	Gdiplus::SolidBrush brushText(clrText);
+	const double xMin = xTicks.front();
+	const double xMax = xTicks.back();
+	const double yMin = yTicks.front();
+	const double yMax = yTicks.back();
 
-	Gdiplus::Font fontNum
+	const double xRange = xMax - xMin;
+	const double yRange = yMax - yMin;
+
+	if (xRange <= 0.0 || yRange <= 0.0)
+		return;
+
+	// -------------------------------------------------------------
+	// Font for numeric labels
+	// -------------------------------------------------------------
+	Gdiplus::Font fontNumbers
 	(
 		L"Segoe UI",
-		(Gdiplus::REAL)26,   // larger numeric labels
-		Gdiplus::FontStyleRegular,
-		Gdiplus::UnitPixel
+		(REAL)TickLabelFontSizePoints,
+		FontStyleRegular,
+		UnitPoint
 	);
 
-	Gdiplus::StringFormat fmtCenter;
-	fmtCenter.SetAlignment(Gdiplus::StringAlignmentCenter);
-	fmtCenter.SetLineAlignment(Gdiplus::StringAlignmentCenter);
+	// -------------------------------------------------------------
+	// Brush for text
+	// -------------------------------------------------------------
+	SolidBrush brText
+	(
+		Color
+		(
+			255,
+			GetRValue(LineColor),
+			GetGValue(LineColor),
+			GetBValue(LineColor)
+		)
+	);
 
 	// -------------------------------------------------------------
-	// Geometry
+	// Format for horizontal axis numbers (centered)
 	// -------------------------------------------------------------
-	const INT left = rcInterior.left;
-	const INT right = rcInterior.right;
-	const INT top = rcInterior.top;
-	const INT bottom = rcInterior.bottom;
-
-	const double width = static_cast<double>(rcInterior.Width());
-	const double height = static_cast<double>(rcInterior.Height());
+	StringFormat fmtCenter;
+	fmtCenter.SetAlignment(StringAlignmentCenter);
+	fmtCenter.SetLineAlignment(StringAlignmentNear);
 
 	// -------------------------------------------------------------
-	// X-axis numeric labels (bottom)
+	// Format for vertical axis numbers (right-aligned)
 	// -------------------------------------------------------------
-	for (size_t i = 0; i < xTicks.size(); ++i)
+	StringFormat fmtRight;
+	fmtRight.SetAlignment(StringAlignmentFar);
+	fmtRight.SetLineAlignment(StringAlignmentCenter);
+
+	// -------------------------------------------------------------
+	// Horizontal axis numbers (bottom axis)
+	// -------------------------------------------------------------
+	for (double xv : xTicks)
 	{
-		const double t = xTicks[i];
+		const double t = (xv - xMin) / xRange;
+		const double x = leftInches + (widthInches * t);
 
-		const double xPixelD =
-			left + ((t - xMin) * (width / (xMax - xMin)));
+		WCHAR buf[64];
+		swprintf_s(buf, L"%.6g", xv);
 
-		const INT xPixel = static_cast<INT>(std::round(xPixelD));
-
-		CString cs;
-		if (std::fabs(t - std::round(t)) < 0.0001)
-		{
-			cs.Format(L"%d", (int)std::round(t));
-		}
-		else
-		{
-			cs.Format(L"%.2f", t);
-		}
-
-		Gdiplus::RectF rcText
+		RectF rcText
 		(
-			(Gdiplus::REAL)(xPixel - 2000),
-			(Gdiplus::REAL)(bottom + 30 - 2000),   // raised from +20
-			(Gdiplus::REAL)4000,
-			(Gdiplus::REAL)4000
+			(REAL)(x - 0.25),
+			(REAL)(bottomInches + TickLengthInches + 0.02),
+			(REAL)0.50,
+			(REAL)0.30
 		);
 
-		g.DrawString
-		(
-			cs,
-			-1,
-			&fontNum,
-			rcText,
-			&fmtCenter,
-			&brushText
-		);
+		g.DrawString(buf, -1, &fontNumbers, rcText, &fmtCenter, &brText);
 	}
 
 	// -------------------------------------------------------------
-	// Y-axis numeric labels (left, rotated)
+	// Y-axis numbers (rotated)
 	// -------------------------------------------------------------
-	for (size_t j = 0; j < yTicks.size(); ++j)
 	{
-		const double t = yTicks[j];
+		const REAL fontSize = (REAL)TickLabelFontSizePoints;
 
-		const double yPixelD =
-			bottom - ((t - yMin) * (height / (yMax - yMin)));
-
-		const INT yPixel = static_cast<INT>(std::round(yPixelD));
-
-		CString cs;
-		if (std::fabs(t - std::round(t)) < 0.0001)
-		{
-			cs.Format(L"%d", (int)std::round(t));
-		}
-		else
-		{
-			cs.Format(L"%.2f", t);
-		}
-
-		// Rotation transform
-		Gdiplus::Matrix m;
-		m.RotateAt
+		Gdiplus::Font font
 		(
-			-90.0f,
-			Gdiplus::PointF
+			L"Segoe UI",
+			fontSize,
+			FontStyleRegular,
+			UnitPoint
+		);
+
+		SolidBrush br
+		(
+			Color
 			(
-				(Gdiplus::REAL)(left - 40),
-				(Gdiplus::REAL)(yPixel - 10)   // raised anchor
+				255,
+				GetRValue(LineColor),
+				GetGValue(LineColor),
+				GetBValue(LineColor)
 			)
 		);
 
-		g.SetTransform(&m);
+		StringFormat fmt;
+		fmt.SetAlignment(StringAlignmentCenter);
+		fmt.SetLineAlignment(StringAlignmentCenter);
 
-		Gdiplus::RectF rcText
-		(
-			(Gdiplus::REAL)(left - 40 - 2000),
-			(Gdiplus::REAL)(yPixel - 1990),   // raised from -2000
-			(Gdiplus::REAL)4000,
-			(Gdiplus::REAL)4000
-		);
+		const double heightInches = bottomInches - topInches;
+		const double yRange = yTicks.back() - yTicks.front();
 
-		g.DrawString
-		(
-			cs,
-			-1,
-			&fontNum,
-			rcText,
-			&fmtCenter,
-			&brushText
-		);
+		for (size_t i = 0; i < yTicks.size(); i++)
+		{
+			const double yv = yTicks[i];
+			const double ty = (yv - yTicks.front()) / yRange;
 
-		g.ResetTransform();
+			const double y = bottomInches - (heightInches * ty);
+
+			GraphicsState state = g.Save();
+
+			g.TranslateTransform
+			(
+				(REAL)(leftInches - 0.15),
+				(REAL)y
+			);
+
+			g.RotateTransform(-90.0f);
+
+			RectF rc
+			(
+				(REAL)-0.20f,
+				(REAL)-0.10f,
+				(REAL)0.40f,
+				(REAL)0.20f
+			);
+
+			std::wstring s = std::to_wstring((int)yv);
+
+			g.DrawString
+			(
+				s.c_str(),
+				-1,
+				&font,
+				rc,
+				&fmt,
+				&br
+			);
+
+			g.Restore(state);
+		}
 	}
-
 } // DrawAxisNumbers
 
 /////////////////////////////////////////////////////////////////////////////
-// MakeNiceTicks
+// DrawCurve
 //
-// Generates Excel-style “nice number” ticks for an axis.
-// Returns a vector<double> containing tick values.
+// Renders the primary data curve using inch-based geometry. Line color,
+// dash style, and thickness are user-configurable. Data points are mapped
+// from user-provided arrays into the interior plot rectangle using the
+// tick ranges generated in RenderPlot. This ensures Excel-style scaling
+// and alignment with grid lines, axis numbers, and running-average curves.
 //
-// Behavior:
-//   • Chooses a “nice” step: 1, 2, 5 × 10^n
-//   • Extends min/max outward to nice boundaries
-//   • Produces ticks at all boundaries (including ends)
-//   • Works for any numeric range
+// PARAMETERS:
+//
+//   g             Graphics object (UnitInch mode)
+//   leftInches    Left boundary of the interior plot area
+//   topInches     Top boundary of the interior plot area
+//   rightInches   Right boundary of the interior plot area
+//   bottomInches  Bottom boundary of the interior plot area
+//   xTickMin      Minimum tick value on the X axis
+//   xTickMax      Maximum tick value on the X axis
+//   yTickMin      Minimum tick value on the Y axis
+//   yTickMax      Maximum tick value on the Y axis
+//
+// NOTES:
+//
+//   • Uses LineColor, LineStyle, LineThicknessInches.
+//   • Maps data using tick ranges for proper Excel-style scaling.
+//   • All measurements are in inches.
+//
 /////////////////////////////////////////////////////////////////////////////
-std::vector<double> CGraphPlotter::MakeNiceTicks
+void CGraphPlotter::DrawCurve
 (
-	double minVal,
-	double maxVal,
-	int targetCount
+	Graphics& g,
+	double leftInches,
+	double topInches,
+	double rightInches,
+	double bottomInches,
+	double xTickMin,
+	double xTickMax,
+	double yTickMin,
+	double yTickMax
 )
 {
-	std::vector<double> ticks;
+	if (Years.empty() || Values.empty())
+		return;
 
-	if (targetCount <= 0)
-	{
-		return ticks;
-	}
+	const size_t count = min(Years.size(), Values.size());
+	if (count < 2)
+		return;
 
-	// Ensure min < max
-	if (maxVal < minVal)
-	{
-		std::swap(minVal, maxVal);
-	}
-
-	const double range = maxVal - minVal;
-
-	if (range <= 0.0)
-	{
-		// Degenerate case: single-value axis
-		ticks.push_back(minVal);
-		return ticks;
-	}
-
-	// Raw step size
-	const double rawStep = range / static_cast<double>(targetCount);
-
-	// Determine magnitude (power of 10)
-	const double magnitude = std::pow(10.0, std::floor(std::log10(rawStep)));
-
-	// Determine normalized step (1, 2, or 5)
-	double norm = rawStep / magnitude;
-
-	double niceNorm = 1.0;
-
-	if (norm <= 1.0)
-	{
-		niceNorm = 1.0;
-	}
-	else if (norm <= 2.0)
-	{
-		niceNorm = 2.0;
-	}
-	else if (norm <= 5.0)
-	{
-		niceNorm = 5.0;
-	}
-	else
-	{
-		niceNorm = 10.0;
-	}
-
-	const double niceStep = niceNorm * magnitude;
-
-	// Compute nice min/max
-	const double niceMin = std::floor(minVal / niceStep) * niceStep;
-	const double niceMax = std::ceil(maxVal / niceStep) * niceStep;
-
-	// Generate ticks
-	for (double v = niceMin; v <= niceMax + 0.5 * niceStep; v += niceStep)
-	{
-		ticks.push_back(v);
-	}
-
-	return ticks;
-} // MakeNiceTicks
-
-/////////////////////////////////////////////////////////////////////////////
-// RenderStationCount
-//
-// Thin wrapper that converts integer station-count data into double
-// vectors and calls the general RenderPlot() method.
-//
-// Title:
-//   "USHCN Number of Stations"
-/////////////////////////////////////////////////////////////////////////////
-std::shared_ptr<Gdiplus::Bitmap> CGraphPlotter::RenderStationCount
-(
-	const CRect& rcPixels,
-	const std::vector<int>& years,
-	const std::vector<int>& counts
-)
-{
-	// convert int → double
-	std::vector<double> xValues;
-	std::vector<double> yValues;
-
-	xValues.reserve(years.size());
-	yValues.reserve(counts.size());
-
-	for (auto& year : years)
-	{
-		xValues.push_back((double)year);
-	}
-
-	for (auto& count : counts)
-	{
-		yValues.push_back((double)count);
-	}
-
-	// call general renderer
-	return RenderPlot
+	Pen penCurve
 	(
-		rcPixels,
-		xValues,
-		yValues,
-		L"USHCN Number of Stations"
+		Color(255,
+			GetRValue(LineColor),
+			GetGValue(LineColor),
+			GetBValue(LineColor)),
+		(REAL)LineThicknessInches
 	);
 
-} // RenderStationCount
+	penCurve.SetDashStyle(LineStyle);
+
+	const double widthInches = rightInches - leftInches;
+	const double heightInches = bottomInches - topInches;
+
+	const double xRange = xTickMax - xTickMin;
+	const double yRange = yTickMax - yTickMin;
+
+	if (xRange <= 0.0 || yRange <= 0.0)
+		return;
+
+	std::vector<PointF> pts;
+	pts.reserve(count);
+
+	for (size_t i = 0; i < count; i++)
+	{
+		const double xv = Years[i];
+		const double yv = Values[i];
+
+		const double tx = (xv - xTickMin) / xRange;
+		const double ty = (yv - yTickMin) / yRange;
+
+		const double x = leftInches + (widthInches * tx);
+		const double y = bottomInches - (heightInches * ty);
+
+		pts.emplace_back((REAL)x, (REAL)y);
+	}
+
+	if (pts.size() >= 2)
+		g.DrawLines(&penCurve, pts.data(), (INT)pts.size());
+} // DrawCurve
+
+/////////////////////////////////////////////////////////////////////////////
+// DrawRunningAverage10
+//
+// Renders an optional 10‑year running‑average curve using inch‑based
+// geometry. The running average is computed from the real data set by
+// averaging each 10‑year window. The first valid point occurs at the
+// tenth data element. All running‑average points are mapped into the
+// interior plot rectangle using the tick ranges generated in RenderPlot.
+//
+// PARAMETERS:
+//
+//   g             Graphics object (UnitInch mode)
+//   leftInches    Left boundary of the interior plot area
+//   topInches     Top boundary of the interior plot area
+//   rightInches   Right boundary of the interior plot area
+//   bottomInches  Bottom boundary of the interior plot area
+//
+// NOTES:
+//
+//   • Uses TrendLineColor, TrendLineStyle, TrendLineThicknessInches.
+//   • RunningAverage10 must be TRUE for rendering to occur.
+//   • Computes a trailing 10‑year average (i.e., years i‑9 through i).
+//   • Uses tick ranges for proper Excel‑style scaling.
+//   • All measurements are in inches.
+//
+/////////////////////////////////////////////////////////////////////////////
+void CGraphPlotter::DrawRunningAverage10
+(
+	Graphics& g,
+	double leftInches,
+	double topInches,
+	double rightInches,
+	double bottomInches,
+	double xTickMin,
+	double xTickMax,
+	double yTickMin,
+	double yTickMax
+)
+{
+	if (Years.size() < 10 || Values.size() < 10)
+		return;
+
+	const size_t count = min(Years.size(), Values.size());
+	const double widthInches = rightInches - leftInches;
+	const double heightInches = bottomInches - topInches;
+
+	const double xRange = xTickMax - xTickMin;
+	const double yRange = yTickMax - yTickMin;
+
+	if (xRange <= 0.0 || yRange <= 0.0)
+		return;
+
+	// -------------------------------------------------------------
+	// Compute 10-year running average
+	// -------------------------------------------------------------
+	std::vector<PointF> pts;
+	pts.reserve(count - 9);
+
+	for (size_t i = 9; i < count; i++)
+	{
+		double sum = 0.0;
+		for (size_t j = i - 9; j <= i; j++)
+			sum += Values[j];
+
+		const double avg = sum / 10.0;
+		const double year = Years[i];
+
+		const double tx = (year - xTickMin) / xRange;
+		const double ty = (avg - yTickMin) / yRange;
+
+		const double x = leftInches + (widthInches * tx);
+		const double y = bottomInches - (heightInches * ty);
+
+		pts.emplace_back((REAL)x, (REAL)y);
+	}
+
+	// -------------------------------------------------------------
+	// Draw running-average curve
+	// -------------------------------------------------------------
+	if (pts.size() >= 2)
+	{
+		Pen penAvg(Color(255, 128, 128, 128), (REAL)TrendLineThicknessInches);
+		penAvg.SetDashStyle(DashStyleDash);
+		g.DrawLines(&penAvg, pts.data(), (INT)pts.size());
+	}
+} // DrawRunningAverage10
+
+/////////////////////////////////////////////////////////////////////////////
+// DrawTitle
+//
+// Renders the plot title using inch-based geometry. The title is centered
+// horizontally above the interior plot area and may include a legend
+// describing the primary curve and optional running-average curve.
+// Title font size, color, and alignment are user-configurable.
+//
+// PARAMETERS:
+//
+//   g             Graphics object (UnitInch mode)
+//   leftInches    Left boundary of the interior plot area
+//   topInches     Top boundary of the interior plot area
+//   rightInches   Right boundary of the interior plot area
+//
+// NOTES:
+//
+//   • Uses TitleFontSizePoints and TitleColor.
+//   • Title is rendered above the plot area, centered horizontally.
+//   • Legend text is included directly in the title.
+//   • All measurements are in inches.
+//
+/////////////////////////////////////////////////////////////////////////////
+void CGraphPlotter::DrawTitle
+(
+	Graphics& g,
+	double     leftInches,
+	double     topInches,
+	double     rightInches
+)
+{
+	const REAL fontSize = (REAL)TitleFontSizePoints;
+
+	Gdiplus::Font font
+	(
+		L"Segoe UI",
+		fontSize,
+		FontStyleBold,
+		UnitPoint
+	);
+
+	SolidBrush br
+	(
+		Color
+		(
+			255,
+			GetRValue(LineColor),
+			GetGValue(LineColor),
+			GetBValue(LineColor)
+		)
+	);
+
+	StringFormat fmt;
+	fmt.SetAlignment(StringAlignmentCenter);
+	fmt.SetLineAlignment(StringAlignmentNear);
+
+	const double width = rightInches - leftInches;
+
+	RectF rc
+	(
+		(REAL)leftInches,
+		(REAL)(topInches - 0.40),
+		(REAL)width,
+		(REAL)0.35
+	);
+
+	std::wstring title = L"USHCN Station Count (solid blue)";
+	//if (RunningAverage10)
+		title += L" and 10-Year Running Average (dashed gray)";
+
+	g.DrawString
+	(
+		title.c_str(),
+		-1,
+		&font,
+		rc,
+		&fmt,
+		&br
+	);
+} // DrawTitle
+
+/////////////////////////////////////////////////////////////////////////////
+// CreatePlot
+//
+// Public entry point for generating the plot image. This method
+// calls the protected RenderPlot function, which performs all
+// rendering using inch-based geometry and the configured plot
+// properties.
+//
+// PARAMETERS:
+//
+//   rcPixels   Pixel rectangle defining the output bitmap size.
+//
+// RETURNS:
+//
+//   std::unique_ptr<Bitmap> containing the rendered plot.
+//
+/////////////////////////////////////////////////////////////////////////////
+std::shared_ptr<Bitmap> CGraphPlotter::CreatePlot(const CRect& rcPixels)
+{
+	return RenderPlot(rcPixels);
+
+} // CreatePlot
 
 /////////////////////////////////////////////////////////////////////////////

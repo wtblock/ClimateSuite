@@ -1070,8 +1070,8 @@ void CClimateExplorerView::OnInitialUpdate()
 	// -------------------------------------------------------------
 	// Generate the graph bitmap
 	// -------------------------------------------------------------
-	CGraphPlotter plotter;
-	auto pBmp = plotter.RenderStationCount(rcPixels);
+	CGraphPlotter plot;
+	auto pBmp = plot.CreatePlot(rcPixels);
 
 	// -------------------------------------------------------------
 	// Wrap in CImagePlus
