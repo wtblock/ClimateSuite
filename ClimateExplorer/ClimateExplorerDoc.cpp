@@ -34,6 +34,26 @@ CClimateExplorerDoc::CClimateExplorerDoc()
 {
 	InitializeProperties();
 
+	// initialize GDI dash lookup table
+	vector<pair<CString, Gdiplus::DashStyle> > arrDash =
+	{
+		{ L"Solid", Gdiplus::DashStyleSolid },
+		{ L"Dash", Gdiplus::DashStyleDash },
+		{ L"Dot", Gdiplus::DashStyleDot },
+		{ L"DashDot", Gdiplus::DashStyleDashDot },
+		{ L"DashDotDot", Gdiplus::DashStyleDashDotDot }
+	};
+
+	for (auto& node : arrDash)
+	{
+		CString csKey = node.first;
+
+		shared_ptr<Gdiplus::DashStyle> pDash =
+			shared_ptr<Gdiplus::DashStyle>
+			(new Gdiplus::DashStyle(node.second));
+		m_mapDash.add(csKey, pDash);
+	}
+
 } // CClimateExplorerDoc
 
 /////////////////////////////////////////////////////////////////////////////
@@ -79,6 +99,55 @@ void CClimateExplorerDoc::InitializeProperties()
 	Units = L"degF";
 	Output = L"Plot";
 	Layout = L"Full";
+
+	// -------------------------------------------------------------
+	// Plot Text
+	// -------------------------------------------------------------
+	GraphTitle = L"Title";
+	AxisLabelX = L"Year";
+	AxisLabelY = L"Value";
+
+	// -------------------------------------------------------------
+	// Curve line appearance
+	// -------------------------------------------------------------
+	LineColor = RGB(0, 0, 128); // dark blue
+	LineStyle = Gdiplus::DashStyleSolid;
+	LineThicknessInches = 0.015; // ~6 px at 400 DPI
+
+	// -------------------------------------------------------------
+	// Trend line appearance
+	// -------------------------------------------------------------
+	TrendLine = TRUE;
+	TrendLineColor = RGB(139, 0, 0); // dark red
+	TrendLineStyle = Gdiplus::DashStyleDash;
+	TrendLineThicknessInches = 0.015; // ~6 px at 400 DPI
+
+	// -------------------------------------------------------------
+	// Grid appearance
+	// -------------------------------------------------------------
+	GridColor = RGB(220, 220, 220); // light gray
+	GridLineStyle = Gdiplus::DashStyleDot;
+	GridLineThicknessInches = 0.020; // ~8 px at 400 DPI
+
+	// -------------------------------------------------------------
+	// Text sizes (points)
+	// -------------------------------------------------------------
+	TitleFontSizePoints = 14.0; // prominent title
+	AxisLabelFontSizePoints = 12.0; // "Year", "Value"
+	TickLabelFontSizePoints = 10.0; // numeric labels
+
+	// -------------------------------------------------------------
+	// Padding (inches)
+	// -------------------------------------------------------------
+	//LeftPaddingInches = 0.50; // 200 px
+	RightPaddingInches = 0.50; // 200 px
+	TopPaddingInches = 0.375; // 150 px
+	BottomPaddingInches = 0.50; // 200 px
+
+	// -------------------------------------------------------------
+	// Tick mark length (inches)
+	// -------------------------------------------------------------
+	TickLengthInches = 0.030; // 12 px
 
 } // InitializeProperties
 

@@ -3,6 +3,7 @@
 /////////////////////////////////////////////////////////////////////////////
 #pragma once
 #include "PropertyGridCtrl.h"
+#include "KeyedCollection.h"
 
 /////////////////////////////////////////////////////////////////////////////
 class CClimateExplorerView;
@@ -80,30 +81,56 @@ public:
 /////////////////////////////////////////////////////////////////////////////
 class CPropertiesWnd : public CDockablePane
 {
-
-	// protected data
+// protected data
 protected:
 	CFont m_fntPropList;
 	CPropertiesToolBar m_wndToolBar;
 	CPropertyGridCtrl m_wndPropList;
 	int m_nComboHeight;
-	CMFCPropertyGridProperty* m_pTableOfContents;
 
-	CMFCPropertyGridProperty* m_pPropQueryType = nullptr;
+	CMFCPropertyGridProperty* m_pTableOfContents     = nullptr;
+
+	CMFCPropertyGridProperty* m_pPropQueryType       = nullptr;
 	CMFCPropertyGridProperty* m_pPropNaturalLanguage = nullptr;
-	CMFCPropertyGridProperty* m_pPropSQL = nullptr;
-	CMFCPropertyGridProperty* m_pPropUnits = nullptr;
-	CMFCPropertyGridProperty* m_pPropPure = nullptr;
-	CMFCPropertyGridProperty* m_pPropScope = nullptr;
-	CMFCPropertyGridProperty* m_pPropState = nullptr;
-	CMFCPropertyGridProperty* m_pPropLocation = nullptr;
-	CMFCPropertyGridProperty* m_pPropYearStart = nullptr;
-	CMFCPropertyGridProperty* m_pPropYearEnd = nullptr;
-	CMFCPropertyGridProperty* m_pPropType = nullptr;
-	CMFCPropertyGridProperty* m_pPropThreshold = nullptr;
-	CMFCPropertyGridProperty* m_pPropOutput = nullptr;
-	CMFCPropertyGridProperty* m_pPropLayout = nullptr;
-	CMFCPropertyGridProperty* m_pPropPlacement = nullptr;
+	CMFCPropertyGridProperty* m_pPropSQL             = nullptr;
+	CMFCPropertyGridProperty* m_pPropUnits           = nullptr;
+	CMFCPropertyGridProperty* m_pPropPure            = nullptr;
+	CMFCPropertyGridProperty* m_pPropScope           = nullptr;
+	CMFCPropertyGridProperty* m_pPropState           = nullptr;
+	CMFCPropertyGridProperty* m_pPropLocation        = nullptr;
+	CMFCPropertyGridProperty* m_pPropYearStart       = nullptr;
+	CMFCPropertyGridProperty* m_pPropYearEnd         = nullptr;
+	CMFCPropertyGridProperty* m_pPropType            = nullptr;
+	CMFCPropertyGridProperty* m_pPropThreshold       = nullptr;
+	CMFCPropertyGridProperty* m_pPropOutput          = nullptr;
+	CMFCPropertyGridProperty* m_pPropLayout          = nullptr;
+	CMFCPropertyGridProperty* m_pPropPlacement       = nullptr;
+												     
+	CMFCPropertyGridProperty* m_pPropGraphTitle      = nullptr;
+	CMFCPropertyGridProperty* m_pPropAxisLabelX      = nullptr;
+	CMFCPropertyGridProperty* m_pPropAxisLabelY      = nullptr;
+												     
+	CMFCPropertyGridProperty* m_pPropLineColor       = nullptr;
+	CMFCPropertyGridProperty* m_pPropLineStyle       = nullptr;
+	CMFCPropertyGridProperty* m_pPropLineWeight      = nullptr;
+												     
+	CMFCPropertyGridProperty* m_pPropTrendLine       = nullptr;
+	CMFCPropertyGridProperty* m_pPropTrendColor      = nullptr;
+	CMFCPropertyGridProperty* m_pPropTrendStyle      = nullptr;
+	CMFCPropertyGridProperty* m_pPropTrendWeight     = nullptr;
+												     
+	CMFCPropertyGridProperty* m_pPropGridColor       = nullptr;
+	CMFCPropertyGridProperty* m_pPropGridStyle       = nullptr;
+	CMFCPropertyGridProperty* m_pPropGridWeight      = nullptr;
+												     
+	CMFCPropertyGridProperty* m_pPropTitlePoints     = nullptr;
+	CMFCPropertyGridProperty* m_pPropLabelPoints     = nullptr;
+	CMFCPropertyGridProperty* m_pPropTickPoints      = nullptr;
+												     
+	CMFCPropertyGridProperty* m_pPropLeftPad         = nullptr;
+	CMFCPropertyGridProperty* m_pPropRightPad        = nullptr;
+	CMFCPropertyGridProperty* m_pPropTopPad          = nullptr;
+	CMFCPropertyGridProperty* m_pPropBottomPad       = nullptr;
 
 // public properties
 public:

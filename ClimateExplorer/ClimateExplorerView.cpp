@@ -1067,10 +1067,13 @@ void CClimateExplorerView::OnInitialUpdate()
 	// -------------------------------------------------------------
 	CRect rcPixels(0, 0, 4000, 2925);
 
+	// the sample data is stations
+	pDoc->Subtype = L"Stations";
+
 	// -------------------------------------------------------------
 	// Generate the graph bitmap
 	// -------------------------------------------------------------
-	CGraphPlotter plot;
+	CGraphPlotter plot(pDoc);
 	auto pBmp = plot.CreatePlot(rcPixels);
 
 	// -------------------------------------------------------------

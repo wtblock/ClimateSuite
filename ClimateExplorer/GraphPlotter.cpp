@@ -2,6 +2,7 @@
 // Copyright © 2026, by W. T. Block, all rights reserved
 /////////////////////////////////////////////////////////////////////////////
 #include "pch.h"
+#include "ClimateExplorerDoc.h"
 #include "GraphPlotter.h"
 #include <gdiplus.h>
 #include <vector>
@@ -9,9 +10,9 @@
 #include <string>
 
 /////////////////////////////////////////////////////////////////////////////
-CGraphPlotter::CGraphPlotter()
+CGraphPlotter::CGraphPlotter(CClimateExplorerDoc* pDoc)
 {
-	SetDefaults();
+	SetDefaults(pDoc);
 
 	std::vector< std::pair<int, int> > arrTest =
 	{
@@ -66,9 +67,14 @@ CGraphPlotter::CGraphPlotter()
 } // CGraphPlotter
 
 /////////////////////////////////////////////////////////////////////////////
-CGraphPlotter::CGraphPlotter(std::vector<double> years, std::vector<double>values)
+CGraphPlotter::CGraphPlotter
+(
+	CClimateExplorerDoc* pDoc,
+	std::vector<double> years, 
+	std::vector<double>values
+)
 {
-	SetDefaults();
+	SetDefaults(pDoc);
 	Years = years;
 	Values = values;
 
@@ -81,49 +87,53 @@ CGraphPlotter::~CGraphPlotter()
 } // ~CGraphPlotter
 
 /////////////////////////////////////////////////////////////////////////////
-void CGraphPlotter::SetDefaults()
+void CGraphPlotter::SetDefaults(CClimateExplorerDoc* pDoc)
 {
+	GraphTitle = pDoc->GraphTitle;
+	AxisLabelX = pDoc->AxisLabelX;
+	AxisLabelY = pDoc->AxisLabelY;
+
 	// -------------------------------------------------------------
 	// Curve line appearance
 	// -------------------------------------------------------------
-	LineColor = RGB(0, 0, 128); // dark blue
-	LineStyle = Gdiplus::DashStyleSolid;
-	LineThicknessInches = 0.015; // ~6 px at 400 DPI
+	LineColor = pDoc->LineColor;
+	LineStyle = pDoc->LineStyle;
+	LineThicknessInches = pDoc->LineThicknessInches;
 
 	// -------------------------------------------------------------
 	// Trend line appearance
 	// -------------------------------------------------------------
-	TrendLine = FALSE;
-	TrendLineColor = RGB(139, 0, 0); // dark red
-	TrendLineStyle = Gdiplus::DashStyleDash;
-	TrendLineThicknessInches = 0.015; // ~6 px at 400 DPI
+	TrendLine = pDoc->TrendLine;
+	TrendLineColor = pDoc->TrendLineColor;
+	TrendLineStyle = pDoc->TrendLineStyle;
+	TrendLineThicknessInches = pDoc->TrendLineThicknessInches;
 
 	// -------------------------------------------------------------
 	// Grid appearance
 	// -------------------------------------------------------------
-	GridColor = RGB(220, 220, 220); // light gray
-	GridLineStyle = Gdiplus::DashStyleDot;
-	GridLineThicknessInches = 0.020; // ~4 px at 400 DPI
+	GridColor = pDoc->GridColor;
+	GridLineStyle = pDoc->GridLineStyle;
+	GridLineThicknessInches = pDoc->GridLineThicknessInches;
 
 	// -------------------------------------------------------------
 	// Text sizes (points)
 	// -------------------------------------------------------------
-	TitleFontSizePoints = 14.0; // prominent title
-	AxisLabelFontSizePoints = 12.0; // "Year", "Count"
-	TickLabelFontSizePoints = 10.0; // numeric labels
+	TitleFontSizePoints = pDoc->TitleFontSizePoints;
+	AxisLabelFontSizePoints = pDoc->AxisLabelFontSizePoints;
+	TickLabelFontSizePoints = pDoc->TickLabelFontSizePoints;
 
 	// -------------------------------------------------------------
 	// Padding (inches)
 	// -------------------------------------------------------------
-	LeftPaddingInches = 0.50; // 200 px
-	RightPaddingInches = 0.50; // 200 px
-	TopPaddingInches = 0.375; // 150 px
-	BottomPaddingInches = 0.50; // 200 px
+	LeftPaddingInches = pDoc->LeftPaddingInches;
+	RightPaddingInches = pDoc->RightPaddingInches;
+	TopPaddingInches = pDoc->TopPaddingInches;
+	BottomPaddingInches = pDoc->BottomPaddingInches;
 
 	// -------------------------------------------------------------
 	// Tick mark length (inches)
 	// -------------------------------------------------------------
-	TickLengthInches = 0.030; // 12 px
+	TickLengthInches = pDoc->TickLengthInches;
 
 } // SetDefaults
 
@@ -142,7 +152,7 @@ void CGraphPlotter::SetDefaults()
 //   • DrawAxisNumbers
 //   • DrawAxisLabels
 //   • DrawCurve
-//   • DrawRunningAverage10 (optional)
+//   • DrawTrendLine (optional)
 //   • DrawTitle
 //
 // All geometry is inch-based. All text uses point-based font sizes.
@@ -262,7 +272,7 @@ std::unique_ptr<Bitmap> CGraphPlotter::RenderPlot(const CRect& rcPixels)
 	// -------------------------------------------------------------
 	// Draw trend line
 	// -------------------------------------------------------------
-	DrawRunningAverage10(g, left, top, right, bottom, xTickMin, xTickMax, yTickMin, yTickMax);
+	DrawTrendLine(g, left, top, right, bottom, xTickMin, xTickMax, yTickMin, yTickMax);
 
 	return pBmp;
 } // RenderPlot
@@ -337,10 +347,11 @@ void CGraphPlotter::DrawAxisLabels
 			(REAL)width,
 			(REAL)0.35
 		);
-
+		
+		CString csLabel = AxisLabelX;
 		g.DrawString
 		(
-			L"Year",
+			csLabel,
 			-1,
 			&font,
 			rc,
@@ -377,9 +388,10 @@ void CGraphPlotter::DrawAxisLabels
 			(REAL)0.40f
 		);
 
+		CString csLabel = AxisLabelY;
 		g.DrawString
 		(
-			L"Count",
+			csLabel,
 			-1,
 			&font,
 			rc,
@@ -982,7 +994,7 @@ void CGraphPlotter::DrawCurve
 } // DrawCurve
 
 /////////////////////////////////////////////////////////////////////////////
-// DrawRunningAverage10
+// DrawTrendLine
 //
 // Renders an optional 10‑year running‑average curve using inch‑based
 // geometry. The running average is computed from the real data set by
@@ -1001,13 +1013,13 @@ void CGraphPlotter::DrawCurve
 // NOTES:
 //
 //   • Uses TrendLineColor, TrendLineStyle, TrendLineThicknessInches.
-//   • RunningAverage10 must be TRUE for rendering to occur.
+//   • TrendLine must be TRUE for rendering to occur.
 //   • Computes a trailing 10‑year average (i.e., years i‑9 through i).
 //   • Uses tick ranges for proper Excel‑style scaling.
 //   • All measurements are in inches.
 //
 /////////////////////////////////////////////////////////////////////////////
-void CGraphPlotter::DrawRunningAverage10
+void CGraphPlotter::DrawTrendLine
 (
 	Graphics& g,
 	double leftInches,
@@ -1020,8 +1032,24 @@ void CGraphPlotter::DrawRunningAverage10
 	double yTickMax
 )
 {
+	if (TrendLine == FALSE)
+	{
+		return;
+	}
+
 	if (Years.size() < 10 || Values.size() < 10)
 		return;
+
+	Pen penAvg
+	(
+		Color(255,
+			GetRValue(TrendLineColor),
+			GetGValue(TrendLineColor),
+			GetBValue(TrendLineColor)),
+		(REAL)TrendLineThicknessInches
+	);
+
+	penAvg.SetDashStyle(TrendLineStyle);
 
 	const size_t count = min(Years.size(), Values.size());
 	const double widthInches = rightInches - leftInches;
@@ -1062,11 +1090,10 @@ void CGraphPlotter::DrawRunningAverage10
 	// -------------------------------------------------------------
 	if (pts.size() >= 2)
 	{
-		Pen penAvg(Color(255, 128, 128, 128), (REAL)TrendLineThicknessInches);
 		penAvg.SetDashStyle(DashStyleDash);
 		g.DrawLines(&penAvg, pts.data(), (INT)pts.size());
 	}
-} // DrawRunningAverage10
+} // DrawTrendLine
 
 /////////////////////////////////////////////////////////////////////////////
 // DrawTitle
@@ -1134,9 +1161,9 @@ void CGraphPlotter::DrawTitle
 		(REAL)0.35
 	);
 
-	std::wstring title = L"USHCN Station Count (solid blue)";
-	//if (RunningAverage10)
-		title += L" and 10-Year Running Average (dashed gray)";
+	std::wstring title = GraphTitle;
+	if (TrendLine)
+		title += L" with Trend Line";
 
 	g.DrawString
 	(

@@ -205,6 +205,67 @@ protected:
 	// 5D. Placement (append, insert, or replace)
 	CString m_csPlacement;
 
+	/////////////////////////////////////////////////////////////////////////////
+	// graph properties
+	/////////////////////////////////////////////////////////////////////////////
+
+	// -------------------------------------------------------------
+	// Graph text properties
+	// -------------------------------------------------------------
+	CString             m_csGraphTitle;
+	CString             m_csAxisLabelX;
+	CString             m_csAxisLabelY;
+
+	// -------------------------------------------------------------
+	// Curve line appearance
+	// -------------------------------------------------------------
+	COLORREF            m_rgbLineColor;
+	Gdiplus::DashStyle  m_dsLineStyle;
+	double              m_fLineThicknessInches;
+
+	// -------------------------------------------------------------
+	// Trend line appearance
+	// -------------------------------------------------------------
+	BOOL                m_bTrendLine;
+	COLORREF            m_rgbTrendLineColor;
+	Gdiplus::DashStyle  m_dsTrendLineStyle;
+	double              m_fTrendLineThicknessInches;
+
+	// -------------------------------------------------------------
+	// Grid appearance
+	// -------------------------------------------------------------
+	COLORREF            m_rgbGridColor;
+	Gdiplus::DashStyle  m_dsGridLineStyle;
+	double              m_fGridLineThicknessInches;
+
+	// -------------------------------------------------------------
+	// Text sizes (points)
+	// -------------------------------------------------------------
+	long                m_nTitleFontSizePoints;
+	long                m_nAxisLabelFontSizePoints;
+	long                m_nTickLabelFontSizePoints;
+
+	// -------------------------------------------------------------
+	// Padding (inches)
+	// -------------------------------------------------------------
+	double              m_fLeftPaddingInches;
+	double              m_fRightPaddingInches;
+	double              m_fTopPaddingInches;
+	double              m_fBottomPaddingInches;
+
+	// -------------------------------------------------------------
+	// Tick mark length (inches)
+	// -------------------------------------------------------------
+	double           m_fTickLengthInches;
+
+	// collection of years to be plotted
+	std::vector<double> m_arrYears;
+
+	// collection of values to be plotted
+	std::vector<double> m_arrValues;
+
+	// lookup GDI dash style
+	CKeyedCollection<CString, Gdiplus::DashStyle> m_mapDash;
 
 // public properties
 public:
@@ -1119,6 +1180,476 @@ public:
 	// convert from raw units to the user's choice
 	__declspec(property(get = GetConvertUnits))
 		double ConvertUnits[];
+
+	/////////////////////////////////////////////////////////////////////////////
+	// Graphing data
+	/////////////////////////////////////////////////////////////////////////////
+	
+	// The title of the graph
+	CString GetGraphTitle()
+	{
+		CString value = m_csGraphTitle;
+
+		if (value == L"Title")
+		{
+			CString csScope = Scope;
+			CString csState = State;
+			CString csLocation = Location;
+			CString csSubtype = Subtype;
+			if (csSubtype == L"Stations")
+			{
+				value = L"USHCN Station Count";
+			}
+			else if (csSubtype == L"Threshold")
+			{
+				int nLimit = Threshold;
+				CString csUnits = Units;
+				value.Format(L"Percent of Reading Above %n %s", nLimit, csUnits);
+			}
+			else
+			{
+				CString csAt(L"National");
+				if (csScope != L"National")
+				{
+					if (csLocation == L"None")
+					{
+						csAt = csState;
+					}
+					else
+					{
+						csAt.Format(L"%s, %s", csLocation, csState);
+					}
+				}
+				value.Format(L"%s Temperatures for %s", csSubtype, csAt);
+			}
+		}
+		return value;
+	}
+	// The title of the graph
+	void SetGraphTitle(CString value)
+	{
+		m_csGraphTitle = value;
+	}
+	// The title of the graph
+	__declspec(property(get = GetGraphTitle, put = SetGraphTitle))
+		CString GraphTitle;
+
+	// The label of the values on the X axis
+	CString GetAxisLabelX()
+	{
+		return m_csAxisLabelX;
+	}
+	// The label of the values on the X axis
+	void SetAxisLabelX(CString value)
+	{
+		m_csAxisLabelX = value;
+	}
+	// The label of the values on the X axis
+	__declspec(property(get = GetAxisLabelX, put = SetAxisLabelX))
+		CString AxisLabelX;
+
+	// The label of the values on the Y axis
+	CString GetAxisLabelY()
+	{
+		CString value = m_csAxisLabelY;
+		if (value == L"Value")
+		{
+			CString csSubtype = Subtype;
+			if (csSubtype == L"Stations")
+			{
+				value = L"Count";
+			}
+			else if (csSubtype == L"Threshold")
+			{
+				value = L"Percent";
+			}
+			else
+			{
+				value = Units;
+			}
+		}
+		return value;
+	}
+	// The label of the values on the Y axis
+	void SetAxisLabelY(CString value)
+	{
+		m_csAxisLabelY = value;
+	}
+	// The label of the values on the Y axis
+	__declspec(property(get = GetAxisLabelY, put = SetAxisLabelY))
+		CString AxisLabelY;
+
+	std::vector<double>& GetYears()
+	{
+		return m_arrYears;
+	}
+
+	void SetYears(std::vector<double> value)
+	{
+		m_arrYears = value;
+	}
+
+	__declspec(property(get = GetYears, put = SetYears))
+		std::vector<double> Years;
+
+	std::vector<double>& GetValues()
+	{
+		return m_arrValues;
+	}
+
+	void SetValues(std::vector<double> value)
+	{
+		m_arrValues = value;
+	}
+
+	__declspec(property(get = GetValues, put = SetValues))
+		std::vector<double> Values;
+
+	/////////////////////////////////////////////////////////////////////////////
+	// Graphing Appearance Properties
+	/////////////////////////////////////////////////////////////////////////////
+
+	// -------------------------------------------------------------
+	// Line Style Text
+	// -------------------------------------------------------------
+	CString GetLineStyleText(Gdiplus::DashStyle input)
+	{
+		CString value;
+		switch (input)
+		{
+		case Gdiplus::DashStyleDash:
+			value = L"Dash";
+			break;
+		case Gdiplus::DashStyleDashDot:
+			value = L"DashDot";
+			break;
+		case Gdiplus::DashStyleDashDotDot:
+			value = L"DashDotDot";
+			break;
+		case Gdiplus::DashStyleDot:
+			value = L"Dot";
+			break;
+		case Gdiplus::DashStyleSolid:
+		default:
+			value = L"Solid";
+			break;
+		}
+		return value;
+	}
+
+	__declspec(property(get = GetLineStyleText))
+		CString LineStyleText[];
+
+	// -------------------------------------------------------------
+	// Line Style enumeration
+	// -------------------------------------------------------------
+	Gdiplus::DashStyle GetLineStyleEnum(CString input)
+	{
+		Gdiplus::DashStyle value = Gdiplus::DashStyleSolid;
+		if (m_mapDash.Exists[input])
+		{
+			value = *m_mapDash.find(input);
+		}
+
+		return value;
+	}
+
+	__declspec(property(get = GetLineStyleEnum))
+		Gdiplus::DashStyle LineStyleEnum[];
+
+	// -------------------------------------------------------------
+	// LineColor
+	// -------------------------------------------------------------
+	COLORREF GetLineColor()
+	{
+		return m_rgbLineColor;
+	}
+
+	void SetLineColor(COLORREF value)
+	{
+		m_rgbLineColor = value;
+	}
+
+	__declspec(property(get = GetLineColor, put = SetLineColor))
+		COLORREF LineColor;
+
+	// -------------------------------------------------------------
+	// LineStyle
+	// -------------------------------------------------------------
+	Gdiplus::DashStyle GetLineStyle()
+	{
+		return m_dsLineStyle;
+	}
+
+	void SetLineStyle(Gdiplus::DashStyle value)
+	{
+		m_dsLineStyle = value;
+	}
+
+	__declspec(property(get = GetLineStyle, put = SetLineStyle))
+		Gdiplus::DashStyle LineStyle;
+
+	// -------------------------------------------------------------
+	// LineThicknessInches
+	// -------------------------------------------------------------
+	double GetLineThicknessInches()
+	{
+		return m_fLineThicknessInches;
+	}
+
+	void SetLineThicknessInches(double value)
+	{
+		m_fLineThicknessInches = value;
+	}
+
+	__declspec(property(get = GetLineThicknessInches, put = SetLineThicknessInches))
+		double LineThicknessInches;
+
+	// -------------------------------------------------------------
+	// TrendLine
+	// -------------------------------------------------------------
+	BOOL GetTrendLine()
+	{
+		return m_bTrendLine;
+	}
+
+	void SetTrendLine(BOOL value)
+	{
+		m_bTrendLine = value;
+	}
+
+	__declspec(property(get = GetTrendLine, put = SetTrendLine))
+		BOOL TrendLine;
+
+	// -------------------------------------------------------------
+	// TrendLineColor
+	// -------------------------------------------------------------
+	COLORREF GetTrendLineColor()
+	{
+		return m_rgbTrendLineColor;
+	}
+
+	void SetTrendLineColor(COLORREF value)
+	{
+		m_rgbTrendLineColor = value;
+	}
+
+	__declspec(property(get = GetTrendLineColor, put = SetTrendLineColor))
+		COLORREF TrendLineColor;
+
+	// -------------------------------------------------------------
+	// TrendLineStyle
+	// -------------------------------------------------------------
+	Gdiplus::DashStyle GetTrendLineStyle()
+	{
+		return m_dsTrendLineStyle;
+	}
+
+	void SetTrendLineStyle(Gdiplus::DashStyle value)
+	{
+		m_dsTrendLineStyle = value;
+	}
+
+	__declspec(property(get = GetTrendLineStyle, put = SetTrendLineStyle))
+		Gdiplus::DashStyle TrendLineStyle;
+
+	// -------------------------------------------------------------
+	// TrendLineThicknessInches
+	// -------------------------------------------------------------
+	double GetTrendLineThicknessInches()
+	{
+		return m_fTrendLineThicknessInches;
+	}
+
+	void SetTrendLineThicknessInches(double value)
+	{
+		m_fTrendLineThicknessInches = value;
+	}
+
+	__declspec(property(get = GetTrendLineThicknessInches, put = SetTrendLineThicknessInches))
+		double TrendLineThicknessInches;
+
+	// -------------------------------------------------------------
+	// GridColor
+	// -------------------------------------------------------------
+	COLORREF GetGridColor()
+	{
+		return m_rgbGridColor;
+	}
+
+	void SetGridColor(COLORREF value)
+	{
+		m_rgbGridColor = value;
+	}
+
+	__declspec(property(get = GetGridColor, put = SetGridColor))
+		COLORREF GridColor;
+
+	// -------------------------------------------------------------
+	// GridLineStyle
+	// -------------------------------------------------------------
+	Gdiplus::DashStyle GetGridLineStyle()
+	{
+		return m_dsGridLineStyle;
+	}
+
+	void SetGridLineStyle(Gdiplus::DashStyle value)
+	{
+		m_dsGridLineStyle = value;
+	}
+
+	__declspec(property(get = GetGridLineStyle, put = SetGridLineStyle))
+		Gdiplus::DashStyle GridLineStyle;
+
+	// -------------------------------------------------------------
+	// GridLineThicknessInches
+	// -------------------------------------------------------------
+	double GetGridLineThicknessInches()
+	{
+		return m_fGridLineThicknessInches;
+	}
+
+	void SetGridLineThicknessInches(double value)
+	{
+		m_fGridLineThicknessInches = value;
+	}
+
+	__declspec(property(get = GetGridLineThicknessInches, put = SetGridLineThicknessInches))
+		double GridLineThicknessInches;
+
+	// -------------------------------------------------------------
+	// TitleFontSizePoints
+	// -------------------------------------------------------------
+	long GetTitleFontSizePoints()
+	{
+		return m_nTitleFontSizePoints;
+	}
+
+	void SetTitleFontSizePoints(long value)
+	{
+		m_nTitleFontSizePoints = value;
+	}
+
+	__declspec(property(get = GetTitleFontSizePoints, put = SetTitleFontSizePoints))
+		long TitleFontSizePoints;
+
+	// -------------------------------------------------------------
+	// AxisLabelFontSizePoints
+	// -------------------------------------------------------------
+	long GetAxisLabelFontSizePoints()
+	{
+		return m_nAxisLabelFontSizePoints;
+	}
+
+	void SetAxisLabelFontSizePoints(long value)
+	{
+		m_nAxisLabelFontSizePoints = value;
+	}
+
+	__declspec(property(get = GetAxisLabelFontSizePoints, put = SetAxisLabelFontSizePoints))
+		long AxisLabelFontSizePoints;
+
+	// -------------------------------------------------------------
+	// TickLabelFontSizePoints
+	// -------------------------------------------------------------
+	long GetTickLabelFontSizePoints()
+	{
+		return m_nTickLabelFontSizePoints;
+	}
+
+	void SetTickLabelFontSizePoints(long value)
+	{
+		m_nTickLabelFontSizePoints = value;
+	}
+
+	__declspec(property(get = GetTickLabelFontSizePoints, put = SetTickLabelFontSizePoints))
+		long TickLabelFontSizePoints;
+
+	// -------------------------------------------------------------
+	// LeftPaddingInches
+	// -------------------------------------------------------------
+	double GetLeftPaddingInches()
+	{
+		double dAxis = AxisLabelFontSizePoints;
+		dAxis /= 72; // points to inches
+		double dTick = TickLabelFontSizePoints;
+		dTick /= 72; // points to inches
+		double value = (dAxis + dTick) * 2;
+		LeftPaddingInches = value;
+		return m_fLeftPaddingInches;
+	}
+
+	void SetLeftPaddingInches(double value)
+	{
+		m_fLeftPaddingInches = value;
+	}
+
+	__declspec(property(get = GetLeftPaddingInches, put = SetLeftPaddingInches))
+		double LeftPaddingInches;
+
+	// -------------------------------------------------------------
+	// RightPaddingInches
+	// -------------------------------------------------------------
+	double GetRightPaddingInches()
+	{
+		return m_fRightPaddingInches;
+	}
+
+	void SetRightPaddingInches(double value)
+	{
+		m_fRightPaddingInches = value;
+	}
+
+	__declspec(property(get = GetRightPaddingInches, put = SetRightPaddingInches))
+		double RightPaddingInches;
+
+	// -------------------------------------------------------------
+	// TopPaddingInches
+	// -------------------------------------------------------------
+	double GetTopPaddingInches()
+	{
+		return m_fTopPaddingInches;
+	}
+
+	void SetTopPaddingInches(double value)
+	{
+		m_fTopPaddingInches = value;
+	}
+
+	__declspec(property(get = GetTopPaddingInches, put = SetTopPaddingInches))
+		double TopPaddingInches;
+
+	// -------------------------------------------------------------
+	// BottomPaddingInches
+	// -------------------------------------------------------------
+	double GetBottomPaddingInches()
+	{
+		return m_fBottomPaddingInches;
+	}
+
+	void SetBottomPaddingInches(double value)
+	{
+		m_fBottomPaddingInches = value;
+	}
+
+	__declspec(property(get = GetBottomPaddingInches, put = SetBottomPaddingInches))
+		double BottomPaddingInches;
+
+	// -------------------------------------------------------------
+	// TickLengthInches
+	// -------------------------------------------------------------
+	double GetTickLengthInches()
+	{
+		return m_fTickLengthInches;
+	}
+
+	void SetTickLengthInches(double value)
+	{
+		m_fTickLengthInches = value;
+	}
+
+	__declspec(property(get = GetTickLengthInches, put = SetTickLengthInches))
+		double TickLengthInches;
 
 
 // protected methods

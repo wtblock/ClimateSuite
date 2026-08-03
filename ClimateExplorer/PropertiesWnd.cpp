@@ -12,6 +12,7 @@
 #include "ClimateExplorer.h"
 #include "PropertyGridMultilineText.h"
 #include "ClimateDatabase.h"
+#include "ImagePlus.h"
 
 #ifdef _DEBUG
 #undef THIS_FILE
@@ -25,7 +26,6 @@ CPropertiesWnd::CPropertiesWnd() noexcept
 {
 	m_nComboHeight = 0;
 	m_pTableOfContents = nullptr;
-
 }
 
 /////////////////////////////////////////////////////////////////////////////
@@ -469,6 +469,95 @@ LRESULT CPropertiesWnd::OnPropertyChange
 			pDoc->Placement = CString(varIn);
 		}
 	}
+	else if (csGroup == L"Graph Properties")
+	{
+		if (csName == L"Graph Title")
+		{
+			pDoc->GraphTitle = CString(varIn);
+		}
+		else if (csName == L"Axis Label X")
+		{
+			pDoc->AxisLabelX = CString(varIn);
+		}
+		else if (csName == L"Axis Label Y")
+		{
+			pDoc->AxisLabelY = CString(varIn);
+		}
+		else if (csName == L"Primary Line Color")
+		{
+			COLORREF rgb = COLORREF(varIn);
+			pDoc->LineColor = rgb;
+		}
+		else if (csName == L"Primary Line Style")
+		{
+			CString value = CString(varIn);
+			pDoc->LineStyle = pDoc->LineStyleEnum[value];
+		}
+		else if (csName == L"Primary Line Thickness (in)")
+		{
+			pDoc->LineThicknessInches = double(varIn);
+		}
+		else if (csName == L"Enable Trend Line")
+		{
+			pDoc->TrendLine = BOOL(varIn);
+		}
+		if (csName == L"Trend Line Color")
+		{
+			COLORREF rgb = COLORREF(varIn);
+			pDoc->TrendLineColor = rgb;
+		}
+		else if (csName == L"Trend Line Style")
+		{
+			CString value = CString(varIn);
+			pDoc->TrendLineStyle = pDoc->LineStyleEnum[value];
+		}
+		else if (csName == L"Trend Line Thickness (in)")
+		{
+			pDoc->TrendLineThicknessInches = double(varIn);
+		}
+		if (csName == L"Grid Line Color")
+		{
+			COLORREF rgb = COLORREF(varIn);
+			pDoc->GridColor = rgb;
+		}
+		else if (csName == L"Grid Line Style")
+		{
+			CString value = CString(varIn);
+			pDoc->GridLineStyle = pDoc->LineStyleEnum[value];
+		}
+		else if (csName == L"Grid Line Thickness (in)")
+		{
+			pDoc->GridLineThicknessInches = double(varIn);
+		}
+		else if (csName == L"Title Font Size (pt)")
+		{
+			pDoc->TitleFontSizePoints = int(varIn);
+		}
+		else if (csName == L"Axis Label Font Size (pt)")
+		{
+			pDoc->AxisLabelFontSizePoints = int(varIn);
+		}
+		else if (csName == L"Tick Label Font Size (pt)")
+		{
+			pDoc->TickLabelFontSizePoints = int(varIn);
+		}
+		else if (csName == L"Left Padding (in)")
+		{
+			pDoc->LeftPaddingInches = double(varIn);
+		}
+		else if (csName == L"Right Padding (in)")
+		{
+			pDoc->RightPaddingInches = double(varIn);
+		}
+		else if (csName == L"Top Padding (in)")
+		{
+			pDoc->TopPaddingInches = double(varIn);
+		}
+		else if (csName == L"Bottom Padding (in)")
+		{
+			pDoc->BottomPaddingInches = double(varIn);
+		}
+	}
 
 	pProp->SetOriginalValue(varIn);
 
@@ -621,6 +710,104 @@ void CPropertiesWnd::UpdatePropertiesFromDocument(CClimateExplorerDoc* pDoc)
 			{
 				CString value = pDoc->Layout;
 				pProp->SetValue(value);
+			}
+			else if (csName == L"Graph Title")
+			{
+				CString value = pDoc->GraphTitle;
+				pProp->SetValue(value);
+			}
+			else if (csName == L"Axis Label X")
+			{
+				CString value = pDoc->AxisLabelX;
+				pProp->SetValue(value);
+			}
+			else if (csName == L"Axis Label Y")
+			{
+				CString value = pDoc->AxisLabelY;
+				pProp->SetValue(value);
+			}
+			else if (csName == L"Primary Line Color")
+			{
+				long value = (long)pDoc->LineColor;
+				pProp->SetValue(_variant_t(value));
+			}
+			else if (csName == L"Primary Line Style")
+			{
+				Gdiplus::DashStyle eStyle = pDoc->LineStyle;
+				CString value = pDoc->LineStyleText[eStyle];
+				pProp->SetValue(value);
+			}
+			else if (csName == L"Primary Line Thickness (in)")
+			{
+				double value = pDoc->LineThicknessInches;
+				pProp->SetValue(_variant_t(value));
+			}
+			else if (csName == L"Trend Line Color")
+			{
+				long value = (long)pDoc->TrendLineColor;
+				pProp->SetValue(_variant_t(value));
+			}
+			else if (csName == L"Trend Line Style")
+			{
+				Gdiplus::DashStyle eStyle = pDoc->TrendLineStyle;
+				CString value = pDoc->LineStyleText[eStyle];
+				pProp->SetValue(value);
+			}
+			else if (csName == L"Trend Line Thickness (in)")
+			{
+				double value = pDoc->TrendLineThicknessInches;
+				pProp->SetValue(_variant_t(value));
+			}
+			else if (csName == L"Grid Line Color")
+			{
+				long value = (long)pDoc->GridColor;
+				pProp->SetValue(_variant_t(value));
+			}
+			else if (csName == L"Grid Line Style")
+			{
+				Gdiplus::DashStyle eStyle = pDoc->GridLineStyle;
+				CString value = pDoc->LineStyleText[eStyle];
+				pProp->SetValue(value);
+			}
+			else if (csName == L"Grid Line Thickness (in)")
+			{
+				double value = pDoc->GridLineThicknessInches;
+				pProp->SetValue(_variant_t(value));
+			}
+			else if (csName == L"Title Font Size (pt)")
+			{
+				long value = pDoc->TitleFontSizePoints;
+				pProp->SetValue(_variant_t(value));
+			}
+			else if (csName == L"Axis Label Font Size (pt)")
+			{
+				long value = pDoc->AxisLabelFontSizePoints;
+				pProp->SetValue(_variant_t(value));
+			}
+			else if (csName == L"Tick Label Font Size (pt)")
+			{
+				long value = pDoc->TickLabelFontSizePoints;
+				pProp->SetValue(_variant_t(value));
+			}
+			else if (csName == L"Left Padding (in)")
+			{
+				double value = pDoc->LeftPaddingInches;
+				pProp->SetValue(_variant_t(value));
+			}
+			else if (csName == L"Right Padding (in)")
+			{
+				double value = pDoc->RightPaddingInches;
+				pProp->SetValue(_variant_t(value));
+			}
+			else if (csName == L"Top Padding (in)")
+			{
+				double value = pDoc->TopPaddingInches;
+				pProp->SetValue(_variant_t(value));
+			}
+			else if (csName == L"Bottom Padding (in)")
+			{
+				double value = pDoc->BottomPaddingInches;
+				pProp->SetValue(_variant_t(value));
 			}
 		}
 	}
@@ -1361,6 +1548,254 @@ void CPropertiesWnd::InitPropList()
 
 	// Add to group
 	pRenderGroup->AddSubItem(pPropPlacement);
+
+	// ===============================================
+	// Graphing Properties
+	// ===============================================
+
+	CMFCPropertyGridProperty* pGraphGroup =
+		new CMFCPropertyGridProperty(L"Graph Properties");
+
+	pGraphGroup->SetDescription
+	(
+		L"Properties of the graph being plotted."
+	);
+
+	// -------------------------------------------------------------
+	// Graph text properties
+	// -------------------------------------------------------------
+	m_pPropGraphTitle =
+		new CMFCPropertyGridProperty
+		(
+			L"Graph Title",
+			(_variant_t)L"Title",
+			L"The title text placed at the top of the graph."
+		);
+
+	m_pPropAxisLabelX =
+		new CMFCPropertyGridProperty
+		(
+			L"X Axis Label",
+			(_variant_t)L"Year",
+			L"Label describing the values along the X axis."
+		);
+
+	m_pPropAxisLabelY =
+		new CMFCPropertyGridProperty
+		(
+			L"Y Axis Label",
+			(_variant_t)L"Value",
+			L"Label describing the values along the Y axis."
+		);
+
+	// -------------------------------------------------------------
+	// Line properties
+	// -------------------------------------------------------------
+	m_pPropLineColor =
+		new CMFCPropertyGridColorProperty
+		(
+			L"Primary Line Color",
+			RGB(0, 0, 255)
+		);
+
+	m_pPropLineColor->SetDescription(L"Line Color of the primary value being plotted.");
+
+	m_pPropLineStyle =
+		new CMFCPropertyGridProperty
+		(
+			L"Primary Line Style",
+			(_variant_t)L"Solid",
+			L"Pick the line style for the primary value being plotted."
+		);
+
+	m_pPropLineStyle->AddOption(L"Solid");
+	m_pPropLineStyle->AddOption(L"Dash");
+	m_pPropLineStyle->AddOption(L"Dot");
+	m_pPropLineStyle->AddOption(L"DashDot");
+	m_pPropLineStyle->AddOption(L"DashDotDot");
+	m_pPropLineStyle->AllowEdit(FALSE);
+
+	m_pPropLineWeight =
+		new CMFCPropertyGridProperty
+		(
+			L"Primary Line Thickness (in)",
+			(_variant_t)0.015,
+			L"The line weight in inches of the primary value being plotted."
+		);
+
+	// -------------------------------------------------------------
+	// Trend line properties
+	// -------------------------------------------------------------
+	m_pPropTrendLine =
+		new CMFCPropertyGridProperty
+		(
+			L"Enable Trend Line",
+			(_variant_t)false,
+			L"Enable or disable the trend line which is a 10 year moving average."
+		);
+
+	m_pPropTrendColor =
+		new CMFCPropertyGridColorProperty
+		(
+			L"Trend Line Color",
+			RGB(128, 128, 128)
+		);
+
+	m_pPropTrendColor->SetDescription(L"Line Color of the trend line being plotted.");
+
+	m_pPropTrendStyle =
+		new CMFCPropertyGridProperty
+		(
+			L"Trend Line Style",
+			(_variant_t)L"Dash",
+			L"Pick the line style for the trend line being plotted."
+		);
+
+	m_pPropTrendStyle->AddOption(L"Solid");
+	m_pPropTrendStyle->AddOption(L"Dash");
+	m_pPropTrendStyle->AddOption(L"Dot");
+	m_pPropTrendStyle->AddOption(L"DashDot");
+	m_pPropTrendStyle->AddOption(L"DashDotDot");
+	m_pPropTrendStyle->AllowEdit(FALSE);
+
+	m_pPropTrendWeight =
+		new CMFCPropertyGridProperty
+		(
+			L"Trend Line Thickness (in)",
+			(_variant_t)0.015,
+			L"The line weight in inches of the trend line being plotted."
+		);
+
+	// -------------------------------------------------------------
+	// Grid properties
+	// -------------------------------------------------------------
+	m_pPropGridColor =
+		new CMFCPropertyGridColorProperty
+		(
+			L"Grid Line Color",
+			RGB(200, 200, 200)
+		);
+
+	m_pPropGridColor->SetDescription(L"Line Color of the reference grid.");
+
+	m_pPropGridStyle =
+		new CMFCPropertyGridProperty
+		(
+			L"Grid Line Style",
+			(_variant_t)L"Dot",
+			L"Pick the line style for the reference grid."
+		);
+
+	m_pPropGridStyle->AddOption(L"Solid");
+	m_pPropGridStyle->AddOption(L"Dash");
+	m_pPropGridStyle->AddOption(L"Dot");
+	m_pPropGridStyle->AddOption(L"DashDot");
+	m_pPropGridStyle->AddOption(L"DashDotDot");
+	m_pPropGridStyle->AllowEdit(FALSE);
+
+	m_pPropGridWeight =
+		new CMFCPropertyGridProperty
+		(
+			L"Grid Line Thickness (in)",
+			(_variant_t)0.02,
+			L"The line weight in inches of the reference grid."
+		);
+
+	// -------------------------------------------------------------
+	// Text sizes (points)
+	// -------------------------------------------------------------
+	m_pPropTitlePoints =
+		new CMFCPropertyGridProperty
+		(
+			L"Title Font Size (pt)",
+			(_variant_t)long(14),
+			L"Font size in points of the title text."
+		);
+
+	m_pPropLabelPoints =
+		new CMFCPropertyGridProperty
+		(
+			L"Axis Label Font Size (pt)",
+			(_variant_t)long(10),
+			L"Font size in points of the axis label text."
+		);
+
+	m_pPropTickPoints =
+		new CMFCPropertyGridProperty
+		(
+			L"Tick Label Font Size (pt)",
+			(_variant_t)long(9), 
+			L"Font size in points of the tick label text."
+		);
+
+	// -------------------------------------------------------------
+	// Padding (inches)
+	// -------------------------------------------------------------
+	m_pPropLeftPad =
+		new CMFCPropertyGridProperty
+		(
+			L"Left Padding (in)",
+			(_variant_t)0.50,
+			L"Size of the blank space in inches to the left of the graph."
+		);
+
+	m_pPropRightPad =
+		new CMFCPropertyGridProperty
+		(
+			L"Right Padding (in)",
+			(_variant_t)0.50,
+			L"Size of the blank space in inches to the right of the graph."
+		);
+
+	m_pPropTopPad =
+		new CMFCPropertyGridProperty
+		(
+			L"Top Padding (in)",
+			(_variant_t)0.50,
+			L"Size of the blank space in inches above the graph."
+		);
+
+	m_pPropBottomPad =
+		new CMFCPropertyGridProperty
+		(
+			L"Bottom Padding (in)",
+			(_variant_t)0.50,
+			L"Size of the blank space in inches below the graph."
+		);
+
+	// -------------------------------------------------------------
+	// Add all properties to the group
+	// -------------------------------------------------------------
+	pGraphGroup->AddSubItem(m_pPropGraphTitle);
+	pGraphGroup->AddSubItem(m_pPropAxisLabelX);
+	pGraphGroup->AddSubItem(m_pPropAxisLabelY);
+
+	pGraphGroup->AddSubItem(m_pPropLineColor);
+	pGraphGroup->AddSubItem(m_pPropLineStyle);
+	pGraphGroup->AddSubItem(m_pPropLineWeight);
+
+	pGraphGroup->AddSubItem(m_pPropTrendLine);
+	pGraphGroup->AddSubItem(m_pPropTrendColor);
+	pGraphGroup->AddSubItem(m_pPropTrendStyle);
+	pGraphGroup->AddSubItem(m_pPropTrendWeight);
+
+	pGraphGroup->AddSubItem(m_pPropGridColor);
+	pGraphGroup->AddSubItem(m_pPropGridStyle);
+	pGraphGroup->AddSubItem(m_pPropGridWeight);
+
+	pGraphGroup->AddSubItem(m_pPropTitlePoints);
+	pGraphGroup->AddSubItem(m_pPropLabelPoints);
+	pGraphGroup->AddSubItem(m_pPropTickPoints);
+
+	pGraphGroup->AddSubItem(m_pPropLeftPad);
+	pGraphGroup->AddSubItem(m_pPropRightPad);
+	pGraphGroup->AddSubItem(m_pPropTopPad);
+	pGraphGroup->AddSubItem(m_pPropBottomPad);
+
+	// -------------------------------------------------------------
+	// Add group to property list
+	// -------------------------------------------------------------
+	m_wndPropList.AddProperty(pGraphGroup);
 
 } // InitPropList
 

@@ -7,10 +7,21 @@
 
 using namespace Gdiplus;
 
+/////////////////////////////////////////////////////////////////////////////
+class CClimateExplorerDoc;
+
+/////////////////////////////////////////////////////////////////////////////
 class CGraphPlotter
 {
 // protected data
 protected:
+	// -------------------------------------------------------------
+	// Graph text properties
+	// -------------------------------------------------------------
+	CString             m_csGraphTitle;
+	CString             m_csAxisLabelX;
+	CString             m_csAxisLabelY;
+
 	// -------------------------------------------------------------
 	// Curve line appearance
 	// -------------------------------------------------------------
@@ -36,9 +47,9 @@ protected:
 	// -------------------------------------------------------------
 	// Text sizes (points)
 	// -------------------------------------------------------------
-	double              m_fTitleFontSizePoints;
-	double              m_fAxisLabelFontSizePoints;
-	double              m_fTickLabelFontSizePoints;
+	long                m_nTitleFontSizePoints;
+	long                m_nAxisLabelFontSizePoints;
+	long                m_nTickLabelFontSizePoints;
 
 	// -------------------------------------------------------------
 	// Padding (inches)
@@ -58,6 +69,10 @@ protected:
 
 // public properties
 public:
+	/////////////////////////////////////////////////////////////////////////////
+	// Graphing data
+	/////////////////////////////////////////////////////////////////////////////
+
 	std::vector<double>& GetYears()
 	{
 		return m_arrYears;
@@ -87,6 +102,48 @@ public:
 	/////////////////////////////////////////////////////////////////////////////
 	// Graphing Appearance Properties
 	/////////////////////////////////////////////////////////////////////////////
+	// The title of the graph
+	CString GetGraphTitle()
+	{
+		return m_csGraphTitle;
+	}
+	// The title of the graph
+	void SetGraphTitle(CString value)
+	{
+		m_csGraphTitle = value;
+	}
+	// The title of the graph
+	__declspec(property(get = GetGraphTitle, put = SetGraphTitle))
+		CString GraphTitle;
+
+	// The label of the values on the X axis
+	CString GetAxisLabelX()
+	{
+		return m_csAxisLabelX;
+	}
+	// The label of the values on the X axis
+	void SetAxisLabelX(CString value)
+	{
+		m_csAxisLabelX = value;
+	}
+	// The label of the values on the X axis
+	__declspec(property(get = GetAxisLabelX, put = SetAxisLabelX))
+		CString AxisLabelX;
+
+	// The label of the values on the Y axis
+	CString GetAxisLabelY()
+	{
+		return m_csAxisLabelY;
+	}
+	// The label of the values on the Y axis
+	void SetAxisLabelY(CString value)
+	{
+		m_csAxisLabelY = value;
+	}
+	// The label of the values on the Y axis
+	__declspec(property(get = GetAxisLabelY, put = SetAxisLabelY))
+		CString AxisLabelY;
+
 
 	// -------------------------------------------------------------
 	// LineColor
@@ -251,50 +308,50 @@ public:
 	// -------------------------------------------------------------
 	// TitleFontSizePoints
 	// -------------------------------------------------------------
-	double GetTitleFontSizePoints()
+	long GetTitleFontSizePoints()
 	{
-		return m_fTitleFontSizePoints;
+		return m_nTitleFontSizePoints;
 	}
 
-	void SetTitleFontSizePoints(double value)
+	void SetTitleFontSizePoints(long value)
 	{
-		m_fTitleFontSizePoints = value;
+		m_nTitleFontSizePoints = value;
 	}
 
 	__declspec(property(get = GetTitleFontSizePoints, put = SetTitleFontSizePoints))
-		double TitleFontSizePoints;
+		long TitleFontSizePoints;
 
 	// -------------------------------------------------------------
 	// AxisLabelFontSizePoints
 	// -------------------------------------------------------------
-	double GetAxisLabelFontSizePoints()
+	long GetAxisLabelFontSizePoints()
 	{
-		return m_fAxisLabelFontSizePoints;
+		return m_nAxisLabelFontSizePoints;
 	}
 
-	void SetAxisLabelFontSizePoints(double value)
+	void SetAxisLabelFontSizePoints(long value)
 	{
-		m_fAxisLabelFontSizePoints = value;
+		m_nAxisLabelFontSizePoints = value;
 	}
 
 	__declspec(property(get = GetAxisLabelFontSizePoints, put = SetAxisLabelFontSizePoints))
-		double AxisLabelFontSizePoints;
+		long AxisLabelFontSizePoints;
 
 	// -------------------------------------------------------------
 	// TickLabelFontSizePoints
 	// -------------------------------------------------------------
-	double GetTickLabelFontSizePoints()
+	long GetTickLabelFontSizePoints()
 	{
-		return m_fTickLabelFontSizePoints;
+		return m_nTickLabelFontSizePoints;
 	}
 
-	void SetTickLabelFontSizePoints(double value)
+	void SetTickLabelFontSizePoints(long value)
 	{
-		m_fTickLabelFontSizePoints = value;
+		m_nTickLabelFontSizePoints = value;
 	}
 
 	__declspec(property(get = GetTickLabelFontSizePoints, put = SetTickLabelFontSizePoints))
-		double TickLabelFontSizePoints;
+		long TickLabelFontSizePoints;
 
 	// -------------------------------------------------------------
 	// LeftPaddingInches
@@ -381,7 +438,7 @@ protected:
 	// -------------------------------------------------------------
 	// Initialize default properties
 	// -------------------------------------------------------------
-	void SetDefaults();
+	void SetDefaults(CClimateExplorerDoc* pDoc);
 
 	// -------------------------------------------------------------
 	// RenderPlot
@@ -472,7 +529,7 @@ protected:
 	// -------------------------------------------------------------
 	// DrawTrendLine
 	// -------------------------------------------------------------
-	void DrawRunningAverage10
+	void DrawTrendLine
 	(
 		Graphics& g,
 		double leftInches,
@@ -512,8 +569,13 @@ public:
 
 // public constructor/destructor
 public:
-	CGraphPlotter();
-	CGraphPlotter(std::vector<double> years, std::vector<double>values);
+	CGraphPlotter(CClimateExplorerDoc* pDoc);
+	CGraphPlotter
+	(
+		CClimateExplorerDoc* pDoc,
+		std::vector<double> years, 
+		std::vector<double>values
+	);
 	virtual ~CGraphPlotter();
 
 }; // CGraphPlotter
