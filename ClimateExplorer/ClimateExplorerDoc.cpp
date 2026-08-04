@@ -753,6 +753,14 @@ void CClimateExplorerDoc::OnExecuteQuery()
 
 	// 5. Mark document modified (optional)
 	SetModifiedFlag(TRUE);
+
+	// display on the view during testing phase
+	CClimateExplorerView* pView = ClimateExplorerView;
+	if (pView != nullptr)
+	{
+		pView->Invalidate();
+	}
+
 } // OnExecuteQuery
 
 /////////////////////////////////////////////////////////////////////////////
@@ -763,31 +771,57 @@ void CClimateExplorerDoc::OnUpdateExecuteQuery(CCmdUI* pCmdUI)
 } // OnUpdateExecuteQuery
 
 /////////////////////////////////////////////////////////////////////////////
+// BuildPickerSQL
+//
+// Constructs a SQL query based on the picker settings in ClimateExplorer.
+// The method supports three distinct modes:
+//
+//   1. Threshold mode   (Subtype == "Threshold")
+//   2. Stations mode    (Subtype == "Stations")
+//   3. Temperature mode (Subtype == "Max", "Min", "Avg" via MeasurementType)
+//
+// Each mode returns a completely different SQL structure and result type.
+//
+/////////////////////////////////////////////////////////////////////////////
 CString CClimateExplorerDoc::BuildPickerSQL()
 {
 	CString sql;
 
 	CString csSubtype = Subtype;
 
-	if (csSubtype == L"Threshold")   // Threshold mode
+	/////////////////////////////////////////////////////////////////////////////
+	// 1. THRESHOLD MODE
+	//
+	// Computes the percentage of *monthly* temperature values that exceed
+	// a user‑defined threshold. This mode always uses the Months table and
+	// always uses MeasurementType = 1 (maximum temperature).
+	//
+	// The threshold is converted into raw hundredths‑of‑°C because
+	// Months.CentigradeRaw stores values in that format.
+	//
+	/////////////////////////////////////////////////////////////////////////////
+	if (csSubtype == L"Threshold")
 	{
-		// Convert threshold to raw hundredths of °C
+		// Convert threshold to raw hundredths‑of‑°C
 		double dThreshold = Threshold;
 		double dRaw = dThreshold;
 		CString csUnits = Units;
 
 		if (csUnits == L"degF")
 		{
+			// Convert Fahrenheit → Celsius → hundredths‑C
 			dRaw = (dThreshold - 32.0) * 5.0 / 9.0;
 			dRaw *= 100;
 		}
 		else if (csUnits == L"degC")
 		{
+			// Convert Celsius → hundredths‑C
 			dRaw *= 100;
 		}
 
 		int nRaw = (int)dRaw;
 
+		// Build SQL: percent of monthly values >= threshold
 		sql.Format
 		(
 			L"SELECT m.Year,\n"
@@ -809,7 +843,16 @@ CString CClimateExplorerDoc::BuildPickerSQL()
 		return sql;
 	}
 
-	if (csSubtype == L"Stations") // stations mode
+	/////////////////////////////////////////////////////////////////////////////
+	// 2. STATIONS MODE
+	//
+	// Counts how many stations were active in each year. A station is considered
+	// active if it has at least one valid monthly reading (CentigradeRaw > -9000).
+	//
+	// This mode uses the Months table and ignores MeasurementType.
+	//
+	/////////////////////////////////////////////////////////////////////////////
+	if (csSubtype == L"Stations")
 	{
 		sql.Format
 		(
@@ -828,27 +871,91 @@ CString CClimateExplorerDoc::BuildPickerSQL()
 		return sql;
 	}
 
+	/////////////////////////////////////////////////////////////////////////////
+	// 3. TEMPERATURE MODE (Max / Min / Avg)
+	//
+	// This mode uses the Years table, which is *constructed by ImportUSHCN*
+	// from the monthly USHCN station files (.tmax, .tmin, .tavg). The Years table
+	// is not a NOAA annual product; it is an annual aggregation created entirely
+	// from the monthly values parsed by ImportUSHCN.
+	//
+	// What the monthly USHCN files contain:
+	//   - .tmax = monthly average of daily maximum temperatures
+	//   - .tmin = monthly average of daily minimum temperatures
+	//   - .tavg = monthly average of daily mean temperatures
+	//   (all stored in hundredths of °C)
+	//
+	// What ImportUSHCN stores in the Years table:
+	//   MaxValue = the maximum of the 12 monthly values for the year
+	//   MinValue = the minimum of the 12 monthly values for the year
+	//   AvgValue = the average of the non‑missing monthly values for the year
+	//   ValidReadings = the number of non‑missing monthly values (0–12)
+	//
+	// These are *annual aggregates of monthly data*, stored in raw hundredths‑°C.
+	// They are NOT daily maxima, NOT daily minima, and NOT daily means. They are
+	// exactly the values used by ClimateHistory to generate its CSV output.
+	//
+	// MeasurementType selects which annual statistic is returned:
+	//
+	//   1 → MaxValue : max of the 12 monthly TMAX values
+	//   2 → MinValue : min of the 12 monthly TMIN values
+	//   3 → AvgValue : average of the 12 monthly TAVG values
+	//
+	// This method returns raw values (hundredths‑°C). Downstream plotting logic
+	// converts these raw values into Fahrenheit for display.
+	//
+	/////////////////////////////////////////////////////////////////////////////
 	int nMeasureType = (int)MeasurementType;
 
-	sql.Format
-	(
-		L"SELECT m.Year, m.Month, AVG(m.CentigradeRaw) AS AvgTemp\n"
-		L"FROM Months m\n"
-		L"JOIN Stations s ON m.StationID = s.StationID\n"
-		L"WHERE m.MeasurementType = %d\n"
-		L"  AND m.CentigradeRaw > -9000\n",
-		nMeasureType
-	);
+	CString column;
 
-	sql.AppendFormat(L"  AND m.Year >= %d\n", YearStart);
-	sql.AppendFormat(L"  AND m.Year <= %d\n", YearEnd);
-
-	if (Pure)
+	// Map MeasurementType → Years table column
+	switch (nMeasureType)
 	{
-		sql += L"  AND m.DMFLAG != 'E'\n";
-		sql += L"  AND TRIM(m.QCFlag) = ''\n";
+	case 1: column = L"MaxValue"; break;
+	case 2: column = L"MinValue"; break;
+	case 3: column = L"AvgValue"; break;
+	default: return sql; // invalid type
 	}
 
+	// Base SQL for annual temperature values
+	sql.Format
+	(
+		L"SELECT y.Year, AVG(y.%s) AS RawValue\n"
+		L"FROM Years y\n"
+		L"JOIN Stations s ON y.StationID = s.StationID\n"
+		L"WHERE y.MeasurementType = %d\n"
+		L"  AND y.%s <> -9999\n",
+		column.GetString(),
+		nMeasureType,
+		column.GetString()
+	);
+
+	sql.AppendFormat(L"  AND y.Year >= %d\n", YearStart);
+	sql.AppendFormat(L"  AND y.Year <= %d\n", YearEnd);
+
+	/////////////////////////////////////////////////////////////////////////////
+	// PURE MODE
+	//
+	// For monthly USHCN data, a "complete" station‑year contains all 12 months.
+	// Years.ValidReadings stores the number of months present.
+	//
+	// Pure mode filters out incomplete years by requiring ValidReadings = 12.
+	//
+	/////////////////////////////////////////////////////////////////////////////
+	if (Pure)
+	{
+		sql += L"  AND y.ValidReadings = 12\n";
+	}
+
+	/////////////////////////////////////////////////////////////////////////////
+	// SCOPE FILTERING
+	//
+	// National  → no additional filtering
+	// State     → restrict to a specific state
+	// Location  → restrict to a specific station
+	//
+	/////////////////////////////////////////////////////////////////////////////
 	if (Scope == L"State" && State != L"None")
 	{
 		sql.AppendFormat(L"  AND s.State = '%s'\n", State.GetString());
@@ -856,12 +963,15 @@ CString CClimateExplorerDoc::BuildPickerSQL()
 
 	if (Scope == L"Location" && Location != L"None")
 	{
-		sql.AppendFormat(L"  AND m.StationID = '%s'\n", Location.GetString());
+		sql.AppendFormat(L"  AND y.StationID = '%s'\n", Location.GetString());
 	}
 
+	/////////////////////////////////////////////////////////////////////////////
+	// Final grouping and ordering
+	/////////////////////////////////////////////////////////////////////////////
 	sql +=
-		L"GROUP BY m.Year, m.Month\n"
-		L"ORDER BY m.Year, m.Month;\n";
+		L"GROUP BY y.Year\n"
+		L"ORDER BY y.Year;\n";
 
 	return sql;
 } // BuildPickerSQL
@@ -876,7 +986,7 @@ void CClimateExplorerDoc::FormatTemperatureText()
 	CString csUnitLine;
 	csUnitLine.Format(L"               % 8s\n", csUnits);
 
-	cs += L"Year   Month   Temperature\n";
+	cs += L"Year   Temperature\n";
 	cs += csUnitLine;
 	cs += L"---------------------------\n";
 
@@ -885,8 +995,15 @@ void CClimateExplorerDoc::FormatTemperatureText()
 		CString line;
 		double dUnit = ConvertUnits[r.dTemperature];
 		CString csTemp = FormatValue[dUnit];
-		line.Format(L"%4d   %2d      %s\n", r.nYear, r.nMonth, csTemp);
+		line.Format(L"%4d      %s\n", r.nYear, csTemp);
 		cs += line;
+
+		// populate the graph data arrays
+		double dYear = double(r.nYear);
+		Years.push_back(double(dYear));
+
+		// the value is the converted temperture
+		Values.push_back(dUnit);
 	}
 
 	CMainFrame* pFrame = (CMainFrame*)AfxGetMainWnd();
@@ -954,7 +1071,7 @@ void CClimateExplorerDoc::FormatTemperatureCSV()
 {
 	CString cs;
 
-	cs += L"Year,Month,Temperature\n";
+	cs += L"Year,Temperature\n";
 
 	for (const auto& r : m_arrTemperatureRows)
 	{
@@ -962,7 +1079,7 @@ void CClimateExplorerDoc::FormatTemperatureCSV()
 		double dUnit = ConvertUnits[r.dTemperature];
 		CString csTemp = FormatValue[dUnit];
 		csTemp.TrimLeft();
-		line.Format(L"%d,%d,%s\n", r.nYear, r.nMonth, csTemp.GetString());
+		line.Format(L"%d,%s\n", r.nYear, csTemp.GetString());
 		cs += line;
 	}
 
@@ -974,6 +1091,30 @@ void CClimateExplorerDoc::FormatTemperatureCSV()
 
 } // FormatTemperatureCSV
 
+//void CClimateExplorerDoc::FormatTemperatureCSV()
+//{
+//	CString cs;
+//
+//	cs += L"Year,Month,Temperature\n";
+//
+//	for (const auto& r : m_arrTemperatureRows)
+//	{
+//		CString line;
+//		double dUnit = ConvertUnits[r.dTemperature];
+//		CString csTemp = FormatValue[dUnit];
+//		csTemp.TrimLeft();
+//		line.Format(L"%d,%d,%s\n", r.nYear, r.nMonth, csTemp.GetString());
+//		cs += line;
+//	}
+//
+//	CMainFrame* pFrame = (CMainFrame*)AfxGetMainWnd();
+//	if (pFrame != nullptr && pFrame->OutputPane != nullptr)
+//	{
+//		pFrame->OutputPane->CSVText = cs;
+//	}
+//
+//} // FormatTemperatureCSV
+//
 /////////////////////////////////////////////////////////////////////////////
 // FormatThresholdCSV
 /////////////////////////////////////////////////////////////////////////////
@@ -1045,14 +1186,17 @@ void CClimateExplorerDoc::ConvertTemperatureRows
 				r.nYear = _ttoi(*pCol); 
 				break;
 			case 1: 
-				r.nMonth = _ttoi(*pCol); 
-				break;
-			case 2: 
 				r.dTemperature = _ttof(*pCol);
+			//case 1: 
+			//	r.nMonth = _ttoi(*pCol); 
+			//	break;
+			//case 2: 
+			//	r.dTemperature = _ttof(*pCol);
 			}
 			nCol++;
 		}
 
+		// data for the output window
 		m_arrTemperatureRows.push_back(r);
 	}
 
@@ -1086,6 +1230,13 @@ void CClimateExplorerDoc::ConvertThresholdRows
 			nCol++;
 		}
 
+		// data to create the graph
+		const double dYear = double(r.nYear);
+		const double dValue = r.dPercent;
+		Years.push_back(dYear);
+		Values.push_back(dValue);
+
+		// data for the output window
 		m_arrThresholdRows.push_back(r);
 	}
 
@@ -1119,6 +1270,13 @@ void CClimateExplorerDoc::ConvertStationRows
 			nCol++;
 		}
 
+		// data to create the graph
+		const double dYear = double(r.nYear);
+		const double dValue = double(r.nCount);
+		Years.push_back(dYear);
+		Values.push_back(dValue);
+
+		// data for the output window
 		m_arrStationRows.push_back(r);
 	}
 
@@ -1135,6 +1293,9 @@ void CClimateExplorerDoc::ExecutePickerQuery()
 	m_arrTemperatureRows.clear();
 	m_arrThresholdRows.clear();
 	m_arrStationRows.clear();
+
+	Years.clear();
+	Values.clear();
 
 	// -------------------------------------------------------------
 	// 2. Execute SQL
@@ -1178,39 +1339,5 @@ void CClimateExplorerDoc::ExecutePickerQuery()
 	}
 
 } // ExecutePickerQuery
-
-/////////////////////////////////////////////////////////////////////////////
-std::unique_ptr<Gdiplus::Bitmap>
-CClimateExplorerDoc::RenderStationPlot(const CRect& rcLandscapePixels)
-{
-	// rcLandscapePixels.Width()  ≈ 4000
-	// rcLandscapePixels.Height() ≈ 2925
-	int nWidth = rcLandscapePixels.Width();
-	int nHeight = rcLandscapePixels.Height();
-#ifdef _DEBUG
-#undef new
-#endif
-	std::unique_ptr<Gdiplus::Bitmap> pBitmap
-	(
-		new Gdiplus::Bitmap( nWidth, nHeight)
-	);
-#ifdef _DEBUG
-#define new DEBUG_NEW
-#endif
-
-	Gdiplus::Graphics graphics(pBitmap.get());
-
-	graphics.SetSmoothingMode(Gdiplus::SmoothingModeHighQuality);
-	graphics.SetInterpolationMode(Gdiplus::InterpolationModeHighQualityBicubic);
-	graphics.SetTextRenderingHint(Gdiplus::TextRenderingHintClearTypeGridFit);
-
-	// Background
-	graphics.Clear(Gdiplus::Color(255, 255, 255));
-
-	// Axes, labels, curve drawing will go here...
-
-	return pBitmap;
-
-} // RenderStationPlot
 
 /////////////////////////////////////////////////////////////////////////////

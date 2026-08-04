@@ -27,12 +27,12 @@ public:
 	struct CClimateTempRow
 	{
 		int     nYear;
-		int     nMonth;
+		//int     nMonth;
 		double  dTemperature;
 
 		CClimateTempRow()
 			: nYear(0)
-			, nMonth(0)
+			//, nMonth(0)
 			, dTemperature(0.0)
 		{
 		}
@@ -981,7 +981,7 @@ public:
 		{
 			MeasurementType = CClimateTemperature::mtAverage;
 		}
-		else if (value == L"minimm")
+		else if (value == L"minimum")
 		{
 			MeasurementType = CClimateTemperature::mtMinimum;
 		}
@@ -1204,7 +1204,11 @@ public:
 			{
 				int nLimit = Threshold;
 				CString csUnits = Units;
-				value.Format(L"Percent of Reading Above %n %s", nLimit, csUnits);
+				value.Format
+				(
+					L"Percent of Reading Above %d %s", 
+					nLimit, csUnits.GetString()
+				);
 			}
 			else
 			{
@@ -1217,10 +1221,18 @@ public:
 					}
 					else
 					{
-						csAt.Format(L"%s, %s", csLocation, csState);
+						csAt.Format
+						(
+							L"%s, %s", 
+							csLocation.GetString(), csState.GetString()
+						);
 					}
 				}
-				value.Format(L"%s Temperatures for %s", csSubtype, csAt);
+				value.Format
+				(
+					L"%s Temperatures for %s", 
+					csSubtype.GetString(), csAt.GetString()
+				);
 			}
 		}
 		return value;
@@ -1753,9 +1765,6 @@ public:
 	// Execute the SQL stored in the SQL property
 	// -------------------------------------------------------------
 	void ExecutePickerQuery();
-
-	std::unique_ptr<Gdiplus::Bitmap>
-		RenderStationPlot(const CRect& rcLandscapePixels);
 
 #ifdef _DEBUG
 	virtual void AssertValid() const;

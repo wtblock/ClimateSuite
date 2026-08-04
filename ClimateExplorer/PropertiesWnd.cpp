@@ -370,6 +370,8 @@ LRESULT CPropertiesWnd::OnPropertyChange
 
 				m_pPropState->SetValue(L"None");
 				m_pPropLocation->SetValue(L"None");
+				pDoc->State = L"None";
+				pDoc->Location = L"None";
 			}
 			else if (scope.CompareNoCase(L"State") == 0)
 			{
@@ -377,8 +379,10 @@ LRESULT CPropertiesWnd::OnPropertyChange
 				m_pPropLocation->Enable(TRUE);
 
 				m_pPropState->SetValue(L"AL"); // or first state
+				pDoc->State = L"AL";
 				PopulateLocationsForState(scope, L"AL");
 				m_pPropLocation->SetValue(L"All");
+				pDoc->Location = L"All";
 			}
 			else if (scope.CompareNoCase(L"Location") == 0)
 			{
@@ -386,6 +390,7 @@ LRESULT CPropertiesWnd::OnPropertyChange
 				m_pPropLocation->Enable(TRUE);
 
 				m_pPropState->SetValue(L"AL");
+				pDoc->State = L"AL";
 				PopulateLocationsForState(scope, L"AL");
 				m_pPropLocation->SetValue(L"BREWTON 3 SSE"); // or first city
 			}
@@ -1805,6 +1810,14 @@ void CPropertiesWnd::HandleStateChanged(CMFCPropertyGridProperty* pProp)
 {
 	CString state = pProp->GetValue().bstrVal;
 	CString scope = m_pPropScope->GetValue().bstrVal;
+	
+	CClimateExplorerDoc* pDoc = ClimateExplorerDocument;
+
+	if (!pDoc || !m_wndPropList.GetSafeHwnd())
+		return;
+
+	pDoc->Scope = scope;
+	pDoc->State = state;
 
 	PopulateLocationsForState(scope, state);
 

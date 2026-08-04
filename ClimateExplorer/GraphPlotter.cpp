@@ -887,11 +887,13 @@ void CGraphPlotter::DrawAxisNumbers
 				(REAL)0.20f
 			);
 
-			std::wstring s = std::to_wstring((int)yv);
+			//std::wstring s = std::to_wstring((int)yv);
+			CString s;
+			s.Format(L"%g", yv);
 
 			g.DrawString
 			(
-				s.c_str(),
+				s,
 				-1,
 				&font,
 				rc,
@@ -1090,7 +1092,6 @@ void CGraphPlotter::DrawTrendLine
 	// -------------------------------------------------------------
 	if (pts.size() >= 2)
 	{
-		penAvg.SetDashStyle(DashStyleDash);
 		g.DrawLines(&penAvg, pts.data(), (INT)pts.size());
 	}
 } // DrawTrendLine

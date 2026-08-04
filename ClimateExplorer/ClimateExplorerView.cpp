@@ -345,6 +345,26 @@ void CClimateExplorerView::RenderTitlePage
 	const UINT uiFormat =
 		DT_CENTER | DT_WORDBREAK | DT_NOPREFIX | DT_NOCLIP;
 
+	// temporary test code for rending images on the screen
+	if (pDoc->Years.size() > 0)
+	{
+		CRect rcPixels(0, 0, 4000, 2925);
+
+		// -------------------------------------------------------------
+		// Generate the graph bitmap
+		// -------------------------------------------------------------
+		CGraphPlotter plot(pDoc, pDoc->Years, pDoc->Values);
+		auto pBmp = plot.CreatePlot(rcPixels);
+		shared_ptr<Gdiplus::Image> pImage = 
+			shared_ptr<Gdiplus::Image>((pBmp));
+
+		DrawImage(pDC, pImage, &rect);
+
+		// restore the entry state
+		pDC->RestoreDC(nDC);
+		return;
+	}
+
 	CRect rectTitle = rect;
 	rectTitle.top += InchesToLogical(1.5);
 	pDC->DrawText(csTitle, &rectTitle, uiFormat);
@@ -1061,28 +1081,28 @@ void CClimateExplorerView::OnInitialUpdate()
 	CSize sizeTotal(nWidth, nHeight);
 	SetScrollSizes(MM_HIENGLISH, sizeTotal);
 
+////
+//	// -------------------------------------------------------------
+//	// Define a test rectangle (landscape pixel size)
+//	// -------------------------------------------------------------
+//	CRect rcPixels(0, 0, 4000, 2925);
 //
-	// -------------------------------------------------------------
-	// Define a test rectangle (landscape pixel size)
-	// -------------------------------------------------------------
-	CRect rcPixels(0, 0, 4000, 2925);
-
-	// the sample data is stations
-	pDoc->Subtype = L"Stations";
-
-	// -------------------------------------------------------------
-	// Generate the graph bitmap
-	// -------------------------------------------------------------
-	CGraphPlotter plot(pDoc);
-	auto pBmp = plot.CreatePlot(rcPixels);
-
-	// -------------------------------------------------------------
-	// Wrap in CImagePlus
-	// -------------------------------------------------------------
-	m_pTestImage = new CImagePlus(pBmp);
-
-	m_pTestImage->Save(L".\\GraphTest.jpg");
+//	// the sample data is stations
+//	pDoc->Subtype = L"Stations";
 //
+//	// -------------------------------------------------------------
+//	// Generate the graph bitmap
+//	// -------------------------------------------------------------
+//	CGraphPlotter plot(pDoc);
+//	auto pBmp = plot.CreatePlot(rcPixels);
+//
+//	// -------------------------------------------------------------
+//	// Wrap in CImagePlus
+//	// -------------------------------------------------------------
+//	m_pTestImage = new CImagePlus(pBmp);
+//
+//	m_pTestImage->Save(L".\\GraphTest.jpg");
+////
 } // OnInitialUpdate
 
 /////////////////////////////////////////////////////////////////////////////
