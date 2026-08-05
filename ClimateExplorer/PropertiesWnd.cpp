@@ -13,6 +13,7 @@
 #include "PropertyGridMultilineText.h"
 #include "ClimateDatabase.h"
 #include "ImagePlus.h"
+#include "Color.h"
 
 #ifdef _DEBUG
 #undef THIS_FILE
@@ -106,15 +107,22 @@ void CPropertiesWnd::PopulateLocationsForState(const CString& scope, const CStri
 	{
 		m_pPropLocation->AddOption(L"All");
 
-		auto cities = pDB->Cities[state];
-		for (auto& city : cities)
-			m_pPropLocation->AddOption(city);
+		//auto cities = pDB->Cities[state];
+		//for (auto& city : cities)
+		//	m_pPropLocation->AddOption(city);
 	}
 	else if (scope.CompareNoCase(L"Location") == 0)
 	{
+		int nStart = 1;
 		auto cities = pDB->Cities[state];
 		for (auto& city : cities)
+		{
 			m_pPropLocation->AddOption(city);
+			if (nStart++ == 1)
+			{
+				m_pPropLocation->SetValue(city);
+			}
+		}
 	}
 } // PopulateLocationsForState
 
@@ -370,17 +378,30 @@ LRESULT CPropertiesWnd::OnPropertyChange
 
 				m_pPropState->SetValue(L"None");
 				m_pPropLocation->SetValue(L"None");
+
 				pDoc->State = L"None";
 				pDoc->Location = L"None";
+
+				m_pPropState->Show(FALSE);
+				m_pPropLocation->Show(FALSE);
 			}
 			else if (scope.CompareNoCase(L"State") == 0)
 			{
-				m_pPropState->Enable(TRUE);
-				m_pPropLocation->Enable(TRUE);
+				m_pPropState->Enable();
+				m_pPropLocation->Enable(FALSE);
 
-				m_pPropState->SetValue(L"AL"); // or first state
-				pDoc->State = L"AL";
-				PopulateLocationsForState(scope, L"AL");
+				m_pPropState->Show();
+				m_pPropLocation->Show(FALSE);
+
+				CString csState = pDoc->State;
+				if (csState == L"None")
+				{
+					m_pPropState->SetValue(L"AL"); // or first state
+					csState = L"AL";
+					pDoc->State = csState;
+				}
+
+				PopulateLocationsForState(scope, csState);
 				m_pPropLocation->SetValue(L"All");
 				pDoc->Location = L"All";
 			}
@@ -389,21 +410,44 @@ LRESULT CPropertiesWnd::OnPropertyChange
 				m_pPropState->Enable(TRUE);
 				m_pPropLocation->Enable(TRUE);
 
-				m_pPropState->SetValue(L"AL");
-				pDoc->State = L"AL";
-				PopulateLocationsForState(scope, L"AL");
-				m_pPropLocation->SetValue(L"BREWTON 3 SSE"); // or first city
+				m_pPropState->Show();
+				m_pPropLocation->Show();
+
+				CString csState = pDoc->State;
+				if (csState == L"None")
+				{
+					m_pPropState->SetValue(L"AL"); // or first state
+					csState = L"AL";
+					pDoc->State = csState;
+				}
+
+				PopulateLocationsForState(scope, csState);
+				CString csLocation = m_pPropLocation->GetValue().bstrVal;
+				pDoc->Location = csLocation;
 			}
+
+			CString csTitle = pDoc->Title;
+			m_pPropGraphTitle->SetValue(csTitle);
 
 			m_wndPropList.RedrawWindow();
 		}
 		else if (csName == L"State")
 		{
 			HandleStateChanged(pProp);
+
+			CString csTitle = pDoc->Title;
+			m_pPropGraphTitle->SetValue(csTitle);
+
+			m_wndPropList.RedrawWindow();
 		}
 		else if (csName == L"Location")
 		{
 			pDoc->Location = CString(varIn);
+
+			CString csTitle = pDoc->Title;
+			m_pPropGraphTitle->SetValue(csTitle);
+
+			m_wndPropList.RedrawWindow();
 		}
 		else if (csName == L"Starting Year")
 		{
@@ -422,6 +466,17 @@ LRESULT CPropertiesWnd::OnPropertyChange
 			{
 				m_pPropThreshold->Show();
 				m_pPropUnits->Show();
+
+				COLORREF rgbLine = CColor::darkred;
+				COLORREF rgbTrend = CColor::red;
+
+				pDoc->LineColor = rgbLine;
+				pDoc->TrendLineColor = rgbTrend;
+				pDoc->TrendLine = TRUE;
+
+				m_pPropTrendLine->SetValue(_variant_t(true));
+				m_pPropLineColor->SetValue(_variant_t(rgbLine));
+				m_pPropTrendColor->SetValue(_variant_t(rgbTrend));
 			}
 			else
 			{
@@ -430,16 +485,77 @@ LRESULT CPropertiesWnd::OnPropertyChange
 
 			if (csSubtype == L"Stations")
 			{
+				COLORREF rgbLine = CColor::darkgreen;
+
+				pDoc->LineColor = rgbLine;
+				pDoc->LineStyle = Gdiplus::DashStyleDash;
+				pDoc->TrendLine = FALSE;
+
+				m_pPropTrendLine->SetValue(_variant_t(false));
+				m_pPropLineColor->SetValue(_variant_t(rgbLine));
+				m_pPropLineStyle->SetValue(L"Dash");
 				m_pPropUnits->Show(FALSE);
 			}
 			else
 			{
 				m_pPropUnits->Show();
+				pDoc->LineStyle = Gdiplus::DashStyleDot;
+				m_pPropLineStyle->SetValue(L"Dot");
 			}
+
+			if (csSubtype == L"Maximum")
+			{
+				COLORREF rgbLine = CColor::darkred;
+				COLORREF rgbTrend = CColor::red;
+
+				pDoc->LineColor = rgbLine;
+				pDoc->TrendLineColor = rgbTrend;
+				pDoc->TrendLine = TRUE;
+
+				m_pPropTrendLine->SetValue(_variant_t(true));
+				m_pPropLineColor->SetValue(_variant_t(rgbLine));
+				m_pPropTrendColor->SetValue(_variant_t(rgbTrend));
+			}
+			else if (csSubtype == L"Minimum")
+			{
+				COLORREF rgbLine = CColor::darkblue;
+				COLORREF rgbTrend = CColor::blue;
+
+				pDoc->LineColor = rgbLine;
+				pDoc->TrendLineColor = rgbTrend;
+				pDoc->TrendLine = TRUE;
+
+				m_pPropTrendLine->SetValue(_variant_t(true));
+				m_pPropLineColor->SetValue(_variant_t(rgbLine));
+				m_pPropTrendColor->SetValue(_variant_t(rgbTrend));
+			}
+			else if (csSubtype == L"Average")
+			{
+				COLORREF rgbLine = CColor::darkmagenta;
+				COLORREF rgbTrend = CColor::magenta;
+
+				pDoc->LineColor = rgbLine;
+				pDoc->TrendLineColor = rgbTrend;
+				pDoc->TrendLine = TRUE;
+
+				m_pPropTrendLine->SetValue(_variant_t(true));
+				m_pPropLineColor->SetValue(_variant_t(rgbLine));
+				m_pPropTrendColor->SetValue(_variant_t(rgbTrend));
+			}
+
+			CString csTitle = pDoc->Title;
+			m_pPropGraphTitle->SetValue(csTitle);
+
+			m_wndPropList.RedrawWindow();
 		}
 		else if (csName == L"Threshold")
 		{
 			pDoc->ThresholdText = CString(varIn);
+
+			CString csTitle = pDoc->Title;
+			m_pPropGraphTitle->SetValue(csTitle);
+
+			m_wndPropList.RedrawWindow();
 		}
 	}
 	else if (csGroup == L"Render Properties")
@@ -1291,12 +1407,14 @@ void CPropertiesWnd::InitPropList()
 		new CMFCPropertyGridProperty
 		(
 			L"State",
-			(_variant_t)L"None",
+			(_variant_t)L"All",
 			L"Select a state when Scope is set to 'State'. "
 			L"This list will be populated from the climate database."
 		);
 
-	//m_pPropState->AddOption(L"None");
+	// when all is selected for the scope of state, a graph for all
+	// states will be generated
+	m_pPropState->AddOption(L"All");
 
 	CClimateDatabase* pDB = pApp->ClimateDatabase;
 	vector<CString> arrStates = pDB->States;
@@ -1306,7 +1424,8 @@ void CPropertiesWnd::InitPropList()
 	}
 
 	// intially the scope is national
-	m_pPropState->Enable();
+	m_pPropState->Enable(FALSE);
+	m_pPropState->Show(FALSE);
 
 	// Add to group
 	pQueryGroup->AddSubItem(m_pPropState);
@@ -1318,15 +1437,16 @@ void CPropertiesWnd::InitPropList()
 		new CMFCPropertyGridProperty
 		(
 			L"Location",
-			(_variant_t)L"None",
+			(_variant_t)L"All",
 			L"Select a location when Scope is set to 'Location'. "
 			L"This list will be populated from the climate database."
 		);
 
-	//m_pPropLocation->AddOption(L"None");
+	m_pPropLocation->AddOption(L"All");
 
 	// intially the scope is national
 	m_pPropLocation->Enable(FALSE);
+	m_pPropLocation->Show(FALSE);
 
 	// Add to group
 	pQueryGroup->AddSubItem(m_pPropLocation);
@@ -1599,8 +1719,7 @@ void CPropertiesWnd::InitPropList()
 	m_pPropLineColor =
 		new CMFCPropertyGridColorProperty
 		(
-			L"Primary Line Color",
-			RGB(0, 0, 255)
+			L"Primary Line Color", CColor::darkred
 		);
 
 	m_pPropLineColor->SetDescription(L"Line Color of the primary value being plotted.");
@@ -1609,7 +1728,7 @@ void CPropertiesWnd::InitPropList()
 		new CMFCPropertyGridProperty
 		(
 			L"Primary Line Style",
-			(_variant_t)L"Solid",
+			(_variant_t)L"Dot",
 			L"Pick the line style for the primary value being plotted."
 		);
 
@@ -1635,15 +1754,14 @@ void CPropertiesWnd::InitPropList()
 		new CMFCPropertyGridProperty
 		(
 			L"Enable Trend Line",
-			(_variant_t)false,
+			(_variant_t)true,
 			L"Enable or disable the trend line which is a 10 year moving average."
 		);
 
 	m_pPropTrendColor =
 		new CMFCPropertyGridColorProperty
 		(
-			L"Trend Line Color",
-			RGB(128, 128, 128)
+			L"Trend Line Color", CColor::red
 		);
 
 	m_pPropTrendColor->SetDescription(L"Line Color of the trend line being plotted.");
@@ -1652,7 +1770,7 @@ void CPropertiesWnd::InitPropList()
 		new CMFCPropertyGridProperty
 		(
 			L"Trend Line Style",
-			(_variant_t)L"Dash",
+			(_variant_t)L"Solid",
 			L"Pick the line style for the trend line being plotted."
 		);
 
@@ -1667,7 +1785,7 @@ void CPropertiesWnd::InitPropList()
 		new CMFCPropertyGridProperty
 		(
 			L"Trend Line Thickness (in)",
-			(_variant_t)0.015,
+			(_variant_t)0.03,
 			L"The line weight in inches of the trend line being plotted."
 		);
 
@@ -1677,8 +1795,7 @@ void CPropertiesWnd::InitPropList()
 	m_pPropGridColor =
 		new CMFCPropertyGridColorProperty
 		(
-			L"Grid Line Color",
-			RGB(200, 200, 200)
+			L"Grid Line Color", CColor::silver
 		);
 
 	m_pPropGridColor->SetDescription(L"Line Color of the reference grid.");
@@ -1702,7 +1819,7 @@ void CPropertiesWnd::InitPropList()
 		new CMFCPropertyGridProperty
 		(
 			L"Grid Line Thickness (in)",
-			(_variant_t)0.02,
+			(_variant_t)0.03,
 			L"The line weight in inches of the reference grid."
 		);
 

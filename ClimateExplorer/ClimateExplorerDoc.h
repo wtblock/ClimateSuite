@@ -1188,53 +1188,75 @@ public:
 	// The title of the graph
 	CString GetGraphTitle()
 	{
-		CString value = m_csGraphTitle;
+		CString value;
 
-		if (value == L"Title")
+		CString csScope = Scope;
+		CString csState = State;
+		CString csLocation = Location;
+		csLocation.TrimRight();
+		CString csSubtype = Subtype;
+		CString csAt;
+		if (csScope != L"National")
 		{
-			CString csScope = Scope;
-			CString csState = State;
-			CString csLocation = Location;
-			CString csSubtype = Subtype;
-			if (csSubtype == L"Stations")
+			if (csScope == L"State")
 			{
-				value = L"USHCN Station Count";
+				csAt = csState;
 			}
-			else if (csSubtype == L"Threshold")
+			else if (csScope == L"Location")
 			{
-				int nLimit = Threshold;
-				CString csUnits = Units;
+				csAt.Format
+				(
+					L"%s, %s",
+					csLocation.GetString(), csState.GetString()
+				);
+			}
+		}
+		if (csSubtype == L"Stations")
+		{
+			value = L"USHCN Yearly Station Count";
+		}
+		else if (csSubtype == L"Threshold")
+		{
+			int nLimit = Threshold;
+			CString csUnits = Units;
+			if (csScope == L"National")
+			{
 				value.Format
 				(
-					L"Percent of Reading Above %d %s", 
+					L"Percent of USHCN Readings Above %d %s",
 					nLimit, csUnits.GetString()
 				);
 			}
 			else
 			{
-				CString csAt(L"National");
-				if (csScope != L"National")
-				{
-					if (csLocation == L"None")
-					{
-						csAt = csState;
-					}
-					else
-					{
-						csAt.Format
-						(
-							L"%s, %s", 
-							csLocation.GetString(), csState.GetString()
-						);
-					}
-				}
 				value.Format
 				(
-					L"%s Temperatures for %s", 
+					L"Percent of USHCN Readings Above %d %s for %s",
+					nLimit, csUnits.GetString(), csAt.GetString()
+				);
+			}
+		}
+		else
+		{
+			if (csScope == L"National")
+			{
+				value.Format
+				(
+					L"USHCN %s Temperatures Nationally",
+					csSubtype.GetString()
+				);
+			}
+			else
+			{
+				value.Format
+				(
+					L"USHCN %s Temperatures for %s",
 					csSubtype.GetString(), csAt.GetString()
 				);
 			}
 		}
+
+		GraphTitle = value;
 		return value;
 	}
 	// The title of the graph
@@ -1620,6 +1642,16 @@ public:
 	// -------------------------------------------------------------
 	double GetTopPaddingInches()
 	{
+		double dTitle = TitleFontSizePoints;
+		dTitle /= 72; // points to inches
+		BOOL bTrend = TrendLine;
+
+		double value = dTitle * 2;
+		if (bTrend)
+		{
+			value += dTitle;
+		}
+		TopPaddingInches = value;
 		return m_fTopPaddingInches;
 	}
 

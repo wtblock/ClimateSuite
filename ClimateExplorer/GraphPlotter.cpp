@@ -1128,6 +1128,7 @@ void CGraphPlotter::DrawTitle
 )
 {
 	const REAL fontSize = (REAL)TitleFontSizePoints;
+	const BOOL bTrendLine = TrendLine;
 
 	Gdiplus::Font font
 	(
@@ -1154,27 +1155,56 @@ void CGraphPlotter::DrawTitle
 
 	const double width = rightInches - leftInches;
 
+	// account for font size of the title and optional trend line
+	// label on second line
+	REAL verticalOffset = TopPaddingInches;
+
 	RectF rc
 	(
 		(REAL)leftInches,
-		(REAL)(topInches - 0.40),
+		(REAL)(topInches - verticalOffset),
 		(REAL)width,
-		(REAL)0.35
+		(REAL)verticalOffset
 	);
 
-	std::wstring title = GraphTitle;
-	if (TrendLine)
-		title += L" with Trend Line";
+	CString csTitle = GraphTitle;
 
 	g.DrawString
 	(
-		title.c_str(),
+		csTitle,
 		-1,
 		&font,
 		rc,
 		&fmt,
 		&br
 	);
+
+	// modify the title to indicate the trend line's presense and color
+	// on a second line
+	if (TrendLine)
+	{
+		SolidBrush br
+		(
+			Color
+			(
+				255,
+				GetRValue(TrendLineColor),
+				GetGValue(TrendLineColor),
+				GetBValue(TrendLineColor)
+			)
+		);
+
+		g.DrawString
+		(
+			L"\nwith 10 Year Running Average",
+			-1,
+			&font,
+			rc,
+			&fmt,
+			&br
+		);
+	}
+
 } // DrawTitle
 
 /////////////////////////////////////////////////////////////////////////////

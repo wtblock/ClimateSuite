@@ -161,6 +161,7 @@
     <ClInclude Include="ClimateStations.h" />
     <ClInclude Include="ClimateTemperature.h" />
     <ClInclude Include="ClimateYear.h" />
+    <ClInclude Include="Color.h" />
     <ClInclude Include="Date.h" />
     <ClInclude Include="framework.h" />
     <ClInclude Include="ImagePlus.h" />
@@ -185,6 +186,7 @@
     <ClCompile Include="ClimateStations.cpp" />
     <ClCompile Include="ClimateTemperature.cpp" />
     <ClCompile Include="ClimateYear.cpp" />
+    <ClCompile Include="Color.cpp" />
     <ClCompile Include="Common.cpp" />
     <ClCompile Include="ImagePlus.cpp" />
     <ClCompile Include="NaturalLanguage.cpp" />

@@ -9,6 +9,7 @@
 #include <propkey.h>
 #include <xmllite.h>
 #include <set>
+#include "Color.h"
 
 /////////////////////////////////////////////////////////////////////////////
 #pragma comment(lib, "xmllite.lib")
@@ -110,22 +111,22 @@ void CClimateExplorerDoc::InitializeProperties()
 	// -------------------------------------------------------------
 	// Curve line appearance
 	// -------------------------------------------------------------
-	LineColor = RGB(0, 0, 128); // dark blue
-	LineStyle = Gdiplus::DashStyleSolid;
+	LineColor = CColor::darkred;
+	LineStyle = Gdiplus::DashStyleDot;
 	LineThicknessInches = 0.015; // ~6 px at 400 DPI
 
 	// -------------------------------------------------------------
 	// Trend line appearance
 	// -------------------------------------------------------------
 	TrendLine = TRUE;
-	TrendLineColor = RGB(139, 0, 0); // dark red
-	TrendLineStyle = Gdiplus::DashStyleDash;
-	TrendLineThicknessInches = 0.015; // ~6 px at 400 DPI
+	TrendLineColor = CColor::red;
+	TrendLineStyle = Gdiplus::DashStyleSolid;
+	TrendLineThicknessInches = 0.03; // ~12 px at 400 DPI
 
 	// -------------------------------------------------------------
 	// Grid appearance
 	// -------------------------------------------------------------
-	GridColor = RGB(220, 220, 220); // light gray
+	GridColor = CColor::silver;
 	GridLineStyle = Gdiplus::DashStyleDot;
 	GridLineThicknessInches = 0.020; // ~8 px at 400 DPI
 
@@ -830,15 +831,49 @@ CString CClimateExplorerDoc::BuildPickerSQL()
 			L"FROM Months m\n"
 			L"JOIN Stations s ON m.StationID = s.StationID\n"
 			L"WHERE m.MeasurementType = 1\n"
-			L"  AND m.CentigradeRaw > -9000\n"
-			L"  AND m.Year >= %d\n"
-			L"  AND m.Year <= %d\n"
-			L"GROUP BY m.Year\n"
-			L"ORDER BY m.Year;\n",
-			nRaw,
-			YearStart,
-			YearEnd
+			L"  AND m.CentigradeRaw > -9000\n",
+			nRaw
 		);
+
+		sql.AppendFormat(L"  AND m.Year >= %d\n", YearStart);
+		sql.AppendFormat(L"  AND m.Year <= %d\n", YearEnd);
+
+		/////////////////////////////////////////////////////////////////////////////
+		// PURE MODE
+		//
+		// Pure mode filters out based on quality flags.
+		//
+		/////////////////////////////////////////////////////////////////////////////
+		if (Pure)
+		{
+			sql += L"AND m.DMFLAG != 'E' \n";
+			sql += L"AND m.QCFLAG = ' ' \n";
+		}
+
+		/////////////////////////////////////////////////////////////////////////////
+		// SCOPE FILTERING
+		//
+		// National  → no additional filtering
+		// State     → restrict to a specific state
+		// Location  → restrict to a specific station
+		//
+		/////////////////////////////////////////////////////////////////////////////
+		if (Scope == L"State" && State != L"None")
+		{
+			sql.AppendFormat(L"  AND s.State = '%s'\n", State.GetString());
+		}
+
+		if (Scope == L"Location" && Location != L"None")
+		{
+			sql.AppendFormat(L"  AND s.Location = '%s'\n", Location.GetString());
+		}
+
+		/////////////////////////////////////////////////////////////////////////////
+		// Final grouping and ordering
+		/////////////////////////////////////////////////////////////////////////////
+		sql +=
+			L"GROUP BY m.Year\n"
+			L"ORDER BY m.Year;\n";
 
 		return sql;
 	}
@@ -963,7 +998,7 @@ CString CClimateExplorerDoc::BuildPickerSQL()
 
 	if (Scope == L"Location" && Location != L"None")
 	{
-		sql.AppendFormat(L"  AND y.StationID = '%s'\n", Location.GetString());
+		sql.AppendFormat(L"  AND s.Location = '%s'\n", Location.GetString());
 	}
 
 	/////////////////////////////////////////////////////////////////////////////
