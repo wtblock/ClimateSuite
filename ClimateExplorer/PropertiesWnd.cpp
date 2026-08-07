@@ -80,19 +80,42 @@ CClimateExplorerView* CPropertiesWnd::GetClimateExplorerView()
 void CPropertiesWnd::PopulateStatesForScope(const CString& scope)
 {
 	m_pPropState->RemoveAllOptions();
+	CClimateExplorerDoc* pDoc = ClimateExplorerDocument;
 
 	CClimateDatabase* pDB = ((CClimateExplorerApp*)AfxGetApp())->ClimateDatabase;
 
 	if (scope.CompareNoCase(L"National") == 0)
 	{
 		m_pPropState->AddOption(L"None");
-		m_pPropState->AddOption(L"All");
 	}
 	else
 	{
+		m_pPropState->AddOption(L"All");
+		CString csState;
+		if (pDoc != nullptr)
+		{
+			csState = pDoc->State;
+		}
+
+		int nStart = 1;
+		if (!csState.IsEmpty() && csState != L"None")
+		{
+			nStart = 2;
+		}
+
 		// Actual states only
 		for (auto& csState : pDB->States)
+		{
 			m_pPropState->AddOption(csState);
+			if (nStart++ == 1)
+			{
+				m_pPropState->SetValue(csState);
+				if (pDoc != nullptr)
+				{
+					pDoc->State = csState;
+				}
+			}
+		}
 	}
 } // PopulateStatesForScope
 
@@ -100,20 +123,29 @@ void CPropertiesWnd::PopulateStatesForScope(const CString& scope)
 void CPropertiesWnd::PopulateLocationsForState(const CString& scope, const CString& state)
 {
 	m_pPropLocation->RemoveAllOptions();
+	CClimateExplorerDoc* pDoc = ClimateExplorerDocument;
 
 	CClimateDatabase* pDB = ((CClimateExplorerApp*)AfxGetApp())->ClimateDatabase;
 
 	if (scope.CompareNoCase(L"State") == 0)
 	{
-		m_pPropLocation->AddOption(L"All");
-
-		//auto cities = pDB->Cities[state];
-		//for (auto& city : cities)
-		//	m_pPropLocation->AddOption(city);
+		m_pPropLocation->AddOption(L"None");
 	}
 	else if (scope.CompareNoCase(L"Location") == 0)
 	{
+		m_pPropLocation->AddOption(L"All");
+		CString csCity;
+		if (pDoc != nullptr)
+		{
+			csCity = pDoc->Location;
+		}
+
 		int nStart = 1;
+		if (!csCity.IsEmpty() && csCity != L"None")
+		{
+			nStart = 2;
+		}
+
 		auto cities = pDB->Cities[state];
 		for (auto& city : cities)
 		{
@@ -121,6 +153,10 @@ void CPropertiesWnd::PopulateLocationsForState(const CString& scope, const CStri
 			if (nStart++ == 1)
 			{
 				m_pPropLocation->SetValue(city);
+				if (pDoc != nullptr)
+				{
+					pDoc->Location = city;
+				}
 			}
 		}
 	}
@@ -376,12 +412,6 @@ LRESULT CPropertiesWnd::OnPropertyChange
 				m_pPropState->Enable(TRUE);
 				m_pPropLocation->Enable(FALSE);
 
-				m_pPropState->SetValue(L"None");
-				m_pPropLocation->SetValue(L"None");
-
-				pDoc->State = L"None";
-				pDoc->Location = L"None";
-
 				m_pPropState->Show(FALSE);
 				m_pPropLocation->Show(FALSE);
 			}
@@ -393,17 +423,6 @@ LRESULT CPropertiesWnd::OnPropertyChange
 				m_pPropState->Show();
 				m_pPropLocation->Show(FALSE);
 
-				CString csState = pDoc->State;
-				if (csState == L"None")
-				{
-					m_pPropState->SetValue(L"AL"); // or first state
-					csState = L"AL";
-					pDoc->State = csState;
-				}
-
-				PopulateLocationsForState(scope, csState);
-				m_pPropLocation->SetValue(L"All");
-				pDoc->Location = L"All";
 			}
 			else if (scope.CompareNoCase(L"Location") == 0)
 			{
@@ -414,16 +433,7 @@ LRESULT CPropertiesWnd::OnPropertyChange
 				m_pPropLocation->Show();
 
 				CString csState = pDoc->State;
-				if (csState == L"None")
-				{
-					m_pPropState->SetValue(L"AL"); // or first state
-					csState = L"AL";
-					pDoc->State = csState;
-				}
-
 				PopulateLocationsForState(scope, csState);
-				CString csLocation = m_pPropLocation->GetValue().bstrVal;
-				pDoc->Location = csLocation;
 			}
 
 			CString csTitle = pDoc->Title;
@@ -475,8 +485,10 @@ LRESULT CPropertiesWnd::OnPropertyChange
 				pDoc->TrendLine = TRUE;
 
 				m_pPropTrendLine->SetValue(_variant_t(true));
-				m_pPropLineColor->SetValue(_variant_t(rgbLine));
-				m_pPropTrendColor->SetValue(_variant_t(rgbTrend));
+				m_pPropLineColor->SetValue(_variant_t(long(rgbLine)));
+				m_pPropTrendColor->SetValue(_variant_t(long(rgbTrend)));
+				m_pPropState->SetValue(_variant_t(pDoc->State));
+				m_pPropLocation->SetValue(_variant_t(pDoc->Location));
 			}
 			else
 			{
@@ -492,9 +504,11 @@ LRESULT CPropertiesWnd::OnPropertyChange
 				pDoc->TrendLine = FALSE;
 
 				m_pPropTrendLine->SetValue(_variant_t(false));
-				m_pPropLineColor->SetValue(_variant_t(rgbLine));
+				m_pPropLineColor->SetValue(_variant_t(long(rgbLine)));
 				m_pPropLineStyle->SetValue(L"Dash");
 				m_pPropUnits->Show(FALSE);
+				m_pPropState->SetValue(_variant_t(pDoc->State));
+				m_pPropLocation->SetValue(_variant_t(pDoc->Location));
 			}
 			else
 			{
@@ -513,8 +527,13 @@ LRESULT CPropertiesWnd::OnPropertyChange
 				pDoc->TrendLine = TRUE;
 
 				m_pPropTrendLine->SetValue(_variant_t(true));
-				m_pPropLineColor->SetValue(_variant_t(rgbLine));
-				m_pPropTrendColor->SetValue(_variant_t(rgbTrend));
+
+				const COleVariant oLC = m_pPropLineColor->GetValue();
+				VARTYPE vt = oLC.vt;
+				m_pPropLineColor->SetValue(_variant_t(long(rgbLine)));
+				m_pPropTrendColor->SetValue(_variant_t(long(rgbTrend)));
+				m_pPropState->SetValue(_variant_t(pDoc->State));
+				m_pPropLocation->SetValue(_variant_t(pDoc->Location));
 			}
 			else if (csSubtype == L"Minimum")
 			{
@@ -526,8 +545,10 @@ LRESULT CPropertiesWnd::OnPropertyChange
 				pDoc->TrendLine = TRUE;
 
 				m_pPropTrendLine->SetValue(_variant_t(true));
-				m_pPropLineColor->SetValue(_variant_t(rgbLine));
-				m_pPropTrendColor->SetValue(_variant_t(rgbTrend));
+				m_pPropLineColor->SetValue(_variant_t(long(rgbLine)));
+				m_pPropTrendColor->SetValue(_variant_t(long(rgbTrend)));
+				m_pPropState->SetValue(_variant_t(pDoc->State));
+				m_pPropLocation->SetValue(_variant_t(pDoc->Location));
 			}
 			else if (csSubtype == L"Average")
 			{
@@ -539,8 +560,10 @@ LRESULT CPropertiesWnd::OnPropertyChange
 				pDoc->TrendLine = TRUE;
 
 				m_pPropTrendLine->SetValue(_variant_t(true));
-				m_pPropLineColor->SetValue(_variant_t(rgbLine));
-				m_pPropTrendColor->SetValue(_variant_t(rgbTrend));
+				m_pPropLineColor->SetValue(_variant_t(long(rgbLine)));
+				m_pPropTrendColor->SetValue(_variant_t(long(rgbTrend)));
+				m_pPropState->SetValue(_variant_t(pDoc->State));
+				m_pPropLocation->SetValue(_variant_t(pDoc->Location));
 			}
 
 			CString csTitle = pDoc->Title;
@@ -1976,7 +1999,7 @@ void CPropertiesWnd::UpdateTableOfContents()
 
 	// Populate new sub-items from the document
 	vector<pair<CString, int>>& arrTableOfContents =
-		pDoc->AlbumTableOfContents;
+		pDoc->TitleTableOfContents;
 	for (auto& album : arrTableOfContents)
 	{
 		CString csAlbum = album.first;

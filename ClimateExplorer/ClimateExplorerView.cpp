@@ -11,6 +11,7 @@
 #include "ImagePlus.h"
 #include "PdfWriter.h"
 #include "GraphPlotter.h"
+#include "Color.h"
 
 /////////////////////////////////////////////////////////////////////////////
 #ifdef _DEBUG
@@ -88,6 +89,10 @@ void CClimateExplorerView::RenderMargins
 {
 	CClimateExplorerDoc* pDoc = GetDocument();
 	const int nPage = pDoc->Page;
+	if (nPage == 2)
+	{
+		return;
+	}
 
 	// save the entry state
 	const int nDC = pDC->SaveDC();
@@ -101,15 +106,13 @@ void CClimateExplorerView::RenderMargins
 	int nMode = pDC->SetBkMode(TRANSPARENT);
 	const double dLineWidth = 0.02;
 	const int nLineWidth = InchesToLogical(dLineWidth);
-	CPen penBorder(PS_SOLID, nLineWidth, RGB(0, 0, 0));
-	CPen penRect(PS_DOT, 0, RGB(128, 0, 0));
+	CPen penBorder(PS_SOLID, nLineWidth, CColor::black);
+	CPen penRect(PS_DOT, 0, CColor::red);
 	CPen* pPen = pDC->SelectObject(&penBorder);
+	CBrush* pOldBrush = (CBrush*)pDC->SelectStockObject(NULL_BRUSH);
 
 	CRect rect = pDoc->MarginRectangle;
-	if (nPage == 1)
-	{
-		pDC->Rectangle(&rect);
-	}
+	pDC->Rectangle(&rect);
 
 	double dBottomOfPage = pDoc->HeightOfPage * nPage;
 	int nBottomOfPage = InchesToLogical(dBottomOfPage);
@@ -122,11 +125,11 @@ void CClimateExplorerView::RenderMargins
 		pDC->LineTo(nRightOfView, nBottomOfPage);
 	}
 
-	//shared_ptr<CPage> page = pDoc->CurrentPage;
-	//if (page != nullptr)
-	//{
-	//	page->RenderImageRectangles(pDC);
-	//}
+	shared_ptr<CPage> page = pDoc->CurrentPage;
+	if (page != nullptr)
+	{
+		page->RenderImageRectangles(pDC);
+	}
 
 	// restore the entry state
 	pDC->RestoreDC(nDC);
@@ -175,8 +178,7 @@ void CClimateExplorerView::RenderHeader
 	{
 		return;
 	}
-	const CString csFolder = page->Folder;
-	const CString csAlbum = CHelper::GetDataName(csFolder);
+	const CString csPageTitle = page->Title;
 	const CString csTitle = pDoc->Title;
 
 	const int nMap = pDoc->Map;
@@ -203,12 +205,12 @@ void CClimateExplorerView::RenderHeader
 	if (bEven)
 	{
 		pDC->DrawText(csTitle, &rectText, uiFormatLeft);
-		pDC->DrawText(csAlbum, &rectText, uiFormatRight);
+		pDC->DrawText(csPageTitle, &rectText, uiFormatRight);
 	}
 	else
 	{
 		pDC->DrawText(csTitle, &rectText, uiFormatRight);
-		pDC->DrawText(csAlbum, &rectText, uiFormatLeft);
+		pDC->DrawText(csPageTitle, &rectText, uiFormatLeft);
 	}
 
 	// restore the entry state
@@ -345,26 +347,6 @@ void CClimateExplorerView::RenderTitlePage
 	const UINT uiFormat =
 		DT_CENTER | DT_WORDBREAK | DT_NOPREFIX | DT_NOCLIP;
 
-	// temporary test code for rending images on the screen
-	if (pDoc->Years.size() > 0)
-	{
-		CRect rcPixels(0, 0, 4000, 2925);
-
-		// -------------------------------------------------------------
-		// Generate the graph bitmap
-		// -------------------------------------------------------------
-		CGraphPlotter plot(pDoc, pDoc->Years, pDoc->Values);
-		auto pBmp = plot.CreatePlot(rcPixels);
-		shared_ptr<Gdiplus::Image> pImage = 
-			shared_ptr<Gdiplus::Image>((pBmp));
-
-		DrawImage(pDC, pImage, &rect);
-
-		// restore the entry state
-		pDC->RestoreDC(nDC);
-		return;
-	}
-
 	CRect rectTitle = rect;
 	rectTitle.top += InchesToLogical(1.5);
 	pDC->DrawText(csTitle, &rectTitle, uiFormat);
@@ -462,7 +444,7 @@ void CClimateExplorerView::RenderTableOfContentsPage
 
 	pDC->SelectObject(&fontText);
 
-	vector<pair<CString, int>>& arrItems = pDoc->AlbumTableOfContents;
+	vector<pair<CString, int>>& arrItems = pDoc->TitleTableOfContents;
 	UINT nFirstLine = (nPage - 2) * 55;
 	UINT nLastLine = nFirstLine + 55;
 
@@ -514,7 +496,10 @@ void CClimateExplorerView::RenderTableOfContentsPage
 /////////////////////////////////////////////////////////////////////////////
 void CClimateExplorerView::DrawImage
 (
-	CDC* pDC, shared_ptr<Image>& pImage, const CRect* pRect
+	CDC* pDC, 
+	shared_ptr<Image>& pImage, 
+	const CRect* pRect,
+	IMAGE_ROTATION ir
 )
 {
 	if (!pImage || !pDC)
@@ -525,6 +510,16 @@ void CClimateExplorerView::DrawImage
 
 	if (!pBitmap)
 		return;
+
+	// Apply rotation before computing dimensions
+	if (ir == RotateCW)
+	{
+		pBitmap->RotateFlip(Rotate90FlipNone);
+	}
+	else if (ir == RotateCCW)
+	{
+		pBitmap->RotateFlip(Rotate270FlipNone);
+	}
 
 	// save the entry state
 	const int nDC = pDC->SaveDC();
@@ -607,9 +602,10 @@ void CClimateExplorerView::RenderImagePage
 	shared_ptr<CPage> page = pDoc->CurrentPage;
 	if (page != nullptr)
 	{
-		CString csFolder = page->Folder;
-		CKeyedCollection<CString, CRect>& mapImages = page->Images;
-		for (auto& node : mapImages.Items)
+		CString csTitle = page->Title;
+		CKeyedCollection<CString, CRect>& mapRectangles = page->Rectangles;
+		CKeyedCollection<CString, CGraphPlotter>& mapPlots = page->Plots;
+		for (auto& node : mapRectangles.Items)
 		{
 			const CString csImage = node.first;
 			shared_ptr<CRect> pRect = node.second;
@@ -624,11 +620,48 @@ void CClimateExplorerView::RenderImagePage
 				continue;
 			}
 
-			shared_ptr<Image> pImage = pDoc->FindImage(csFolder, csImage);
-			if (pImage)
+			// the image is based on the margin rectangle expressed
+			// as a landscape version (rotated 90 degrees) in pixels
+			//CRect rcPixels(0, 0, 4000, 2925);
+			CRect rcPixels = pDoc->ImageRectangle;
+
+			// -------------------------------------------------------------
+			// Generate the graph bitmap
+			// -------------------------------------------------------------
+			bool bExists = mapPlots.Exists[csImage];
+			if (!bExists)
 			{
-				DrawImage(pDC, pImage, pRect.get());
+				continue;
 			}
+
+			shared_ptr<CGraphPlotter> pPlot = mapPlots.find( csImage );
+			auto pBmp = pPlot->CreatePlot(rcPixels);
+			shared_ptr<Gdiplus::Image> pImage =
+				shared_ptr<Gdiplus::Image>((pBmp));
+
+			CString csLayout = pPlot->Layout;
+			IMAGE_ROTATION ir = RotateNone;
+			if (csLayout != L"Half")
+			{
+				bool bOdd = CHelper::GetOdd(pDoc->Page);
+				if (bOdd)
+				{
+					ir = RotateCCW;
+				}
+				else
+				{
+					ir = RotateCW;
+				}
+			}
+
+			DrawImage(pDC, pImage, pRect.get(), ir);
+			RenderMargins(pDC, dLeftOfView, dTopOfView, dRightOfView, dBottomOfView);
+
+			//shared_ptr<Image> pImage = pDoc->FindImage(csTitle, csImage);
+			//if (pImage)
+			//{
+			//	DrawImage(pDC, pImage, pRect.get());
+			//}
 		}
 	}
 

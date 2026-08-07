@@ -64,6 +64,9 @@ protected:
 	// -------------------------------------------------------------
 	double           m_fTickLengthInches;
 
+	// Layout (Full, Half, or Quarter page)
+	CString m_csLayout;
+
 	std::vector<double> m_arrYears;
 	std::vector<double> m_arrValues;
 
@@ -432,6 +435,22 @@ public:
 
 	__declspec(property(get = GetTickLengthInches, put = SetTickLengthInches))
 		double TickLengthInches;
+
+	// -------------------------------------------------------------
+	// Layout (Full, Half, or Quarter page)
+	// -------------------------------------------------------------
+	CString GetLayout()
+	{
+		return m_csLayout;
+	}
+	// Layout (Full, Half, or Quarter page)
+	void SetLayout(CString value)
+	{
+		m_csLayout = value;
+	}
+	// Layout (Full, Half, or Quarter page)
+	__declspec(property(get = GetLayout, put = SetLayout))
+		CString Layout;
 
 // protected methods
 protected:

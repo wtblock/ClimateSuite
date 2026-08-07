@@ -1,58 +1,51 @@
 ﻿/////////////////////////////////////////////////////////////////////////////
-// Copyright (c) 2025 by W. T. Block, All Rights Reserved
+// Copyright (c) 2026 by W. T. Block, All Rights Reserved
 /////////////////////////////////////////////////////////////////////////////
 #pragma once
 #include "KeyedCollection.h"
+#include "GraphPlotter.h"
 
 /////////////////////////////////////////////////////////////////////////////
 // CPage
 //
-// Represents a single page in a PhotoPrinter document. Each page contains
-// a boundary rectangle (which varies for even/odd pages), the folder name
-// associated with the images on that page, and a collection of image
-// rectangles describing where each photograph will be placed.
+// Represents a single page in a ClimateExplorer document. Each page contains
+// a boundary rectangle (which varies for even/odd pages) and a collection of image
+// rectangles describing where each image will be placed.
 //
 // Purpose:
 //   • Provide a lightweight container for all layout information needed to
-//     render a single page of the photo book.
-//   • Store the page number, page geometry, folder name, and the set of
+//     render a single page of the climate book.
+//   • Store the page number, page geometry, and the set of
 //     image rectangles assigned to that page.
-//   • Allow PhotoPrinterView and the PDF export system to render pages
+//   • Allow ClimateExplorerView and the PDF export system to render pages
 //     consistently and device‑independently.
 //
 // Why this class exists:
-//   PhotoPrinter builds pages dynamically based on the number of images in
-//   each album folder. The layout rules (1‑image, 2‑image, 3‑image, 4‑image,
-//   or 6‑image templates) are computed in CPhotoPrinterDoc, but the results
-//   must be stored in a simple, reusable structure. CPage provides that
-//   structure and isolates page geometry from rendering logic.
+//   ClimateExplorer builds pages dynamically based on the the Layout:
+//   • Full page - the image fills the margin rectangle rotated based
+//     on the page number being even or odd.
+//   • Half page - the images are not rotated but are either on the top 
+//     half or bottom half of the page.
+//   • Quarter page - the images are rotated similar to Full page, but
+//     there are up to fore images on the page.
 //
 // Responsibilities:
 //   • Store the page number (even pages on the left, odd pages on the right).
 //   • Store the page boundary rectangle (in logical units).
-//   • Store the folder name associated with the images on the page.
+//   • Store the title associated with the images on the page.
 //   • Store a keyed collection of image rectangles (image name → CRect).
 //   • Provide AddAnImage() to attach an image and its layout rectangle.
 //   • Provide RenderImageRectangles() for debugging or preview rendering.
 //
-// Layout Rules (computed by CPhotoPrinterDoc):
-//   • 1 image  → 1 portrait rectangle (7.3" × 10.0")
-//   • 2 images → 2 landscape rectangles (7.3" × 5.0")
-//   • 3 images → 2 portrait + 1 landscape
-//   • 4 images → 4 portrait rectangles
-//   • >4 images → 6 rectangles (3.65" × 3.33")
-//   • Images may be rotated to match their containing rectangle shape.
-//   • Rectangles are positioned relative to page margins and gutter.
-//
 // Interaction with other components:
-//   • CPhotoPrinterDoc creates and populates CPage objects during
+//   • CClimateExplorerDoc creates and populates CPage objects during
 //     GeneratePages().
-//   • CPhotoPrinterView uses CPage to draw images, margins, and page
+//   • CClimateExplorerView uses CPage to draw images, margins, and page
 //     geometry on screen.
 //   • PDF export uses CPage rectangles to place images at high DPI.
 //   • The Properties pane uses page numbers to navigate the document.
 //
-// This class is the fundamental building block of PhotoPrinter’s page
+// This class is the fundamental building block of ClimateExplorer’s page
 // layout system, encapsulating all geometry and placement information
 // needed to render a complete page.
 /////////////////////////////////////////////////////////////////////////////
@@ -69,35 +62,18 @@ protected:
 	// printed document.
 	CRect m_Rect;
 
-	// folder name in the format of "path\YYYY.MM.DD Title of Event"
-	// where the year, month and day allow the albums to be 
-	// sorted by the date of the event.
-	CString m_csFolder;
+	// Layout (Full, Half, Quarter)
+	CString m_csLayout;
 
-	// A collection of image rectangles for this page where
-	// the application fits as many images on the page as
-	// possible. The containing rectangles for the images are
-	// described as portrait or landscape where portrait is
-	// defined as narrower width than height and landscape
-	// is defined as wider width that height (same as the
-	// images themselves are defined). 
-	// 
-	// If the shape of the image is not the same as its 
-	// containing rectangle, it is rotated such that its 
-	// bottom is nearest to the outer margin.
-	// 
-	// The number of rectangles depends on the number of images
-	// in the current folder that are remaining to be printed:
-	// 1 - single portrait rectangle (7.3" x 10.0")
-	// 2 - two landscape rectangles (7.3" x 5.0")
-	// 3 - two portrait rectangles and a single landscape
-	//		(3.65" x 5.0") and (7.3" x 5.0")
-	// 4 - four portrait rectangles (3.65" x 5.0")
-	// More than 4 images will create pages with six rectangles (3.65" x 3.33")
-	//
+	// title of the page
+	CString m_csTitle;
+
 	// the key is the image name associated with the given rectangle the
 	// image will be drawn in
-	CKeyedCollection<CString, CRect> m_arrImages;
+	CKeyedCollection<CString, CRect> m_arrRectangles;
+
+	// the key is the image title associated with the given plot
+	CKeyedCollection<CString, CGraphPlotter> m_arrPlots;
 
 // public properties
 public:
@@ -118,11 +94,25 @@ public:
 	// number of images on the page
 	UINT GetImageCount()
 	{
-		return (UINT)m_arrImages.Count;
+		return (UINT)m_arrRectangles.Count;
 	}
 	// number of images on the page
 	__declspec( property( get = GetImageCount) )
 		UINT ImageCount;
+
+	// Layout (Full, Half, Quarter)
+	CString GetLayout()
+	{
+		return m_csLayout;
+	}
+	// Layout (Full, Half, Quarter)
+	void SetLayout(CString value)
+	{
+		m_csLayout = value;
+	}
+	// Layout (Full, Half, Quarter)
+	__declspec(property(get = GetLayout, put = SetLayout))
+		CString Layout;
 
 	// page boundary rectangle varies depending on the page
 	// number being an even or odd number. Even pages are
@@ -147,34 +137,68 @@ public:
 	__declspec( property( get = GetRect, put = SetRect ) )
 		CRect Rect;
 
-	// folder name in the format of "YYYY.MM.DD Title of Event"
-	// where the year, month and day allow the albums to be 
-	// sorted by the date of the event.
-	CString GetFolder()
+	// title of the image
+	CString GetTitle()
 	{
-		return m_csFolder;
+		return m_csTitle;
 	}
-	// folder name in the format of "YYYY.MM.DD Title of Event"
-	// where the year, month and day allow the albums to be 
-	// sorted by the date of the event.
-	void SetFolder(CString value)
+	// title of the image
+	void SetTitle(CString value)
 	{
-		m_csFolder = value;
+		m_csTitle = value;
 	}
-	// folder name in the format of "YYYY.MM.DD Title of Event"
-	// where the year, month and day allow the albums to be 
-	// sorted by the date of the event.
-	__declspec(property(get = GetFolder, put = SetFolder))
-		CString Folder;
+	// title of the image
+	__declspec(property(get = GetTitle, put = SetTitle))
+		CString Title;
 
 	// image names and rectangles
-	CKeyedCollection<CString, CRect>& GetImages()
+	CKeyedCollection<CString, CRect>& GetRectangles()
 	{
-		return m_arrImages;
+		return m_arrRectangles;
 	}
 	// image names and rectangles
-	__declspec(property(get = GetImages))
-		CKeyedCollection<CString, CRect>& Images;
+	__declspec(property(get = GetRectangles))
+		CKeyedCollection<CString, CRect>& Rectangles;
+
+	// the key is the image title associated with the given plot
+	CKeyedCollection<CString, CGraphPlotter>& GetPlots()
+	{
+		return m_arrPlots;
+	}
+	// the key is the image title associated with the given plot
+	__declspec(property(get = GetPlots))
+		CKeyedCollection<CString, CGraphPlotter>& Plots;
+
+	// is the page full of images
+	bool GetPageIsFull()
+	{
+		CString csTitle = Title;
+		if (csTitle == L"Cover Page" || csTitle == L"Table of Contents")
+		{
+			return true;
+		}
+
+		bool value = false;
+		int nImages = ImageCount;
+		CString csLayout = Layout;
+		if (csLayout == L"Full")
+		{
+			value = nImages == 1;
+		}
+		else if (csLayout == L"Half")
+		{
+			value = nImages == 2;
+		}
+		else if (csLayout == L"Quarter")
+		{
+			value = nImages == 4;
+		}
+
+		return value;
+	}
+	// is the page full of images
+	__declspec(property(get = GetPageIsFull))
+		bool PageIsFull;
 
 // protected methods
 protected:
@@ -182,16 +206,12 @@ protected:
 // public methods
 public:
 	// add an image to the page
-	void AddAnImage(CString csImage, CRect rect )
-	{
-		shared_ptr<CRect> pRect = shared_ptr<CRect>(new CRect( &rect ));
-		m_arrImages.add(csImage, pRect);
-	}
+	bool AddAnImage(shared_ptr<CGraphPlotter> pPlot);
 
 	// render the image rectangles
 	void RenderImageRectangles(CDC* pDC)
 	{
-		for (auto& image : m_arrImages.Items)
+		for (auto& image : m_arrRectangles.Items)
 		{
 			shared_ptr<CRect> pRect = image.second;
 			pDC->Rectangle(pRect.get());
@@ -210,12 +230,13 @@ public:
 	{
 		Page = 0;
 		m_Rect.SetRectEmpty();
+		Layout = L"Full";
 	}
-	CPage( UINT nPage, CString csFolder, CRect rect )
+	CPage( UINT nPage, CString csLayout )
 	{
 		Page = nPage;
-		Folder = csFolder;
-		Rect = rect;
+		Layout = csLayout;
+		m_Rect.SetRectEmpty();
 	}
 	~CPage()
 	{

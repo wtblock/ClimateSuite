@@ -55,6 +55,8 @@ CClimateExplorerDoc::CClimateExplorerDoc()
 		m_mapDash.add(csKey, pDash);
 	}
 
+	
+
 } // CClimateExplorerDoc
 
 /////////////////////////////////////////////////////////////////////////////
@@ -68,7 +70,7 @@ void CClimateExplorerDoc::InitializeProperties()
 	HeightOfPage = 11.0;
 	WidthOfPage = 8.5;
 
-	Pages = 1;
+	Pages = 2;
 	Page = 1;
 	Images = 0;
 	ExportDPI = 400;
@@ -149,6 +151,8 @@ void CClimateExplorerDoc::InitializeProperties()
 	// Tick mark length (inches)
 	// -------------------------------------------------------------
 	TickLengthInches = 0.030; // 12 px
+
+	Clear();
 
 } // InitializeProperties
 
@@ -543,31 +547,30 @@ CClimateExplorerView* CClimateExplorerDoc::GetClimateExplorerView()
 
 /////////////////////////////////////////////////////////////////////////////
 // get a vector corresponding to the document's table of contents
-vector<pair<CString, int>>& CClimateExplorerDoc::GetAlbumTableOfContents()
+vector<pair<CString, int>>& CClimateExplorerDoc::GetTitleTableOfContents()
 {
 	m_arrTOC.clear();
 	pair<CString, int> item;
 
-	// account for the title page
-	item.first = L"Title Page";
-	item.second = 1;
-	m_arrTOC.push_back(item);
+	//// account for the title page
+	//item.first = L"Title Page";
+	//item.second = 1;
+	//m_arrTOC.push_back(item);
 
-	// account for the title page
-	item.first = L"Table of Contents";
-	item.second = 2;
-	m_arrTOC.push_back(item);
+	//// account for the table of contents page
+	//item.first = L"Table of Contents";
+	//item.second = 2;
+	//m_arrTOC.push_back(item);
 
-	CString csCurrentAlbum;
+	CString csCurrentTitle;
 	for (auto& node : m_arrPages.Items)
 	{
-		CString csFolder = node->Folder;
-		CString csAlbum = CHelper::GetDataName(csFolder);
-		if (csAlbum != csCurrentAlbum)
+		CString csTitle = node->Title;
+		if (csTitle != csCurrentTitle)
 		{
-			csCurrentAlbum = csAlbum;
+			csCurrentTitle = csTitle;
 			int nPage = node->Page;
-			item.first = csAlbum;
+			item.first = csTitle;
 			item.second = nPage;
 			m_arrTOC.push_back(item);
 		}
@@ -575,7 +578,7 @@ vector<pair<CString, int>>& CClimateExplorerDoc::GetAlbumTableOfContents()
 
 	return m_arrTOC;
 
-} // GetAlbumTableOfContents
+} // GetTitleTableOfContents
 
 /////////////////////////////////////////////////////////////////////////////
 shared_ptr<Image> CClimateExplorerDoc::FindImage
@@ -591,20 +594,6 @@ shared_ptr<Image> CClimateExplorerDoc::FindImage
 	}
 	return value;
 } // FindImage
-
-/////////////////////////////////////////////////////////////////////////////
-// CClimateExplorerDoc serialization
-void CClimateExplorerDoc::Serialize(CArchive& ar)
-{
-	if (ar.IsStoring())
-	{
-		// TODO: add storing code here
-	}
-	else
-	{
-		// TODO: add loading code here
-	}
-}
 
 // CClimateExplorerDoc diagnostics
 
@@ -736,29 +725,146 @@ void CClimateExplorerDoc::OnCloseDocument()
 /////////////////////////////////////////////////////////////////////////////
 void CClimateExplorerDoc::OnExecuteQuery()
 {
-	// 1. Build SQL from picker properties
-	CString csSQL = BuildPickerSQL();
+	CClimateDatabase* pDB = 
+		((CClimateExplorerApp*)AfxGetApp())->ClimateDatabase;
 
-	// 2. Store SQL on the document
-	SQL = csSQL;
+	CString csScope = Scope;
+	CString csState = State;
+	CString csCity = Location;
+	long lYearStart = YearStart;
+	long lYearEnd = YearEnd;
+	CString csSubtype = Subtype;
 
-	// 3. Write SQL to the Output window (SQL tab)
-	CMainFrame* pFrame = (CMainFrame*)AfxGetMainWnd();
-	if (pFrame != nullptr && pFrame->OutputPane != nullptr)
+	bool bAllState = csState == L"All";
+	bool bAllCities = csCity == L"All";
+
+	vector<CString> arrLocations;
+	if (csScope == L"National")
 	{
-		pFrame->OutputPane->SQLText = csSQL;
+		arrLocations.push_back(csScope);
+	}
+	else if (csScope == L"State")
+	{
+		if (bAllState)
+		{
+			arrLocations = pDB->States;
+		}
+		else 
+		{
+			arrLocations.push_back(csState);
+		}
+	}
+	else if (csScope == L"Location")
+	{
+		if (bAllCities)
+		{
+			arrLocations = pDB->Cities[csState];
+		}
+		else
+		{
+			arrLocations.push_back(csCity);
+		}
 	}
 
-	// 4. Execute the query to generate output
-	ExecutePickerQuery();
+	size_t nLocations = arrLocations.size();
+	int nLocation = 1;
+	for (auto& csLocation : arrLocations)
+	{
+		if (nLocations > 1)
+		{
+			if (csScope == L"State")
+			{
+				State = csLocation;
+			}
+			else if (csScope == L"Location")
+			{
+				Location = csLocation;
+			}
+		}
 
-	// 5. Mark document modified (optional)
-	SetModifiedFlag(TRUE);
+		// 1. Build SQL from picker properties
+		CString csSQL = BuildPickerSQL();
+
+		// 2. Store SQL on the document
+		SQL = csSQL;
+
+		// 3. Write SQL to the Output window (SQL tab)
+		CMainFrame* pFrame = (CMainFrame*)AfxGetMainWnd();
+		if (pFrame != nullptr && pFrame->OutputPane != nullptr)
+		{
+			pFrame->OutputPane->SQLText = csSQL;
+		}
+
+		// 4. Execute the query to generate output
+		ExecutePickerQuery();
+
+		int nPages = Pages;
+
+		// page index is zero based
+		int nPage = nPages - 1;
+		shared_ptr<CPage> pPage = m_arrPages.get(nPage);
+		if (pPage->PageIsFull)
+		{
+			nPage = (int)m_arrPages.add();
+			pPage = m_arrPages.get(nPage);
+			pPage->Layout = Layout;
+			Pages = (UINT)m_arrPages.Count;
+		}
+
+		// page numbers are one based
+		pPage->Page = (UINT)nPage + 1;
+		Page = nPage + 1;
+
+		CRect rect = MarginRectangle;
+		pPage->Rect = rect;
+
+		CString csTitle;
+		if (csScope == L"National")
+		{
+			csTitle.Format
+			(
+				L"%s, %s, %d, %d", csScope, csSubtype, lYearStart, lYearEnd
+			);
+		}
+		else if (csScope == L"State")
+		{
+			csTitle.Format
+			(
+				L"%s, %s, %s, %d, %d", csScope, csSubtype, State, lYearStart, lYearEnd
+			);
+		}
+		else if (csScope == L"Location")
+		{
+			CString csCity = Location;
+			csCity.TrimRight();
+
+			csTitle.Format
+			(
+				L"%s, %s, %s, %s, %d, %d", csScope, csSubtype, State, csCity, lYearStart, lYearEnd
+			);
+		}
+
+		// -------------------------------------------------------------
+		// Generate the graph bitmap
+		// -------------------------------------------------------------
+		shared_ptr<CGraphPlotter> pPlot = 
+			shared_ptr<CGraphPlotter>( new CGraphPlotter(this, Years, Values));
+
+		pPage->AddAnImage(pPlot);
+
+		// 5. Mark document modified (optional)
+		SetModifiedFlag(TRUE);
+	}
 
 	// display on the view during testing phase
 	CClimateExplorerView* pView = ClimateExplorerView;
 	if (pView != nullptr)
 	{
+		double dPageHeight = pView->HeightOfPage;
+		int nPages = Pages - 1;
+		double dTop = dPageHeight * nPages;
+		pView->TopOfView = dTop;
+		pView->SetupScrollBars();
 		pView->Invalidate();
 	}
 

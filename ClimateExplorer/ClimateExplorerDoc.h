@@ -92,8 +92,8 @@ protected:
 	CSmartArray<CPage> m_arrPages;
 
 	// table of contents lines for the entire document where
-	// the string is the album title and the int is the page
-	// number where the album begins. Return value is the
+	// the string is the title and the int is the page
+	// number where the title begins. Return value is the
 	// number of lines.
 	vector<pair<CString, int>> m_arrTOC;
 
@@ -345,23 +345,24 @@ public:
 	// number of pages in the table of contents
 	UINT GetTableOfContentsPages()
 	{
-		// take into account the Title Page and Table of Contents lines that are at
-		// the beginning of the first page of the table of contents.
-		UINT nAlbums = 2;
+		//// take into account the Title Page and Table of Contents lines that are at
+		//// the beginning of the first page of the table of contents.
+		//UINT nAlbums = 2;
 
-		// add the actual number of albums which represents lines int th
-		// table of contents
-		nAlbums += AlbumCount;
+		//// add the actual number of albums which represents lines int th
+		//// table of contents
+		//nAlbums += AlbumCount;
 
-		// place 55 lines on each page
-		UINT value = nAlbums / 55;
+		//// place 55 lines on each page
+		//UINT value = nAlbums / 55;
 
-		// if there is a fraction of a page, add one more page to account for it.
-		UINT nMod = nAlbums % 55;
-		if (nMod > 0)
-		{
-			value++;
-		}
+		//// if there is a fraction of a page, add one more page to account for it.
+		//UINT nMod = nAlbums % 55;
+		//if (nMod > 0)
+		//{
+		//	value++;
+		//}
+		UINT value = 1;
 		return value;
 	}
 	// number of pages in the table of contents
@@ -413,17 +414,17 @@ public:
 
 		// this is a one based page number: 1..n
 		UINT nPage = Page;
-		UINT nPagesTOC = TableOfContentsPages;
-		UINT nOverhead = nPagesTOC + 1;
-		if (nPage > nOverhead)
-		{
-			// this is a zero based index accounting for 
-			// overhead pages, so we need to decrement
-			// by overhead + 1 to make zero based
-			nPage -= (nOverhead + 1);
-			const int nPages = m_arrPages.Count;
-			value = m_arrPages.get((long)nPage);
-		}
+		//UINT nPagesTOC = TableOfContentsPages;
+		//UINT nOverhead = nPagesTOC + 1;
+		//if (nPage > nOverhead)
+		//{
+		//	// this is a zero based index accounting for 
+		//	// overhead pages, so we need to decrement
+		//	// by overhead + 1 to make zero based
+		//	nPage -= (nOverhead + 1);
+		//	const int nPages = m_arrPages.Count;
+			value = m_arrPages.get((long)nPage - 1);
+		//}
 		return value;
 	}
 	// current page object where page objects contain
@@ -624,17 +625,59 @@ public:
 	__declspec(property(get = GetMarginRectangle))
 		CRect MarginRectangle;
 
+	// The margin rectangle in inches
+	Gdiplus::RectF GetRealMargin()
+	{
+		const double dTopOfPage = TopOfPage;
+		const double dBottomOfPage = BottomOfPage;
+		const double dRightOfPage = Width;
+
+		const double dTopMargin = TopMargin;
+		const double dBottomMargin = BottomMargin;
+		const double dLeftMargin = LeftMargin;
+		const double dRightMargin = RightMargin;
+
+		const REAL fTop = float(dTopOfPage + dTopMargin);
+		const REAL fBottom = float(dBottomOfPage - dBottomMargin);
+		const REAL fLeft = float(dLeftMargin);
+		const REAL fRight = float(dRightOfPage - dRightMargin);
+
+		Gdiplus::RectF value(fLeft, fTop, fRight - fLeft, fBottom - fTop);
+
+		return value;
+	}
+	// The margin rectangle in inches
+	__declspec(property(get = GetRealMargin))
+		Gdiplus::RectF RealMargin;
+
+	// the image is based on the margin rectangle expressed
+	// as a landscape version (rotated 90 degrees) in pixels
+	CRect GetImageRectangle()
+	{
+		Gdiplus::RectF fRect = RealMargin;
+		float fWidth = fRect.Width;
+		float fHeight = fRect.Height;
+		int nWidth = int(fWidth * ExportDPI);
+		int nHeight = int(fHeight * ExportDPI);
+		CRect value(0, 0, nHeight, nWidth);
+		return value;
+	}
+	// the image is based on the margin rectangle expressed
+	// as a landscape version (rotated 90 degrees) in pixels
+	__declspec(property(get = GetImageRectangle))
+		CRect ImageRectangle;
+
 	// table of contents lines for the entire document where
 	// the string is the album title and the int is the page
 	// number where the album begins. Return value is the
 	// number of lines.
-	vector<pair<CString, int>>& GetAlbumTableOfContents();
+	vector<pair<CString, int>>& GetTitleTableOfContents();
 	// table of contents lines for the entire document where
 	// the string is the album title and the int is the page
 	// number where the album begins. Return value is the
 	// number of lines.
-	__declspec(property(get = GetAlbumTableOfContents))
-		vector<pair<CString, int>>& AlbumTableOfContents;
+	__declspec(property(get = GetTitleTableOfContents))
+		vector<pair<CString, int>>& TitleTableOfContents;
 
 	// document export folder
 	CString GetExportFolder()
@@ -1190,6 +1233,10 @@ public:
 	{
 		CString value;
 
+		long lYearStart = YearStart;
+		long lYearEnd = YearEnd;
+		CString csRange;
+		csRange.Format(L"from %d to %d", lYearStart, lYearEnd);
 		CString csScope = Scope;
 		CString csState = State;
 		CString csLocation = Location;
@@ -1213,7 +1260,7 @@ public:
 		}
 		if (csSubtype == L"Stations")
 		{
-			value = L"USHCN Yearly Station Count";
+			value.Format( L"USHCN Yearly Station Count %s", csRange.GetString());
 		}
 		else if (csSubtype == L"Threshold")
 		{
@@ -1223,16 +1270,16 @@ public:
 			{
 				value.Format
 				(
-					L"Percent of USHCN Readings Above %d %s",
-					nLimit, csUnits.GetString()
+					L"Percent of USHCN Readings Above %d %s %s",
+					nLimit, csUnits.GetString(), csRange.GetString()
 				);
 			}
 			else
 			{
 				value.Format
 				(
-					L"Percent of USHCN Readings Above %d %s for %s",
-					nLimit, csUnits.GetString(), csAt.GetString()
+					L"Percent of USHCN Readings Above %d %s for %s %s",
+					nLimit, csUnits.GetString(), csAt.GetString(), csRange.GetString()
 				);
 			}
 		}
@@ -1242,16 +1289,16 @@ public:
 			{
 				value.Format
 				(
-					L"USHCN %s Temperatures Nationally",
-					csSubtype.GetString()
+					L"USHCN %s Temperatures Nationally %s",
+					csSubtype.GetString(), csRange.GetString()
 				);
 			}
 			else
 			{
 				value.Format
 				(
-					L"USHCN %s Temperatures for %s",
-					csSubtype.GetString(), csAt.GetString()
+					L"USHCN %s Temperatures for %s %s",
+					csSubtype.GetString(), csAt.GetString(), csRange.GetString()
 				);
 			}
 		}
@@ -1704,8 +1751,21 @@ protected:
 		m_mapAlbums.clear();
 		m_keyFolders.clear();
 		m_arrPages.clear();
-		m_nPages = 2;
-		Height = HeightOfPage;
+
+		long lPage = m_arrPages.add();
+		shared_ptr<CPage> title = m_arrPages.get(lPage);
+		title->Layout = L"Full";
+		title->Page = 1;
+		title->Title = L"Cover Page";
+
+		lPage = m_arrPages.add();
+		shared_ptr<CPage> toc = m_arrPages.get(lPage);
+		toc->Layout = L"Full";
+		toc->Page = 2;
+		toc->Title = L"Table of Contents";
+
+		Pages = (UINT)m_arrPages.Count;;
+		Height = HeightOfPage * Pages;
 	}
 
 	void InitializeProperties();
@@ -1809,7 +1869,6 @@ protected:
 // public overrides
 public:
 	virtual BOOL OnNewDocument();
-	virtual void Serialize(CArchive& ar);
 	virtual BOOL SaveModified();
 	virtual BOOL OnSaveDocument(CString& csPath);
 	// Save the document data to a file

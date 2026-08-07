@@ -52,6 +52,15 @@ class CClimateExplorerDoc;
 /////////////////////////////////////////////////////////////////////////////
 class CClimateExplorerView : public CBaseView
 {
+// public types
+public:
+	enum IMAGE_ROTATION
+	{
+		RotateNone,
+		RotateCW,
+		RotateCCW
+	};
+
 // protected data
 protected:
 
@@ -162,7 +171,10 @@ public:
 	/////////////////////////////////////////////////////////////////////////////
 	void DrawImage
 	(
-		CDC* pDC, shared_ptr<Image>& pImage, const CRect* pRect
+		CDC* pDC, 
+		shared_ptr<Image>& pImage, 
+		const CRect* pRect, 
+		IMAGE_ROTATION ir = RotateNone
 	);
 
 	/////////////////////////////////////////////////////////////////////////////
