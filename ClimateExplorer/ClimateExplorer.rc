@@ -130,7 +130,12 @@ BEGIN
     BUTTON      ID_EDIT_COPY
     BUTTON      ID_EDIT_PASTE
     SEPARATOR
+    BUTTON      ID_EDIT_DELETE
+    BUTTON      ID_FILE_EXPORTIMAGES
     BUTTON      ID_EXECUTE_QUERY
+    SEPARATOR
+    BUTTON      ID_FILE_EXPORTPAGES
+    BUTTON      ID_FILE_PDF
     SEPARATOR
     BUTTON      ID_FILE_PRINT
     BUTTON      ID_APP_ABOUT
@@ -208,7 +213,11 @@ BEGIN
         MENUITEM "Print Pre&view",              ID_FILE_PRINT_PREVIEW
         MENUITEM "P&rint Setup...",             ID_FILE_PRINT_SETUP
         MENUITEM SEPARATOR
-        MENUITEM "Recent File",                 ID_FILE_MRU_FILE1, GRAYED
+        MENUITEM "Export PDF",                  ID_FILE_PDF
+        MENUITEM "Export Pages",                ID_FILE_EXPORTPAGES
+        MENUITEM "Export Images",               ID_FILE_EXPORTIMAGES
+        MENUITEM SEPARATOR
+        MENUITEM "Recent File",                 ID_FILE_MRU_FILE1
         MENUITEM SEPARATOR
         MENUITEM "E&xit",                       ID_APP_EXIT
     END
@@ -219,6 +228,9 @@ BEGIN
         MENUITEM "Cu&t\tCtrl+X",                ID_EDIT_CUT
         MENUITEM "&Copy\tCtrl+C",               ID_EDIT_COPY
         MENUITEM "&Paste\tCtrl+V",              ID_EDIT_PASTE
+        MENUITEM SEPARATOR
+        MENUITEM "Delete\tDel",                 ID_EDIT_DELETE
+        MENUITEM SEPARATOR
     END
     POPUP "&View"
     BEGIN
@@ -576,7 +588,11 @@ END
 
 STRINGTABLE
 BEGIN
+    ID_FILE_EXPORTIMAGES    "Export the the plots as individual images in the selected folder\nImages..."
+    ID_FILE_EXPORTPAGES     "Export the pages of the document as individual images in the selected folder\nExport..."
+    ID_FILE_PDF             "Export the book to a PDF\nPDF"
     ID_EXECUTE_QUERY        "Execute the current query defined in property panel\nExecute"
+    ID_EDIT_DELETE          "Delete the selected page\nDel"
 END
 
 #endif    // English (United States) resources

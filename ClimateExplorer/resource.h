@@ -64,18 +64,22 @@
 #define ID_SCROLL_LINEDOWN              1016
 #define ID_BUTTON_PREVIEW               32771
 #define ID_BUTTON_EXPORT                32772
+#define ID_FILE_EXPORTIMAGES            32772
 #define ID_FILE_EXPORTPAGES             32773
 #define ID_FILE_BUILDPAGES              32774
 #define ID_FILE_PDF                     32775
-#define ID_BUTTON32776                  32776
 #define ID_EXECUTE_QUERY                32776
+#define ID_EDIT_DELETE                  32777
+#define ID_EDIT_DELETE32779             32779
+#define ID_Menu                         32780
+#define ID_FILE_EXPORTIMAGES32781       32781
 
 // Next default values for new objects
 // 
 #ifdef APSTUDIO_INVOKED
 #ifndef APSTUDIO_READONLY_SYMBOLS
 #define _APS_NEXT_RESOURCE_VALUE        310
-#define _APS_NEXT_COMMAND_VALUE         32777
+#define _APS_NEXT_COMMAND_VALUE         32782
 #define _APS_NEXT_CONTROL_VALUE         1017
 #define _APS_NEXT_SYMED_VALUE           310
 #endif

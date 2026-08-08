@@ -39,6 +39,8 @@ BEGIN_MESSAGE_MAP(CClimateExplorerView, CBaseView)
 	ON_UPDATE_COMMAND_UI(ID_FILE_EXPORTPAGES, &CClimateExplorerView::OnUpdateFileExportPages)
 	ON_COMMAND(ID_FILE_PDF, &CClimateExplorerView::OnFilePdf)
 	ON_UPDATE_COMMAND_UI(ID_FILE_PDF, &CClimateExplorerView::OnUpdateFilePdf)
+	ON_COMMAND(ID_FILE_EXPORTIMAGES, &CClimateExplorerView::OnFileExportimages)
+	ON_UPDATE_COMMAND_UI(ID_FILE_EXPORTIMAGES, &CClimateExplorerView::OnUpdateFileExportimages)
 END_MESSAGE_MAP()
 
 /////////////////////////////////////////////////////////////////////////////
@@ -1207,6 +1209,10 @@ void CClimateExplorerView::OnContextMenu(CWnd* pWnd, CPoint point)
 	)
 	{
 		CMenu menu;
+		if (menu == nullptr)
+		{
+			return;
+		}
 		menu.LoadMenu(IDR_SCROLLBAR_MENU);
 		CMenu* pSubMenu = menu.GetSubMenu(0);
 		if (pSubMenu)
@@ -1340,3 +1346,18 @@ void CClimateExplorerView::OnUpdateFilePdf(CCmdUI* pCmdUI)
 } // OnUpdateFilePdf
 
 /////////////////////////////////////////////////////////////////////////////
+void CClimateExplorerView::OnFileExportimages()
+{
+	// TODO: Add your command handler code here
+} // OnFileExportimages
+
+/////////////////////////////////////////////////////////////////////////////
+void CClimateExplorerView::OnUpdateFileExportimages(CCmdUI* pCmdUI)
+{
+	OnUpdateFileExportPages(pCmdUI);
+
+} // OnUpdateFileExportimages
+
+/////////////////////////////////////////////////////////////////////////////
+
+

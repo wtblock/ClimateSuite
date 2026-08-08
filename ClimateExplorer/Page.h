@@ -218,6 +218,9 @@ public:
 		}
 	}
 
+	// offset rectangles
+	void OffsetRectangles(int nX, int nY);
+
 // protected overrides
 protected:
 

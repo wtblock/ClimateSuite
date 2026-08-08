@@ -284,6 +284,8 @@ public:
 	afx_msg void OnUpdateFileExportPages(CCmdUI* pCmdUI);
 	afx_msg void OnFilePdf();
 	afx_msg void OnUpdateFilePdf(CCmdUI* pCmdUI);
+	afx_msg void OnFileExportimages();
+	afx_msg void OnUpdateFileExportimages(CCmdUI* pCmdUI);
 };
 
 /////////////////////////////////////////////////////////////////////////////

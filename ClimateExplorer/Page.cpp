@@ -68,3 +68,16 @@ bool CPage::AddAnImage(shared_ptr<CGraphPlotter> pPlot)
 } // AddAnImage
 
 /////////////////////////////////////////////////////////////////////////////
+// offset rectangles
+void CPage::OffsetRectangles(int nX, int nY)
+{
+	m_Rect.OffsetRect(nX, nY);
+
+	for (auto& node : m_arrRectangles.Items)
+	{
+		node.second->OffsetRect( nX, nY );
+	}
+
+} // OffsetRectangles
+
+/////////////////////////////////////////////////////////////////////////////

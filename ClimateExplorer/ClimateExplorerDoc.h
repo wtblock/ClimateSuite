@@ -1902,6 +1902,8 @@ protected:
 public:
 	afx_msg void OnExecuteQuery();
 	afx_msg void OnUpdateExecuteQuery(CCmdUI* pCmdUI);
+	afx_msg void OnEditDelete();
+	afx_msg void OnUpdateEditDelete(CCmdUI* pCmdUI);
 }; // CClimateExplorerDoc
 
 /////////////////////////////////////////////////////////////////////////////

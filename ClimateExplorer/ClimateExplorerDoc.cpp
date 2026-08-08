@@ -28,6 +28,8 @@ BEGIN_MESSAGE_MAP(CClimateExplorerDoc, CBaseDoc)
 	ON_COMMAND(ID_FILE_SAVE_AS, &CClimateExplorerDoc::OnFileSaveAs)
 	ON_COMMAND(ID_EXECUTE_QUERY, &CClimateExplorerDoc::OnExecuteQuery)
 	ON_UPDATE_COMMAND_UI(ID_EXECUTE_QUERY, &CClimateExplorerDoc::OnUpdateExecuteQuery)
+	ON_COMMAND(ID_EDIT_DELETE, &CClimateExplorerDoc::OnEditDelete)
+	ON_UPDATE_COMMAND_UI(ID_EDIT_DELETE, &CClimateExplorerDoc::OnUpdateEditDelete)
 END_MESSAGE_MAP()
 
 /////////////////////////////////////////////////////////////////////////////
@@ -725,9 +727,15 @@ void CClimateExplorerDoc::OnCloseDocument()
 /////////////////////////////////////////////////////////////////////////////
 void CClimateExplorerDoc::OnExecuteQuery()
 {
-	CClimateDatabase* pDB = 
+	CClimateExplorerView* pView = ClimateExplorerView;
+	if (pView == nullptr)
+	{
+		return;
+	}
+	CClimateDatabase* pDB =
 		((CClimateExplorerApp*)AfxGetApp())->ClimateDatabase;
 
+	double dPageHeight = HeightOfPage;
 	CString csScope = Scope;
 	CString csState = State;
 	CString csCity = Location;
@@ -807,13 +815,19 @@ void CClimateExplorerDoc::OnExecuteQuery()
 		{
 			nPage = (int)m_arrPages.add();
 			pPage = m_arrPages.get(nPage);
+			pPage->Page = nPage + 1;
 			pPage->Layout = Layout;
 			Pages = (UINT)m_arrPages.Count;
 		}
 
 		// page numbers are one based
-		pPage->Page = (UINT)nPage + 1;
 		Page = nPage + 1;
+
+		nPages = Pages;
+		double dTop = dPageHeight * nPages;
+		pView->TopOfView = dTop;
+		pView->SetupScrollBars();
+		pView->Invalidate();
 
 		CRect rect = MarginRectangle;
 		pPage->Rect = rect;
@@ -854,18 +868,6 @@ void CClimateExplorerDoc::OnExecuteQuery()
 
 		// 5. Mark document modified (optional)
 		SetModifiedFlag(TRUE);
-	}
-
-	// display on the view during testing phase
-	CClimateExplorerView* pView = ClimateExplorerView;
-	if (pView != nullptr)
-	{
-		double dPageHeight = pView->HeightOfPage;
-		int nPages = Pages - 1;
-		double dTop = dPageHeight * nPages;
-		pView->TopOfView = dTop;
-		pView->SetupScrollBars();
-		pView->Invalidate();
 	}
 
 } // OnExecuteQuery
@@ -1480,5 +1482,68 @@ void CClimateExplorerDoc::ExecutePickerQuery()
 	}
 
 } // ExecutePickerQuery
+
+/////////////////////////////////////////////////////////////////////////////
+void CClimateExplorerDoc::OnEditDelete()
+{
+	CClimateExplorerView* pView = ClimateExplorerView;
+	const double dPageHeight = HeightOfPage;
+	const double dTopOfPage = pView->TopOfView;
+	const double dPage = dTopOfPage / dPageHeight;
+	const int nTopOfPage = InchesToLogical(dTopOfPage);
+	const int nPageHeight = InchesToLogical(dPageHeight);
+
+	long lPage = long(dTopOfPage / dPageHeight);
+	Page = lPage + 1;
+	long lPages = m_arrPages.Count;
+	if (lPage < lPages)
+	{
+		m_arrPages.remove(lPage);
+		lPages--;
+		Pages = lPages;
+		if (lPage == lPages)
+		{
+			Page = lPage;
+			const double dTop = dPageHeight * (lPage - 1);
+			pView->TopOfView = dTop;
+			pView->SetupScrollBars();
+			pView->Invalidate();
+			return;
+		}
+		double dLeft = LeftMargin;
+		double dRight = RightMargin;
+		int nLeft = InchesToLogical(dLeft);
+		int nRight = InchesToLogical(dRight);
+
+		for ( ; lPage < lPages; lPage++)
+		{
+			shared_ptr<CPage> pPage = m_arrPages.get(lPage);
+			UINT uiPage = pPage->Page;
+			pPage->Page = uiPage - 1;
+			int nX = nLeft - nRight;
+			pPage->OffsetRectangles(nX, -nPageHeight);
+			swap(nLeft, nRight);
+		}
+
+		pView->Invalidate();
+	}
+
+} // OnEditDelete
+
+/////////////////////////////////////////////////////////////////////////////
+void CClimateExplorerDoc::OnUpdateEditDelete(CCmdUI* pCmdUI)
+{
+	pCmdUI->Enable(FALSE);
+
+	// one based page numbers
+	long lPages = Pages;
+	long lPage = Page;
+	UINT nPagesTOC = TableOfContentsPages;
+	long lOverhead = long(nPagesTOC + 1);
+	if (lPage > lOverhead && lPage <= lPages)
+	{
+		pCmdUI->Enable();
+	}
+} // OnUpdateEditDelete
 
 /////////////////////////////////////////////////////////////////////////////
