@@ -5,6 +5,7 @@
 #include "ClimateExplorer.h"
 #include "ClimateExplorerDoc.h"
 #include "ClimateExplorerView.h"
+#include "ThumbnailDialog.h"
 #include "MainFrm.h"
 #include <propkey.h>
 #include <xmllite.h>
@@ -75,6 +76,7 @@ void CClimateExplorerDoc::InitializeProperties()
 	Pages = 2;
 	Page = 1;
 	Images = 0;
+	ExportFolder = L".\\Books\\";
 	ExportDPI = 400;
 	ExportQuality = 75;
 
@@ -103,7 +105,7 @@ void CClimateExplorerDoc::InitializeProperties()
 
 	Units = L"degF";
 	Output = L"Plot";
-	Layout = L"Full";
+	Layout = L"Half";
 
 	// -------------------------------------------------------------
 	// Plot Text
@@ -564,18 +566,70 @@ vector<pair<CString, int>>& CClimateExplorerDoc::GetTitleTableOfContents()
 	//item.second = 2;
 	//m_arrTOC.push_back(item);
 
-	CString csCurrentTitle;
+	// current number of TOC pages
+	int nOriginalTOC = 0;
+
+	// number of lines in the table of contents
+	int nLines = 2; // account for the overhead of cover page and TOC lines
 	for (auto& node : m_arrPages.Items)
 	{
 		CString csTitle = node->Title;
-		if (csTitle != csCurrentTitle)
+		if ( csTitle == L"Table of Contents")
 		{
-			csCurrentTitle = csTitle;
-			int nPage = node->Page;
-			item.first = csTitle;
-			item.second = nPage;
-			m_arrTOC.push_back(item);
+			nOriginalTOC++;
+			continue;
 		}
+		if ( csTitle == L"Cover Page")
+		{
+			continue;
+		}
+		nLines++;
+	}
+
+	// there are 55 lines per page of TOC
+	int nPagesTOC = nLines / 55;
+	if (nLines % 55 > 0)
+	{
+		nPagesTOC++;
+	}
+
+	CSmartArray<CPage> arrPages;
+	if (nPagesTOC > nOriginalTOC)
+	{
+		UINT nPageNum = 1;
+		shared_ptr<CPage> pCover = shared_ptr<CPage>(new CPage(nPageNum++, L"Full"));
+		arrPages.append(pCover);
+		pCover->Title = L"Cover Page";
+
+		// account for the TOC pages
+		for (int nToc = 0; nToc < nPagesTOC; nToc++)
+		{
+			shared_ptr<CPage> pTOC = shared_ptr<CPage>(new CPage(nPageNum++, L"Full"));
+			arrPages.append(pTOC);
+			pTOC->Title = L"Table of Contents";
+		}
+
+		for (auto& node : m_arrPages.Items)
+		{
+			CString csTitle = node->Title;
+			if (csTitle == L"Cover Page" || csTitle == L"Table of Contents")
+			{
+				continue;
+			}
+			node->Page = nPageNum++;
+			arrPages.append(node);
+		}
+
+		m_arrPages = arrPages;
+	}
+
+	for (auto& node : m_arrPages.Items)
+	{
+		CString csTitle = node->Title;
+		int nPage = node->Page;
+		item.first = csTitle;
+		item.second = nPage;
+		m_arrTOC.push_back(item);
 	}
 
 	return m_arrTOC;
@@ -776,6 +830,26 @@ void CClimateExplorerDoc::OnExecuteQuery()
 
 	size_t nLocations = arrLocations.size();
 	int nLocation = 1;
+
+	// prepare the progress dialog
+	theApp.OnIdle(0);
+	CMainFrame* pFrame = (CMainFrame*)AfxGetMainWnd();
+
+	// launch the progress dialog
+	CThumbnailDialog dlg;
+	dlg.Parent = pFrame;
+	dlg.CreateDlg();
+	dlg.ShowWindow(SW_SHOW);
+	CString csDialogTitle;
+	csDialogTitle.Format(L"Rendering %s Locations", csScope);
+
+	dlg.SetWindowText(csDialogTitle);
+	dlg.Objects = L"Locations";
+
+	dlg.TotalImages = (int)nLocations;
+
+	bool bAbort = false;
+
 	for (auto& csLocation : arrLocations)
 	{
 		if (nLocations > 1)
@@ -789,6 +863,16 @@ void CClimateExplorerDoc::OnExecuteQuery()
 				Location = csLocation;
 			}
 		}
+
+		// let the user cancel out
+		if (dlg.Cancel)
+		{
+			bAbort = true;
+			break;
+		}
+
+		// update the progress dialog's status
+		dlg.CurrentImage = nLocation++;
 
 		// 1. Build SQL from picker properties
 		CString csSQL = BuildPickerSQL();
@@ -813,18 +897,14 @@ void CClimateExplorerDoc::OnExecuteQuery()
 		shared_ptr<CPage> pPage = m_arrPages.get(nPage);
 		if (pPage->PageIsFull)
 		{
-			nPage = (int)m_arrPages.add();
-			pPage = m_arrPages.get(nPage);
-			pPage->Page = nPage + 1;
-			pPage->Layout = Layout;
+			pPage = shared_ptr<CPage>(new CPage(nPages + 1, Layout));
+			m_arrPages.append(pPage);
 			Pages = (UINT)m_arrPages.Count;
 		}
 
-		// page numbers are one based
-		Page = nPage + 1;
-
 		nPages = Pages;
-		double dTop = dPageHeight * nPages;
+		Page = pPage->Page;
+		double dTop = dPageHeight * (nPages - 1);
 		pView->TopOfView = dTop;
 		pView->SetupScrollBars();
 		pView->Invalidate();
@@ -868,7 +948,15 @@ void CClimateExplorerDoc::OnExecuteQuery()
 
 		// 5. Mark document modified (optional)
 		SetModifiedFlag(TRUE);
+
+
+		// wait ten milliseconds while letting normal 
+		// window messaging to run
+		pFrame->Wait(10);
 	}
+
+	// done with the progress dialog
+	dlg.DestroyWindow();
 
 } // OnExecuteQuery
 
@@ -1489,9 +1577,6 @@ void CClimateExplorerDoc::OnEditDelete()
 	CClimateExplorerView* pView = ClimateExplorerView;
 	const double dPageHeight = HeightOfPage;
 	const double dTopOfPage = pView->TopOfView;
-	const double dPage = dTopOfPage / dPageHeight;
-	const int nTopOfPage = InchesToLogical(dTopOfPage);
-	const int nPageHeight = InchesToLogical(dPageHeight);
 
 	long lPage = long(dTopOfPage / dPageHeight);
 	Page = lPage + 1;
@@ -1510,19 +1595,12 @@ void CClimateExplorerDoc::OnEditDelete()
 			pView->Invalidate();
 			return;
 		}
-		double dLeft = LeftMargin;
-		double dRight = RightMargin;
-		int nLeft = InchesToLogical(dLeft);
-		int nRight = InchesToLogical(dRight);
 
 		for ( ; lPage < lPages; lPage++)
 		{
 			shared_ptr<CPage> pPage = m_arrPages.get(lPage);
 			UINT uiPage = pPage->Page;
 			pPage->Page = uiPage - 1;
-			int nX = nLeft - nRight;
-			pPage->OffsetRectangles(nX, -nPageHeight);
-			swap(nLeft, nRight);
 		}
 
 		pView->Invalidate();

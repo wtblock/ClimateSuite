@@ -345,24 +345,12 @@ public:
 	// number of pages in the table of contents
 	UINT GetTableOfContentsPages()
 	{
-		//// take into account the Title Page and Table of Contents lines that are at
-		//// the beginning of the first page of the table of contents.
-		//UINT nAlbums = 2;
-
-		//// add the actual number of albums which represents lines int th
-		//// table of contents
-		//nAlbums += AlbumCount;
-
-		//// place 55 lines on each page
-		//UINT value = nAlbums / 55;
-
-		//// if there is a fraction of a page, add one more page to account for it.
-		//UINT nMod = nAlbums % 55;
-		//if (nMod > 0)
-		//{
-		//	value++;
-		//}
-		UINT value = 1;
+		UINT nLines = (UINT)TitleTableOfContents.size();
+		UINT value = nLines / 55;
+		if (nLines % 55 != 0)
+		{
+			value++;
+		}
 		return value;
 	}
 	// number of pages in the table of contents

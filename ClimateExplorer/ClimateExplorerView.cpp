@@ -91,10 +91,10 @@ void CClimateExplorerView::RenderMargins
 {
 	CClimateExplorerDoc* pDoc = GetDocument();
 	const int nPage = pDoc->Page;
-	if (nPage == 2)
-	{
-		return;
-	}
+	//if (nPage == 2)
+	//{
+	//	return;
+	//}
 
 	// save the entry state
 	const int nDC = pDC->SaveDC();
@@ -435,6 +435,7 @@ void CClimateExplorerView::RenderTableOfContentsPage
 		DT_RIGHT | DT_WORDBREAK | DT_NOPREFIX | DT_NOCLIP;
 
 	CRect rectLine = rect;
+	rectLine.DeflateRect(100, 0);
 	rectLine.top += InchesToLogical(0.25);
 	rectLine.bottom = rectLine.top + nPoint24;
 

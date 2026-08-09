@@ -4,6 +4,7 @@
 #pragma once
 #include "KeyedCollection.h"
 #include "GraphPlotter.h"
+#include "CHelper.h"
 
 /////////////////////////////////////////////////////////////////////////////
 // CPage
@@ -56,6 +57,12 @@ protected:
 	// the page number
 	UINT m_nPage;
 
+	// height of page in inches
+	double m_dHeightOfPage;
+
+	// width of page in inches
+	double m_dWidthOfPage;
+
 	// page boundary rectangle varies depending on the page
 	// number being an even or odd number. Even pages are
 	// on the left and odd pages are on the right of the
@@ -86,10 +93,195 @@ public:
 	void SetPage(UINT value)
 	{
 		m_nPage = value;
+		ComputeRectangles();
 	}
 	// current page
 	__declspec( property( get = GetPage, put = SetPage ) )
 		UINT Page;
+
+	// height of page in inches
+	virtual double GetHeightOfPage()
+	{
+		return m_dHeightOfPage;
+	}
+	// height of page in inches
+	void SetHeightOfPage(double value)
+	{
+		m_dHeightOfPage = value;
+	}
+	// height of page in inches
+	__declspec(property(get = GetHeightOfPage, put = SetHeightOfPage))
+		double HeightOfPage;
+
+	// width of page in inches
+	virtual double GetWidthOfPage()
+	{
+		return m_dWidthOfPage;
+	}
+	// width of page in inches
+	void SetWidthOfPage(double value)
+	{
+		m_dWidthOfPage = value;
+	}
+	// width of page in inches
+	__declspec(property(get = GetWidthOfPage, put = SetWidthOfPage))
+		double WidthOfPage;
+
+	// top of page in inches
+	double GetTopOfPage()
+	{
+		double value = 0;
+		const UINT nPage = Page;
+		const double dHeight = HeightOfPage;
+		value = dHeight * (nPage - 1);
+		return value;
+	}
+	// top of page in inches
+	__declspec(property(get = GetTopOfPage))
+		double TopOfPage;
+
+	// bottom of page in inches
+	double GetBottomOfPage()
+	{
+		double value = TopOfPage;
+		const double dHeight = HeightOfPage;
+		value += dHeight;
+		return value;
+	}
+	// bottom of page in inches
+	__declspec(property(get = GetBottomOfPage))
+		double BottomOfPage;
+
+	// top margin in inches
+	double GetTopMargin()
+	{
+		return 0.5;
+	}
+	// top margin in inches
+	__declspec(property(get = GetTopMargin))
+		double TopMargin;
+
+	// bottom margin in inches
+	double GetBottomMargin()
+	{
+		return 0.5;
+	}
+	// bottom margin in inches
+	__declspec(property(get = GetBottomMargin))
+		double BottomMargin;
+
+	// inside margin in inches
+	double GetInsideMargin()
+	{
+		return 0.6;
+	}
+	// inside margin in inches
+	__declspec(property(get = GetInsideMargin))
+		double InsideMargin;
+
+	// outside margin in inches
+	double GetOutsideMargin()
+	{
+		return 0.4;
+	}
+	// outside margin in inches
+	__declspec(property(get = GetOutsideMargin))
+		double OutsideMargin;
+
+	// gutter in inches
+	double GetGutter()
+	{
+		return 0.2;
+	}
+	// gutter in inches
+	__declspec(property(get = GetGutter))
+		double Gutter;
+
+	// left margin of the current page
+	double GetLeftMargin()
+	{
+		double value = InsideMargin + Gutter;
+		const UINT nPage = Page;
+		const bool bEven = CHelper::GetEven(nPage);
+		if (bEven)
+		{
+			value = OutsideMargin;
+		}
+		return value;
+	}
+	// left margin of the current page
+	__declspec(property(get = GetLeftMargin))
+		double LeftMargin;
+
+	// right margin of the current page
+	double GetRightMargin()
+	{
+		double value = InsideMargin + Gutter;
+		const UINT nPage = Page;
+		const bool bOdd = CHelper::GetOdd(nPage);
+		if (bOdd)
+		{
+			value = OutsideMargin;
+		}
+		return value;
+	}
+	// right margin of the current page
+	__declspec(property(get = GetRightMargin))
+		double RightMargin;
+
+	// logical pixels per inch
+	static int GetMap()
+	{
+		return 1000;
+	}
+	// logical pixels per inch
+	__declspec(property(get = GetMap))
+		int Map;
+
+	// convert logical co-ordinate value to inches
+	double LogicalToInches( int nValue )
+	{
+		const int nMap = Map;
+		return ( double( nValue ) / nMap );
+	}
+
+	// convert inches to logical co-ordinate value
+	int InchesToLogical( double dValue )
+	{
+		const int nMap = Map;
+		return int( dValue * nMap );
+	}
+
+	// The margin rectangle varies depending on the page
+	// number being an even or odd number. Even pages are
+	// on the left side of the printed book and odd pages
+	// are on the right side of the printed book
+	CRect GetMarginRectangle()
+	{
+		const double dTopOfPage = TopOfPage;
+		const double dBottomOfPage = BottomOfPage;
+		const double dRightOfPage = WidthOfPage;
+
+		const double dTopMargin = TopMargin;
+		const double dBottomMargin = BottomMargin;
+		const double dLeftMargin = LeftMargin;
+		const double dRightMargin = RightMargin;
+
+		const int nTop = InchesToLogical(dTopOfPage + dTopMargin);
+		const int nBottom = InchesToLogical(dBottomOfPage - dBottomMargin);
+		const int nLeft = InchesToLogical(dLeftMargin);
+		const int nRight = InchesToLogical(dRightOfPage - dRightMargin);
+
+		CRect value(nLeft, nTop, nRight, nBottom);
+
+		return value;
+	}
+	// The margin rectangle varies depending on the page
+	// number being an even or odd number. Even pages are
+	// on the left side of the printed book and odd pages
+	// are on the right side of the printed book
+	__declspec(property(get = GetMarginRectangle))
+		CRect MarginRectangle;
 
 	// number of images on the page
 	UINT GetImageCount()
@@ -137,17 +329,36 @@ public:
 	__declspec( property( get = GetRect, put = SetRect ) )
 		CRect Rect;
 
-	// title of the image
+	// title of the page
 	CString GetTitle()
 	{
+		if (m_csTitle.IsEmpty())
+		{
+			if (Page == 1)
+			{
+				Title = L"Cover Page";
+			}
+			else if (Page == 2)
+			{
+				Title = L"Table of Contents";
+			}
+			else if (!Plots.Count == 0)
+			{
+				for (auto& plot : Plots.Items)
+				{
+					Title = plot.second->GraphTitle;
+					break;
+				}
+			}
+		}
 		return m_csTitle;
 	}
-	// title of the image
+	// title of the page
 	void SetTitle(CString value)
 	{
 		m_csTitle = value;
 	}
-	// title of the image
+	// title of the page
 	__declspec(property(get = GetTitle, put = SetTitle))
 		CString Title;
 
@@ -202,6 +413,9 @@ public:
 
 // protected methods
 protected:
+	// after getting a new page number, rectangles
+	// may need adjusting
+	void ComputeRectangles();
 
 // public methods
 public:
@@ -233,13 +447,21 @@ public:
 	{
 		Page = 0;
 		m_Rect.SetRectEmpty();
-		Layout = L"Full";
+		Layout = L"Half";
+		HeightOfPage = 11.0;
+		WidthOfPage = 8.5;
+		
 	}
 	CPage( UINT nPage, CString csLayout )
 	{
-		Page = nPage;
-		Layout = csLayout;
 		m_Rect.SetRectEmpty();
+		HeightOfPage = 11.0;
+		WidthOfPage = 8.5;
+		Layout = csLayout;
+
+		// page must be set after the above because the page number
+		// calculates the rectangle of the page
+		Page = nPage;
 	}
 	~CPage()
 	{

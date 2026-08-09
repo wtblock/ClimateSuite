@@ -81,3 +81,65 @@ void CPage::OffsetRectangles(int nX, int nY)
 } // OffsetRectangles
 
 /////////////////////////////////////////////////////////////////////////////
+// after getting a new page number, rectangles
+// may need adjusting
+void CPage::ComputeRectangles()
+{
+	Rect = MarginRectangle;
+	CRect rect = Rect;
+	int nHeight = rect.Height();
+	int nWidth = rect.Width();
+	CString csLayout = Layout;
+
+	int nRect = 0;
+	for (auto& node : m_arrRectangles.Items)
+	{
+		shared_ptr<CRect> pRect = node.second;
+
+		// initialize the image rectangle to the margin rectangle which 
+		// also applies to full page layout
+		*pRect = rect;
+
+		// based on the position in the collection and the layout
+		// of the page, calculate the image rectangle's size
+		if (csLayout == L"Half")
+		{
+			if (nRect == 0)
+			{
+				pRect->bottom = pRect->top + nHeight / 2;
+			}
+			else
+			{
+				pRect->top = pRect->bottom - nHeight / 2;
+			}
+		}
+		else if (csLayout == L"Quarter")
+		{
+			switch (nRect)
+			{
+			case 0: // upper left quadrant
+				pRect->right = pRect->left + nWidth / 2;
+				pRect->bottom = pRect->top + nHeight / 2;
+				break;
+			case 1: // upper right quadrant
+				pRect->left = pRect->right - nWidth / 2;
+				pRect->bottom = pRect->top + nHeight / 2;
+				break;
+			case 2: // lower left quadrant
+				pRect->right = pRect->left + nWidth / 2;
+				pRect->top = pRect->bottom - nHeight / 2;
+				break;
+			case 3: // lower right quadrant
+				pRect->left = pRect->right - nWidth / 2;
+				pRect->top = pRect->bottom - nHeight / 2;
+				break;
+			}
+		}
+
+		// update the position in the collection
+		nRect++;
+	}
+
+} // ComputeRectangles
+
+/////////////////////////////////////////////////////////////////////////////
