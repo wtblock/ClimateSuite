@@ -1791,6 +1791,10 @@ protected:
 
 // public methods
 public:
+	// Main function to generate Google Maps link
+	CString GenerateMapLink(double dLat, double dLong, bool bBing = true);
+
+
 	bool IsNationalComposite()
 	{
 		return Scope == L"National" && State == L"None";

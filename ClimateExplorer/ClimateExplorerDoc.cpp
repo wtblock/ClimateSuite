@@ -161,6 +161,34 @@ void CClimateExplorerDoc::InitializeProperties()
 } // InitializeProperties
 
 /////////////////////////////////////////////////////////////////////////////
+// Main function to generate Google Maps link
+CString CClimateExplorerDoc::GenerateMapLink(double dLat, double dLong, bool bBing)
+{
+	CString value;
+	if (!CHelper::NearlyEqual(dLat + dLong, 0.0))
+	{
+		if (bBing)
+		{
+			value.Format
+			(
+				L"https://www.bing.com/maps?q=%.7f,%.7f",
+				dLat, dLong
+			);
+		}
+		else // Google map
+		{
+			value.Format
+			(
+				L"https://www.google.com/maps?q=%.7f,%.7f",
+				dLat, dLong
+			);
+		}
+	}
+
+	return value;
+} // GenerateMapLink
+
+/////////////////////////////////////////////////////////////////////////////
 BOOL CClimateExplorerDoc::OnSaveDocument(CString& csPath)
 {
 	bool value = false;
@@ -820,7 +848,24 @@ void CClimateExplorerDoc::OnExecuteQuery()
 	{
 		if (bAllCities)
 		{
-			arrLocations = pDB->Cities[csState];
+			if (bAllState)
+			{
+				vector<CString> arrStates = pDB->States;
+				for (auto& csState : arrStates)
+				{
+					vector<CString> arrCities = pDB->Cities[csState];
+					for (auto& csCity : arrCities)
+					{
+						CString csLoc;
+						csLoc.Format(L"%s|%s", csState, csCity);
+						arrLocations.push_back(csLoc);
+					}
+				}
+			}
+			else
+			{
+				arrLocations = pDB->Cities[csState];
+			}
 		}
 		else
 		{
@@ -860,7 +905,16 @@ void CClimateExplorerDoc::OnExecuteQuery()
 			}
 			else if (csScope == L"Location")
 			{
-				Location = csLocation;
+				if (bAllState && bAllCities)
+				{
+					int nStart = 0;
+					State = csLocation.Tokenize(L"|", nStart);
+					Location = csLocation.Tokenize(L"|", nStart);
+				}
+				else
+				{
+					Location = csLocation;
+				}
 			}
 		}
 
@@ -954,6 +1008,9 @@ void CClimateExplorerDoc::OnExecuteQuery()
 		// window messaging to run
 		pFrame->Wait(10);
 	}
+
+	CPropertiesWnd* pProperties = pFrame->PropertiesPane;
+	pProperties->UpdateTableOfContents();
 
 	// done with the progress dialog
 	dlg.DestroyWindow();

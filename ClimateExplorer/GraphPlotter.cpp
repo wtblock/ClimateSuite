@@ -9,6 +9,8 @@
 #include <cmath>
 #include <string>
 
+using namespace Gdiplus;
+
 /////////////////////////////////////////////////////////////////////////////
 CGraphPlotter::CGraphPlotter(CClimateExplorerDoc* pDoc)
 {
@@ -214,16 +216,16 @@ std::unique_ptr<Bitmap> CGraphPlotter::RenderPlot(const CRect& rcPixels)
 	// -------------------------------------------------------------
 	// Compute real data ranges
 	// -------------------------------------------------------------
-	double xMin = Years.front();
-	double xMax = Years.front();
-	double yMin = Values.front();
-	double yMax = Values.front();
-	if (Values.size() == 0)
+	if (Values.size() == 0 || Years.size() == 0)
 	{
 		DrawTitle(g, left, top, right);
 		return pBmp;
 	}
 
+	double xMin = Years.front();
+	double xMax = Years.front();
+	double yMin = Values.front();
+	double yMax = Values.front();
 	for (size_t i = 1; i < Years.size(); i++)
 	{
 		xMin = min(xMin, Years[i]);
@@ -1081,6 +1083,9 @@ void CGraphPlotter::DrawTrendLine
 	// -------------------------------------------------------------
 	// Compute 10-year running average
 	// -------------------------------------------------------------
+
+	double dSumY = 0.0;
+
 	std::vector<PointF> pts;
 	pts.reserve(count - 9);
 
@@ -1098,16 +1103,37 @@ void CGraphPlotter::DrawTrendLine
 
 		const double x = leftInches + (widthInches * tx);
 		const double y = bottomInches - (heightInches * ty);
+		dSumY += y;
 
 		pts.emplace_back((REAL)x, (REAL)y);
 	}
 
+
 	// -------------------------------------------------------------
 	// Draw running-average curve
 	// -------------------------------------------------------------
-	if (pts.size() >= 2)
+	INT nCount = (INT)pts.size();
+	if (nCount >= 2)
 	{
-		g.DrawLines(&penAvg, pts.data(), (INT)pts.size());
+		double dTrendY = dSumY / nCount;
+
+		g.DrawLines(&penAvg, pts.data(), nCount);
+		PointF pt1(pts[0]);
+		PointF pt2(pts.back());
+		pt2.Y = dTrendY;
+
+		Pen penTrend
+		(
+			Gdiplus::Color(Gdiplus::Color::Orange),
+			(REAL)TrendLineThicknessInches
+		);
+
+		penTrend.SetDashStyle(Gdiplus::DashStyleDashDotDot);
+
+		vector<PointF> ptsTrend;
+		ptsTrend.push_back(pt1);
+		ptsTrend.push_back(pt2);
+		g.DrawLines(&penTrend, ptsTrend.data(), 2);
 	}
 } // DrawTrendLine
 

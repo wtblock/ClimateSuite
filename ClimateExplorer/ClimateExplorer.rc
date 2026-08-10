@@ -289,6 +289,21 @@ BEGIN
     END
 END
 
+IDR_SCROLLBAR_MENU MENU
+BEGIN
+    POPUP "&Scroll"
+    BEGIN
+        MENUITEM "Scroll to &Top\tHome",        ID_SCROLL_TOP
+        MENUITEM "Scroll to &Bottom\tEnd",      ID_SCROLL_BOTTOM
+        MENUITEM SEPARATOR
+        MENUITEM "Scroll &Page Up\tPgUp",       ID_SCROLL_PAGEUP
+        MENUITEM "Scroll Page &Down\tPgDn",     ID_SCROLL_PAGEDOWN
+        MENUITEM SEPARATOR
+        MENUITEM "Scroll &Line Up\tDown",       ID_SCROLL_LINEUP
+        MENUITEM "Scroll Line &Down\tUp",       ID_SCROLL_LINEDOWN
+    END
+END
+
 IDR_HELP_MENU MENU
 BEGIN
     MENUITEM "&About Climate Explorer...",  ID_APP_ABOUT

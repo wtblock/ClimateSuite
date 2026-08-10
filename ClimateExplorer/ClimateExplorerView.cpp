@@ -1210,10 +1210,6 @@ void CClimateExplorerView::OnContextMenu(CWnd* pWnd, CPoint point)
 	)
 	{
 		CMenu menu;
-		if (menu == nullptr)
-		{
-			return;
-		}
 		menu.LoadMenu(IDR_SCROLLBAR_MENU);
 		CMenu* pSubMenu = menu.GetSubMenu(0);
 		if (pSubMenu)
