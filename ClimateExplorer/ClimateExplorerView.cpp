@@ -1258,6 +1258,12 @@ void CClimateExplorerView::OnLButtonDown(UINT nFlags, CPoint point)
 	CClimateExplorerDoc* pDoc = GetDocument();
 	pDoc->LeftMouseClick = PointF(dX, dY);
 
+	// reset the station data after a selection change
+	Station = L"";
+	Latitude = 0.0f;
+	Longitude = 0.0f;
+
+	// redraw the view
 	Invalidate();
 
 	CBaseView::OnLButtonDown(nFlags, point);

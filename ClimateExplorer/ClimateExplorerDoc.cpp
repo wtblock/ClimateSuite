@@ -800,6 +800,15 @@ void CClimateExplorerDoc::OnExecuteQuery()
 	{
 		return;
 	}
+
+	pView->Station = L"";
+	pView->Latitude = 0.0f;
+	pView->Longitude = 0.0f;
+
+	// remove selection
+	SelectLimit[-1] = -1;
+
+
 	CClimateDatabase* pDB =
 		((CClimateExplorerApp*)AfxGetApp())->ClimateDatabase;
 	pDB->PopulateStations();
