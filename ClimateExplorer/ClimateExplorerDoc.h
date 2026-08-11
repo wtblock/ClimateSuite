@@ -16,9 +16,6 @@ class CClimateExplorerDoc : public CBaseDoc
 {
 	// public definitions
 public:
-	typedef CKeyedCollection<CString, Image> MAP_IMAGES;
-	typedef CKeyedCollection<CString, MAP_IMAGES> MAP_ALBUM;
-	typedef CKeyedCollection<CString, CString> MAP_INDEX;
 
 	/////////////////////////////////////////////////////////////////////////////
 	// Row structures for each Subtype
@@ -81,15 +78,18 @@ protected:
 	// ---------------------------------------------------------------------
 	std::vector<CClimateStationRow> m_arrStationRows;
 
-	// collection of albums (folders) where each album is a collection
-	// of bitmaps
-	MAP_ALBUM m_mapAlbums;
-
-	// sorted folders 
-	CKeyedCollection< CString, int > m_keyFolders;
+	// mouse click in document inches
+	PointF m_LeftMouseClick;
 
 	// collection of pages containing image names and rectangles
 	CSmartArray<CPage> m_arrPages;
+
+	// selected images where the first pair is the start page
+	// and image number (0..3) and the second pair is the end 
+	// page and image number. If start and end are the same, 
+	// a single image is selected. No selection is a start 
+	// page of -1.
+	pair < pair<int, int>, pair<int, int> > m_pairSelection;
 
 	// table of contents lines for the entire document where
 	// the string is the title and the int is the page
@@ -332,16 +332,6 @@ public:
 	__declspec(property(get = GetStationRows, put = SetStationRows))
 		std::vector<CClimateStationRow> StationRows;
 
-	// number of albums in the document
-	UINT GetAlbumCount()
-	{
-		UINT value = m_mapAlbums.Count;
-		return value;
-	}
-	// number of albums in the document
-	__declspec(property(get = GetAlbumCount))
-		UINT AlbumCount;
-
 	// number of pages in the table of contents
 	UINT GetTableOfContentsPages()
 	{
@@ -402,17 +392,9 @@ public:
 
 		// this is a one based page number: 1..n
 		UINT nPage = Page;
-		//UINT nPagesTOC = TableOfContentsPages;
-		//UINT nOverhead = nPagesTOC + 1;
-		//if (nPage > nOverhead)
-		//{
-		//	// this is a zero based index accounting for 
-		//	// overhead pages, so we need to decrement
-		//	// by overhead + 1 to make zero based
-		//	nPage -= (nOverhead + 1);
-		//	const int nPages = m_arrPages.Count;
-			value = m_arrPages.get((long)nPage - 1);
-		//}
+
+		// look up with zero based page number
+		value = m_arrPages.get((long)nPage - 1);
 		return value;
 	}
 	// current page object where page objects contain
@@ -423,6 +405,168 @@ public:
 	__declspec(property(get = GetCurrentPage))
 		shared_ptr<CPage> CurrentPage;
 
+	// mouse click in document inches
+	PointF GetLeftMouseClick()
+	{
+		return m_LeftMouseClick;
+	}
+	// mouse click in document inches
+	void SetLeftMouseClick(PointF pt)
+	{
+		m_LeftMouseClick = pt;
+		double dY = pt.Y;
+		double dX = pt.X;
+		int nX = InchesToLogical(dX);
+		int nY = InchesToLogical(dY);
+		CPoint ptLogical(nX, nY);
+
+		long lPage = (UINT)(dY / HeightOfPage);
+		shared_ptr<CPage> pPage = m_arrPages.get(lPage);
+		if (pPage != nullptr)
+		{	
+			int nPage = pPage->Page;
+			int nImage = -1;
+			for (auto& node : pPage->Rectangles.Items)
+			{
+				nImage++;
+				shared_ptr<CRect> pRect = node.second;
+				if (pRect->PtInRect(ptLogical))
+				{
+					SelectLimit[nPage] = nImage;
+					return;
+				}
+			}
+		}
+		SelectLimit[-1] = -1;
+	}
+	// mouse click in document inches
+	__declspec(property(get = GetLeftMouseClick, put = SetLeftMouseClick))
+		PointF LeftMouseClick;
+
+	// is there a selection?
+	bool GetSelection()
+	{
+		bool value = false;
+		pair<int, int> pairStart = m_pairSelection.first;
+		int nPage = pairStart.first;
+		value = nPage != -1;
+		return value;
+	}
+	// is there a selection?
+	__declspec(property(get = GetSelection))
+		bool Selection;
+
+	// is the given page image pair selected? Returns true is the pair
+	// is the current selection or if it falls within the multiple 
+	// selection range
+	bool GetSelected(pair<int, int> pairImage)
+	{
+		int nPage = pairImage.first;
+		int nImage = pairImage.second;
+
+		bool value = false;
+		if (Selection)
+		{
+			pair<int, int> pairStart = m_pairSelection.first;
+			pair<int, int> pairEnd = m_pairSelection.second;
+			bool bMultiple = pairStart != pairEnd;
+			if (bMultiple)
+			{
+				if (pairStart.first <= nPage && nPage <= pairEnd.first)
+				{
+					if (nPage == pairStart.first)
+					{
+						value = nImage >= pairStart.second;
+					}
+					else if (nPage == pairEnd.first)
+					{
+						value = nImage <= pairEnd.second;
+					}
+					else
+					{
+						value = pairStart.first < nPage && nPage < pairEnd.first;
+					}
+				}
+			}
+			else
+			{
+				value = pairStart == pairImage;
+			}
+		}
+		return value;
+	}
+	// is the given page image pair selected? Returns true is the pair
+	// is the current selection or if it falls within the multiple 
+	// selection range
+	__declspec(property(get = GetSelected))
+		bool Selected[];
+
+	// given a page number return its image if the page matches 
+	// the beginning or ending page limit
+	int GetSelectLimit(int nPage)
+	{
+		int value = -1;
+		if (Selection)
+		{
+			pair<int, int> pairStart = m_pairSelection.first;
+			pair<int, int> pairEnd = m_pairSelection.second;
+			if (nPage == pairStart.first)
+			{
+				value = pairStart.second;
+			}
+			else if (nPage == pairEnd.first)
+			{
+				value = pairEnd.second;
+			}
+		}
+		return value;
+	}
+	// set the image number of the given page at the 
+	// beginning or ending of the selection
+	void SetSelectLimit(int nPage, int nImage)
+	{
+		pair<int, int>& pairStart = m_pairSelection.first;
+		pair<int, int>& pairEnd = m_pairSelection.second;
+
+		// deselection?
+		if (nPage == -1)
+		{
+			pairStart.first = nPage;
+			pairStart.second = nImage;
+			pairEnd.first = nPage;
+			pairEnd.second = nImage;
+			return;
+		}
+
+		bool bShiftDown = CHelper::ShiftKeyDown();
+		bool bExtend = false;
+
+		// can only extend the selection if there is a valid
+		// image already selected and the new selection follows
+		// the first selection
+		if (bShiftDown && pairStart.first != -1)
+		{
+			bExtend =
+				(nPage == pairStart.first && nImage > pairStart.second) ||
+				nPage > pairStart.first;
+		}
+		if (bExtend)
+		{
+			pairEnd.first = nPage;
+			pairEnd.second = nImage;
+		}
+		else
+		{
+			pairStart.first = nPage;
+			pairStart.second = nImage;
+			pairEnd.first = nPage;
+			pairEnd.second = nImage;
+		}
+	}
+	// select an image on a given page number
+	__declspec(property(get = GetSelectLimit, put = SetSelectLimit))
+		int SelectLimit[];
+	
 	// height of page in inches
 	virtual double GetHeightOfPage()
 	{
@@ -1736,8 +1880,6 @@ protected:
 	// clear the document data
 	void Clear()
 	{
-		m_mapAlbums.clear();
-		m_keyFolders.clear();
 		m_arrPages.clear();
 
 		long lPage = m_arrPages.add();
@@ -1819,8 +1961,6 @@ public:
 	{
 		return Scope == L"Location";
 	}
-
-	shared_ptr<Image> FindImage(CString csFolder, CString csImage);
 
 	// initialize the document
 	void InitDocument()

@@ -664,21 +664,6 @@ vector<pair<CString, int>>& CClimateExplorerDoc::GetTitleTableOfContents()
 
 } // GetTitleTableOfContents
 
-/////////////////////////////////////////////////////////////////////////////
-shared_ptr<Image> CClimateExplorerDoc::FindImage
-(
-	CString csFolder, CString csImage
-)
-{
-	shared_ptr<Image> value;
-	shared_ptr<MAP_IMAGES> pImages = m_mapAlbums.find(csFolder);
-	if (pImages != nullptr)
-	{
-		value = pImages->find(csImage);
-	}
-	return value;
-} // FindImage
-
 // CClimateExplorerDoc diagnostics
 
 #ifdef _DEBUG

@@ -3,6 +3,7 @@
 /////////////////////////////////////////////////////////////////////////////
 #include "pch.h"
 #include "ClimateDatabase.h"
+#include "ClimateStation.h"
 #include "KeyedCollection.h"
 #include <algorithm>   // for std::sort
 
@@ -361,5 +362,82 @@ void CClimateDatabase::PopulateStates()
 		std::sort(vec.begin(), vec.end());
 	}
 } // PopulateStates
+
+/////////////////////////////////////////////////////////////////////////////
+void CClimateDatabase::PopulateStations()
+{
+	// we only need to do this once
+	if (m_mapStations.Count > 0)
+	{
+		return;
+	}
+
+	// Query all distinct (State, Location) pairs
+	CSmartArray<CSmartArray<CString>> rows;
+
+	CString sql =
+		L"SELECT "
+		L"StationID, State, Latitude, Longitude, Elevation, Location "
+		L"FROM Stations "
+		L"WHERE State IS NOT NULL AND State <> '' "
+		L"ORDER BY State, StationID; ";
+
+	if (!ExecuteTable(sql, rows))
+		return;
+	
+	for (auto& pRow : rows.Items)
+	{
+		shared_ptr<CClimateStation> pStation =
+			shared_ptr<CClimateStation>(new(CClimateStation));
+
+		auto& pColumn = pRow->Items;
+
+		int nCol = 0;
+		for (auto& pCol : pColumn)
+		{
+			switch (nCol)
+			{
+			case 0:
+				pStation->Station = *pCol;
+				break;
+			case 1:
+				pStation->State = *pCol;
+				break;
+			case 2:
+				pStation->Latitude = _tstof(*pCol);
+				break;
+			case 3:
+				pStation->Longitude = _tstof(*pCol);
+				break;
+			case 4:
+				pStation->Elevation = _tstof(*pCol);
+				break;
+			case 5:
+				pStation->Location = *pCol;
+				break;
+			}
+
+			nCol++;
+		}
+
+		CString csStation = pStation->Station;
+		csStation.Trim();
+		CString csState = pStation->State;
+		csState.Trim();
+		CString csLocation = pStation->Location;
+		csLocation.Trim();
+
+		CString csKey;
+		csKey.Format(L"%s, %s", csState, csLocation);
+
+		// these two maps create a cross reference between station IDs and 
+		// locations. Since the pointer is shared, it is safe for both maps
+		// to reference the same pointer
+		m_mapStations.add(csLocation, pStation);
+		m_mapLocations.add(csKey, pStation);
+	}
+
+} // PopulateStations
+
 
 /////////////////////////////////////////////////////////////////////////////

@@ -41,6 +41,7 @@ BEGIN_MESSAGE_MAP(CClimateExplorerView, CBaseView)
 	ON_UPDATE_COMMAND_UI(ID_FILE_PDF, &CClimateExplorerView::OnUpdateFilePdf)
 	ON_COMMAND(ID_FILE_EXPORTIMAGES, &CClimateExplorerView::OnFileExportimages)
 	ON_UPDATE_COMMAND_UI(ID_FILE_EXPORTIMAGES, &CClimateExplorerView::OnUpdateFileExportimages)
+	ON_WM_LBUTTONDOWN()
 END_MESSAGE_MAP()
 
 /////////////////////////////////////////////////////////////////////////////
@@ -502,6 +503,7 @@ void CClimateExplorerView::DrawImage
 	CDC* pDC, 
 	shared_ptr<Image>& pImage, 
 	const CRect* pRect,
+	bool bSelected,
 	IMAGE_ROTATION ir
 )
 {
@@ -562,6 +564,68 @@ void CClimateExplorerView::DrawImage
 	CRect rectDest(ptDest, sizeDest);
 	GDI.Draw(pDC, rectDest);
 
+	// --- Draw transparent selection overlay -------------------------------
+	// Only draw if this image is selected
+	if (bSelected)
+	{
+		// Create a memory DC and a 32-bit DIB section for alpha blending
+		CDC dcMem;
+		dcMem.CreateCompatibleDC(pDC);
+
+		BITMAPINFO bmi = {};
+		bmi.bmiHeader.biSize = sizeof(BITMAPINFOHEADER);
+		bmi.bmiHeader.biWidth = rectDest.Width();
+		bmi.bmiHeader.biHeight = -rectDest.Height();   // top-down DIB
+		bmi.bmiHeader.biPlanes = 1;
+		bmi.bmiHeader.biBitCount = 32;
+		bmi.bmiHeader.biCompression = BI_RGB;
+
+		void* pBits = nullptr;
+		HBITMAP hBmp = CreateDIBSection(dcMem, &bmi, DIB_RGB_COLORS, &pBits, nullptr, 0);
+		HBITMAP hOldBmp = (HBITMAP)dcMem.SelectObject(hBmp);
+
+		// Fill the DIB with a semi-transparent color (e.g., blue tint)
+		const BYTE alpha = 80;        // 0=transparent, 255=opaque
+		const BYTE r = 0;
+		const BYTE g = 0;
+		const BYTE b = 255;
+
+		DWORD* pPixel = (DWORD*)pBits;
+		int total = rectDest.Width() * rectDest.Height();
+		for (int i = 0; i < total; ++i)
+		{
+			pPixel[i] = (alpha << 24) | (r << 16) | (g << 8) | b;
+		}
+
+		// Alpha blend onto the destination DC
+		BLENDFUNCTION bf = {};
+		bf.BlendOp = AC_SRC_OVER;
+		bf.BlendFlags = 0;
+		bf.SourceConstantAlpha = 255;     // use per-pixel alpha
+		bf.AlphaFormat = AC_SRC_ALPHA;
+
+		pDC->AlphaBlend
+		(
+			rectDest.left,
+			rectDest.top,
+			rectDest.Width(),
+			rectDest.Height(),
+			&dcMem,
+			0,
+			0,
+			rectDest.Width(),
+			rectDest.Height(),
+			bf
+		);
+
+		// Cleanup
+		dcMem.SelectObject(hOldBmp);
+		if (hBmp != 0)
+		{
+			DeleteObject(hBmp);
+		}
+	}
+
 } // DrawImage
 
 /////////////////////////////////////////////////////////////////////////////
@@ -603,13 +667,20 @@ void CClimateExplorerView::RenderImagePage
 	pDC->SetWindowOrg(nLeftOfView, nTopOfView);
 
 	shared_ptr<CPage> page = pDoc->CurrentPage;
+	UINT uiPage = page->Page;
 	if (page != nullptr)
 	{
 		CString csTitle = page->Title;
 		CKeyedCollection<CString, CRect>& mapRectangles = page->Rectangles;
 		CKeyedCollection<CString, CGraphPlotter>& mapPlots = page->Plots;
+
+		int nImage = -1;
 		for (auto& node : mapRectangles.Items)
 		{
+			nImage++;
+			pair<int, int> pairImage(uiPage, nImage);
+			bool bSelected = pDoc->Selected[pairImage];
+
 			const CString csImage = node.first;
 			shared_ptr<CRect> pRect = node.second;
 			double dTop = LogicalToInches(pRect->top);
@@ -657,7 +728,7 @@ void CClimateExplorerView::RenderImagePage
 				}
 			}
 
-			DrawImage(pDC, pImage, pRect.get(), ir);
+			DrawImage(pDC, pImage, pRect.get(), bSelected, ir);
 			RenderMargins(pDC, dLeftOfView, dTopOfView, dRightOfView, dBottomOfView);
 
 			//shared_ptr<Image> pImage = pDoc->FindImage(csTitle, csImage);
@@ -1167,6 +1238,28 @@ void CClimateExplorerView::OnEndPrinting(CDC* pDC, CPrintInfo* pInfo)
 }
 
 /////////////////////////////////////////////////////////////////////////////
+void CClimateExplorerView::OnLButtonDown(UINT nFlags, CPoint point)
+{
+	CClientDC dc(this);
+	SetDrawDC(&dc);
+	dc.DPtoLP(&point);
+	int nX = point.x;
+	int nY = point.y;
+	double dX = LogicalToInches(nX);
+	double dY = LogicalToInches(nY);
+	double dTop = TopOfView;
+	double dLeft = LeftOfView;
+	dX += dLeft;
+	dY += dTop;
+	CClimateExplorerDoc* pDoc = GetDocument();
+	pDoc->LeftMouseClick = PointF(dX, dY);
+
+	Invalidate();
+
+	CBaseView::OnLButtonDown(nFlags, point);
+} // OnLButtonDown
+
+/////////////////////////////////////////////////////////////////////////////
 void CClimateExplorerView::OnRButtonUp(UINT /* nFlags */, CPoint point)
 {
 	ClientToScreen(&point);
@@ -1356,5 +1449,3 @@ void CClimateExplorerView::OnUpdateFileExportimages(CCmdUI* pCmdUI)
 } // OnUpdateFileExportimages
 
 /////////////////////////////////////////////////////////////////////////////
-
-

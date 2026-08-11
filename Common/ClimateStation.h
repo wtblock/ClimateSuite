@@ -489,6 +489,40 @@ public:
 	__declspec( property( get = GetMaximumValue, put = SetMaximumValue) )
 		shared_ptr<CStationYear> MaximumValue[];
 	
+	// link to Bing map
+	inline CString GetBingMapLink()
+	{
+		CString value;
+
+		value.Format
+		(
+			L"https://www.bing.com/maps?q=%.7f,%.7f",
+			Latitude, Longitude
+		);
+
+		return value;
+	}
+	// link to Bing map
+	__declspec( property( get = GetBingMapLink ) )
+		CString BingMapLink;
+
+	// link to Google map
+	inline CString GetGoogleMapLink()
+	{
+		CString value;
+
+		value.Format
+		(
+			L"https://www.bing.com/maps?q=%.7f,%.7f",
+			Latitude, Longitude
+		);
+
+		return value;
+	}
+	// link to Google map
+	__declspec( property( get = GetGoogleMapLink ) )
+		CString GoogleMapLink;
+
 // protected methods
 protected:
 

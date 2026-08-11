@@ -11,6 +11,9 @@
 using namespace std;
 
 /////////////////////////////////////////////////////////////////////////////
+class CClimateStation;
+
+/////////////////////////////////////////////////////////////////////////////
 // a wrapper class for the SQLite3.c code
 class CClimateDatabase
 {
@@ -20,6 +23,12 @@ protected:
 
 	// map of state postal code keys with a vector of the member city names
 	CKeyedCollection<CString, vector<CString> > m_mapCities;
+
+	// map of station IDs to station data
+	CKeyedCollection<CString, CClimateStation> m_mapStations;
+
+	// map of location names (state, city) to station data
+	CKeyedCollection<CString, CClimateStation> m_mapLocations;
 
 // public properties
 public:
@@ -226,6 +235,8 @@ public:
 	void CreateSchema();
 
 	void PopulateStates();
+
+	void PopulateStations();
 
 	CClimateDatabase();
 	~CClimateDatabase();

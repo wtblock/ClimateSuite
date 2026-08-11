@@ -174,6 +174,7 @@ public:
 		CDC* pDC, 
 		shared_ptr<Image>& pImage, 
 		const CRect* pRect, 
+		bool bSelected,
 		IMAGE_ROTATION ir = RotateNone
 	);
 
@@ -286,6 +287,7 @@ public:
 	afx_msg void OnUpdateFilePdf(CCmdUI* pCmdUI);
 	afx_msg void OnFileExportimages();
 	afx_msg void OnUpdateFileExportimages(CCmdUI* pCmdUI);
+	afx_msg void OnLButtonDown(UINT nFlags, CPoint point);
 };
 
 /////////////////////////////////////////////////////////////////////////////

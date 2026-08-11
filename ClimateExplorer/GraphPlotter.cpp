@@ -1056,8 +1056,11 @@ void CGraphPlotter::DrawTrendLine
 		return;
 	}
 
+	int nYears = (int)Years.size();
 	if (Years.size() < 10 || Values.size() < 10)
 		return;
+
+	double dFirstYear = Years[0];
 
 	Pen penAvg
 	(
@@ -1080,14 +1083,12 @@ void CGraphPlotter::DrawTrendLine
 	if (xRange <= 0.0 || yRange <= 0.0)
 		return;
 
+	std::vector<PointF> pts;
+	pts.reserve(count - 9);
+
 	// -------------------------------------------------------------
 	// Compute 10-year running average
 	// -------------------------------------------------------------
-
-	double dSumY = 0.0;
-
-	std::vector<PointF> pts;
-	pts.reserve(count - 9);
 
 	for (size_t i = 9; i < count; i++)
 	{
@@ -1103,7 +1104,6 @@ void CGraphPlotter::DrawTrendLine
 
 		const double x = leftInches + (widthInches * tx);
 		const double y = bottomInches - (heightInches * ty);
-		dSumY += y;
 
 		pts.emplace_back((REAL)x, (REAL)y);
 	}
@@ -1115,25 +1115,103 @@ void CGraphPlotter::DrawTrendLine
 	INT nCount = (INT)pts.size();
 	if (nCount >= 2)
 	{
-		double dTrendY = dSumY / nCount;
 
 		g.DrawLines(&penAvg, pts.data(), nCount);
-		PointF pt1(pts[0]);
-		PointF pt2(pts.back());
-		pt2.Y = dTrendY;
 
-		Pen penTrend
-		(
-			Gdiplus::Color(Gdiplus::Color::Orange),
-			(REAL)TrendLineThicknessInches
-		);
+		{
+			double dSumY = 0;
+			for (auto& pt : pts)
+			{
+				dSumY += pt.Y;
+			}
 
-		penTrend.SetDashStyle(Gdiplus::DashStyleDashDotDot);
+			double dTrendY = dSumY / nCount;
+			PointF pt1(pts[0]);
+			PointF pt2(pts.back());
+			pt2.Y = dTrendY;
 
-		vector<PointF> ptsTrend;
-		ptsTrend.push_back(pt1);
-		ptsTrend.push_back(pt2);
-		g.DrawLines(&penTrend, ptsTrend.data(), 2);
+			Pen penTrend
+			(
+				Gdiplus::Color(Gdiplus::Color::Orange),
+				(REAL)TrendLineThicknessInches
+			);
+
+			penTrend.SetDashStyle(Gdiplus::DashStyleDashDotDot);
+
+			vector<PointF> ptsTrend;
+			ptsTrend.push_back(pt1);
+			ptsTrend.push_back(pt2);
+			g.DrawLines(&penTrend, ptsTrend.data(), 2);
+		}
+
+		if ( nCount > 50)
+		{
+			double dSumY = 0;
+
+			int nPt = 0;
+			int nCnt = 0;
+			for (auto& pt : pts)
+			{
+				if (nPt++ < 50)
+				{
+					continue;
+				}
+				dSumY += pt.Y;
+				nCnt++;
+			}
+
+			double dTrendY = dSumY / nCnt;
+			PointF pt1(pts[50]);
+			PointF pt2(pts.back());
+			pt2.Y = dTrendY;
+
+			Pen penTrend
+			(
+				Gdiplus::Color(Gdiplus::Color::DarkCyan),
+				(REAL)TrendLineThicknessInches
+			);
+
+			penTrend.SetDashStyle(Gdiplus::DashStyleSolid);
+
+			vector<PointF> ptsTrend;
+			ptsTrend.push_back(pt1);
+			ptsTrend.push_back(pt2);
+			g.DrawLines(&penTrend, ptsTrend.data(), 2);
+		}
+		if ( nCount > 100)
+		{
+			double dSumY = 0;
+
+			int nPt = 0;
+			int nCnt = 0;
+			for (auto& pt : pts)
+			{
+				if (nPt++ < 100)
+				{
+					continue;
+				}
+				dSumY += pt.Y;
+				nCnt++;
+			}
+
+			double dTrendY = dSumY / nCnt;
+			PointF pt1(pts[100]);
+			PointF pt2(pts.back());
+			pt2.Y = dTrendY;
+
+			Pen penTrend
+			(
+				Gdiplus::Color(Gdiplus::Color::DarkGreen),
+				(REAL)TrendLineThicknessInches
+			);
+
+			penTrend.SetDashStyle(Gdiplus::DashStyleSolid);
+
+			vector<PointF> ptsTrend;
+			ptsTrend.push_back(pt1);
+			ptsTrend.push_back(pt2);
+			g.DrawLines(&penTrend, ptsTrend.data(), 2);
+		}
 	}
 } // DrawTrendLine
 
