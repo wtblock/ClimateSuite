@@ -5,6 +5,7 @@
 #include "ClimateExplorer.h"
 #include "ClimateExplorerDoc.h"
 #include "ClimateExplorerView.h"
+#include "ClimateStation.h"
 #include "ThumbnailDialog.h"
 #include "MainFrm.h"
 #include <propkey.h>
@@ -801,6 +802,7 @@ void CClimateExplorerDoc::OnExecuteQuery()
 	}
 	CClimateDatabase* pDB =
 		((CClimateExplorerApp*)AfxGetApp())->ClimateDatabase;
+	pDB->PopulateStations();
 
 	double dPageHeight = HeightOfPage;
 	CString csScope = Scope;
@@ -951,7 +953,8 @@ void CClimateExplorerDoc::OnExecuteQuery()
 		CRect rect = MarginRectangle;
 		pPage->Rect = rect;
 
-		CString csTitle;
+		CString csTitle, csState, csCity, csStation;
+		float fLatitude = 0, fLongitude = 0;
 		if (csScope == L"National")
 		{
 			csTitle.Format
@@ -968,12 +971,22 @@ void CClimateExplorerDoc::OnExecuteQuery()
 		}
 		else if (csScope == L"Location")
 		{
-			CString csCity = Location;
+			csState = State;
+			csCity = Location;
 			csCity.TrimRight();
+			CString csKey;
+			csKey.Format(L"%s, %s", csState, csCity);
+			shared_ptr<CClimateStation> pStation = pDB->StationByLocation[csKey];
+			if (pStation != nullptr)
+			{
+				csStation = pStation->Station;
+				fLatitude = pStation->Latitude;
+				fLongitude = pStation->Longitude;
+			}
 
 			csTitle.Format
 			(
-				L"%s, %s, %s, %s, %d, %d", csScope, csSubtype, State, csCity, lYearStart, lYearEnd
+				L"%s, %s, %s, %s, %d, %d", csScope, csSubtype, csState, csCity, lYearStart, lYearEnd
 			);
 		}
 
@@ -982,12 +995,16 @@ void CClimateExplorerDoc::OnExecuteQuery()
 		// -------------------------------------------------------------
 		shared_ptr<CGraphPlotter> pPlot = 
 			shared_ptr<CGraphPlotter>( new CGraphPlotter(this, Years, Values));
+		pPlot->Station = csStation;
+		pPlot->State = csState;
+		pPlot->Location = csCity;
+		pPlot->Latitude = fLatitude;
+		pPlot->Longitude = fLongitude;
 
 		pPage->AddAnImage(pPlot);
 
 		// 5. Mark document modified (optional)
 		SetModifiedFlag(TRUE);
-
 
 		// wait ten milliseconds while letting normal 
 		// window messaging to run

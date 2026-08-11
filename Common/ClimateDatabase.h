@@ -115,6 +115,47 @@ public:
 	__declspec(property(get = GetCities))
 		vector<CString> Cities[];
 
+	// get a pointer to station data from a station ID
+	shared_ptr<CClimateStation> GetStationByID( CString csStationID)
+	{
+		shared_ptr<CClimateStation> value;
+		if (m_mapStations.Count == 0)
+		{
+			PopulateStations();
+		}
+
+		if (m_mapStations.Exists[csStationID])
+		{
+			value = m_mapStations.find(csStationID);
+		}
+
+		return value;
+	}
+	// get a pointer to station data from a station ID
+	__declspec(property(get = GetStationByID))
+		shared_ptr<CClimateStation> StationByID[];
+
+	// get a pointer to station data from a location 
+	// (format: "postal_code, city", i.e.: TX, Weatherford)
+	shared_ptr<CClimateStation> GetStationByLocation( CString csLocation)
+	{
+		shared_ptr<CClimateStation> value;
+		if (m_mapLocations.Count == 0)
+		{
+			PopulateStations();
+		}
+
+		if (m_mapLocations.Exists[csLocation])
+		{
+			value = m_mapLocations.find(csLocation);
+		}
+
+		return value;
+	}
+	// get a pointer to station data from a location 
+	// (format: "postal_code, city", i.e.: TX, Weatherford)
+	__declspec(property(get = GetStationByLocation))
+		shared_ptr<CClimateStation> StationByLocation[];
 
 public:
 	/////////////////////////////////////////////////////////////////////////////

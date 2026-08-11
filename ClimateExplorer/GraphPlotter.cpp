@@ -91,6 +91,12 @@ CGraphPlotter::~CGraphPlotter()
 /////////////////////////////////////////////////////////////////////////////
 void CGraphPlotter::SetDefaults(CClimateExplorerDoc* pDoc)
 {
+	Station = L"";
+	State = L"";
+	Location = L"";
+	Longitude = 0.0f;
+	Latitude = 0.0f;
+
 	GraphTitle = pDoc->GraphTitle;
 	AxisLabelX = pDoc->AxisLabelX;
 	AxisLabelY = pDoc->AxisLabelY;

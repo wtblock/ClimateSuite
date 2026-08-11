@@ -70,8 +70,89 @@ protected:
 	std::vector<double> m_arrYears;
 	std::vector<double> m_arrValues;
 
+	CString m_csStation;
+	CString m_csState;
+	CString m_csLocation;
+	float m_fLatitude;
+	float m_fLongitude;
+
 // public properties
 public:
+	/////////////////////////////////////////////////////////////////////////////
+	// Station data
+	/////////////////////////////////////////////////////////////////////////////
+	
+	// Station ID
+	CString GetStation()
+	{
+		return m_csStation;
+	}
+	// Station ID
+	void SetStation(CString value)
+	{
+		m_csStation = value;
+	}
+	// Station ID
+	__declspec(property(get = GetStation, put = SetStation))
+		CString Station;
+
+	// State postal code (AL, TX, CA, etc.) location of station
+	CString GetState()
+	{
+		return m_csState;
+	}
+	// State postal code (AL, TX, CA, etc.) location of station
+	void SetState(CString value)
+	{
+		m_csState = value;
+	}
+	// State postal code (AL, TX, CA, etc.) location of station
+	__declspec(property(get = GetState, put = SetState))
+		CString State;
+
+	// Location is the name of the cite the station is in
+	CString GetLocation()
+	{
+		return m_csLocation;
+	}
+	// Location is the name of the cite the station is in
+	void SetLocation(CString value)
+	{
+		m_csLocation = value;
+	}
+	// Location is the name of the cite the station is in
+	__declspec(property(get = GetLocation, put = SetLocation))
+		CString Location;
+
+	// station latitude
+	float GetLatitude()
+	{
+		return m_fLatitude;
+	}
+	// station latitude
+	void SetLatitude(float value)
+	{
+		m_fLatitude = value;
+	}
+	// station latitude
+	__declspec(property(get = GetLatitude, put = SetLatitude))
+		float Latitude;
+
+	// station longitude
+	float GetLongitude()
+	{
+		return m_fLongitude;
+	}
+	// station longitude
+	void SetLongitude(float value)
+	{
+		m_fLongitude = value;
+	}
+	// station longitude
+	__declspec(property(get = GetLongitude, put = SetLongitude))
+		float Longitude;
+
+
 	/////////////////////////////////////////////////////////////////////////////
 	// Graphing data
 	/////////////////////////////////////////////////////////////////////////////

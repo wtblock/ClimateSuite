@@ -275,6 +275,9 @@ BEGIN
         MENUITEM "Cu&t\tCtrl+X",                ID_EDIT_CUT
         MENUITEM "&Copy\tCtrl+C",               ID_EDIT_COPY
         MENUITEM "&Paste\tCtrl+V",              ID_EDIT_PASTE
+        MENUITEM SEPARATOR
+        MENUITEM "Bing map",                    ID_BING_MAP
+        MENUITEM "Google map",                  ID_GOOGLE_MAP
     END
 END
 
@@ -609,6 +612,8 @@ BEGIN
     ID_FILE_PDF             "Export the book to a PDF\nPDF"
     ID_EXECUTE_QUERY        "Execute the current query defined in property panel\nExecute"
     ID_EDIT_DELETE          "Delete the selected page\nDel"
+    ID_BING_MAP             "Display the location using Bing Maps"
+    ID_GOOGLE_MAP           "Display the location using Google Maps"
 END
 
 #endif    // English (United States) resources

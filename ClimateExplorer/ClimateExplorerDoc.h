@@ -456,6 +456,59 @@ public:
 	__declspec(property(get = GetSelection))
 		bool Selection;
 
+	// the selection definition
+	pair < pair<int, int>, pair<int, int> >& GetSelectedPairs()
+	{
+		return m_pairSelection;
+	}
+	// the selection definition
+	__declspec(property(get = GetSelectedPairs))
+		pair < pair<int, int>, pair<int, int> > SelectedPairs;
+
+	// number of selected pages
+	int GetSelectedPages()
+	{
+		int value = 0;
+		if (Selection)
+		{
+			pair<int, int> pairStart = SelectedPairs.first;
+			pair<int, int> pairEnd = SelectedPairs.second;
+			value = pairEnd.first - pairStart.first;
+			value++;
+		}
+		return value;
+	}
+	// number of selected pages
+	__declspec(property(get = GetSelectedPages))
+		int SelectedPages;
+
+	// selected plot
+	shared_ptr<CGraphPlotter> GetSelectedPlot(pair<int, int> pairSelection)
+	{
+		shared_ptr<CGraphPlotter> value;
+		UINT uiPage = pairSelection.first - 1;
+		int nImageSelection = pairSelection.second;
+		size_t nPages = m_arrPages.Count;
+		if (0 < uiPage && uiPage < nPages)
+		{
+			shared_ptr<CPage> pPage = m_arrPages.get(uiPage);
+			int nImage = 0;
+			for (auto& plot : pPage->Plots.Items)
+			{
+				if (nImage == nImageSelection)
+				{
+					value = plot.second;
+					return value;
+				}
+				nImage++;
+			}
+		}
+		return value;
+	}
+	// selected plot
+	__declspec(property(get = GetSelectedPlot))
+		shared_ptr<CGraphPlotter> SelectedPlot[];
+
 	// is the given page image pair selected? Returns true is the pair
 	// is the current selection or if it falls within the multiple 
 	// selection range

@@ -42,6 +42,10 @@ BEGIN_MESSAGE_MAP(CClimateExplorerView, CBaseView)
 	ON_COMMAND(ID_FILE_EXPORTIMAGES, &CClimateExplorerView::OnFileExportimages)
 	ON_UPDATE_COMMAND_UI(ID_FILE_EXPORTIMAGES, &CClimateExplorerView::OnUpdateFileExportimages)
 	ON_WM_LBUTTONDOWN()
+	ON_COMMAND(ID_BING_MAP, &CClimateExplorerView::OnBingMap)
+	ON_UPDATE_COMMAND_UI(ID_BING_MAP, &CClimateExplorerView::OnUpdateBingMap)
+	ON_COMMAND(ID_GOOGLE_MAP, &CClimateExplorerView::OnGoogleMap)
+	ON_UPDATE_COMMAND_UI(ID_GOOGLE_MAP, &CClimateExplorerView::OnUpdateGoogleMap)
 END_MESSAGE_MAP()
 
 /////////////////////////////////////////////////////////////////////////////
@@ -1447,5 +1451,69 @@ void CClimateExplorerView::OnUpdateFileExportimages(CCmdUI* pCmdUI)
 	OnUpdateFileExportPages(pCmdUI);
 
 } // OnUpdateFileExportimages
+
+/////////////////////////////////////////////////////////////////////////////
+void CClimateExplorerView::OnBingMap()
+{
+	CClimateExplorerDoc* pDoc = GetDocument();
+	CString csLink = pDoc->GenerateMapLink(Latitude, Longitude);
+	ShellExecute(nullptr, L"open", csLink, nullptr, nullptr, SW_SHOWNORMAL);
+
+} // OnBingMap
+
+/////////////////////////////////////////////////////////////////////////////
+void CClimateExplorerView::OnUpdateBingMap(CCmdUI* pCmdUI)
+{
+	pCmdUI->Enable(FALSE);
+	CClimateExplorerDoc* pDoc = GetDocument();
+	if (pDoc->SelectedPages == 1)
+	{
+		CString csStation = Station;
+		if (!csStation.IsEmpty())
+		{
+			pCmdUI->Enable();
+		}
+		else
+		{
+			pair < pair<int, int>, pair<int, int> >& pairSel = pDoc->SelectedPairs;
+			pair<int, int> pairStart = pairSel.first;
+			pair<int, int> pairEnd = pairSel.second;
+			int nPlotStart = pairStart.second;
+			int nPlotEnd = pairEnd.second;
+			if (nPlotStart == nPlotEnd)
+			{
+				shared_ptr<CGraphPlotter> pPlot = pDoc->SelectedPlot[pairStart];
+				csStation = pPlot->Station;
+				if (!csStation.IsEmpty())
+				{
+					Station = csStation;
+					Latitude = pPlot->Latitude;
+					Longitude = pPlot->Longitude;
+					pCmdUI->Enable();
+				}
+			}
+		}
+	}
+	else
+	{
+		Station = L"";
+		Latitude = 0.0f;
+		Longitude = 0.0f;
+	}
+} // OnUpdateBingMap
+
+/////////////////////////////////////////////////////////////////////////////
+void CClimateExplorerView::OnGoogleMap()
+{
+	CClimateExplorerDoc* pDoc = GetDocument();
+	CString csLink = pDoc->GenerateMapLink(Latitude, Longitude, false);
+	ShellExecute(nullptr, L"open", csLink, nullptr, nullptr, SW_SHOWNORMAL);
+} // OnGoogleMap
+
+/////////////////////////////////////////////////////////////////////////////
+void CClimateExplorerView::OnUpdateGoogleMap(CCmdUI* pCmdUI)
+{
+	OnUpdateBingMap(pCmdUI);
+} // OnUpdateGoogleMap
 
 /////////////////////////////////////////////////////////////////////////////

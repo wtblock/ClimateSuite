@@ -433,7 +433,7 @@ void CClimateDatabase::PopulateStations()
 		// these two maps create a cross reference between station IDs and 
 		// locations. Since the pointer is shared, it is safe for both maps
 		// to reference the same pointer
-		m_mapStations.add(csLocation, pStation);
+		m_mapStations.add(csStation, pStation);
 		m_mapLocations.add(csKey, pStation);
 	}
 
