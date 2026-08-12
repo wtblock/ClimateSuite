@@ -1643,36 +1643,219 @@ void CClimateExplorerDoc::ExecutePickerQuery()
 void CClimateExplorerDoc::OnEditDelete()
 {
 	CClimateExplorerView* pView = ClimateExplorerView;
-	const double dPageHeight = HeightOfPage;
-	const double dTopOfPage = pView->TopOfView;
 
-	long lPage = long(dTopOfPage / dPageHeight);
-	Page = lPage + 1;
-	long lPages = m_arrPages.Count;
-	if (lPage < lPages)
+	// if there is no selection, then delete the current page
+	if (!Selection)
 	{
-		m_arrPages.remove(lPage);
-		lPages--;
-		Pages = lPages;
-		if (lPage == lPages)
-		{
-			Page = lPage;
-			const double dTop = dPageHeight * (lPage - 1);
-			pView->TopOfView = dTop;
-			pView->SetupScrollBars();
-			pView->Invalidate();
-			return;
-		}
+		UINT uiPage = Page - 1;
+		m_arrPages.remove(uiPage);
+		UINT uiPages = (UINT)m_arrPages.Count;
+		Pages = uiPages;
 
-		for ( ; lPage < lPages; lPage++)
+		int nDelta = 1;
+		for (; uiPage < uiPages; uiPage++)
 		{
-			shared_ptr<CPage> pPage = m_arrPages.get(lPage);
+			shared_ptr<CPage> pPage = m_arrPages.get(uiPage);
 			UINT uiPage = pPage->Page;
-			pPage->Page = uiPage - 1;
+			pPage->Page = uiPage - nDelta;
 		}
 
 		pView->Invalidate();
+
+		CMainFrame* pFrame = (CMainFrame*)AfxGetMainWnd();
+		CPropertiesWnd* pProperties = pFrame->PropertiesPane;
+		pProperties->UpdateTableOfContents();
+		return;
 	}
+
+	pair < pair<int, int>, pair<int, int> >& pairSel = SelectedPairs;
+	pair<int, int> pairStart = pairSel.first;
+	pair<int, int> pairEnd = pairSel.second;
+
+	// the first page number of the selection where page numbers are 
+	// one based as they appear in the document (1..n)
+	int nPageStart = pairStart.first;
+
+	// page array index is zero based (0..n-1)
+	int nStartIndex = nPageStart - 1;
+
+	// the last page number of the selection which can be the same as the first
+	int nPageEnd = pairEnd.first;
+	int nEndIndex = nPageEnd - 1;
+
+	// the first plot on the first page is zero based and depending on the layout,
+	// there can be up to four plots on a page (0..3). If zero, the whole page
+	// is selected.
+	int nPlotStart = pairStart.second;
+
+	// the last plot on the last page which can be the same as the first. If the 
+	// plot is the last plot on a different page number than the first plot, 
+	// the whole page is selected. If the Start and End pages are the same, the 
+	// entire page is only selected if all of the plots are selected. 
+	// 
+	// For example: 
+	//   1.	If there are four plots (0..3), but the first plot is 1 and the last plot 
+	//		is 2, then the whole page is not selected.
+	//   2.	Different start and end and the plot on the end is not the last plot, the
+	//		whole page is not selected.
+	//   3.	Different start and end and the plot on the start is not the first, the
+	//		whole first page is not selected.
+	int nPlotEnd = pairEnd.second;
+
+	// number of selected pages
+	int nPages = SelectedPages;
+
+	bool bDeleteFirstPage = false;
+	bool bDeleteLastPage = false;
+
+	// the following can be duplications if start and end are the same page
+	shared_ptr<CPage> pageStart = m_arrPages.get(nStartIndex);
+	shared_ptr<CPage> pageEnd = m_arrPages.get(nEndIndex);
+	int nStartPlots = pageStart->ImageCount;
+	int nEndPlots = pageEnd->ImageCount;
+
+	int nFirstDeletedPage = nStartIndex;
+	int nLastDeletedPage = nEndIndex;
+	bool bDeletePages = false;
+	bool bDeleteStartPlots = false;
+	bool bDeleteEndPlots = false;
+	if (nPages > 1)
+	{
+		bDeleteFirstPage = nPlotStart == 0;
+		bDeleteLastPage = nPlotEnd == nEndPlots - 1;
+		if (!bDeleteLastPage)
+		{
+			nLastDeletedPage--;
+			bDeleteEndPlots = true;
+			CKeyedCollection<CString, CRect> pRects;
+			CKeyedCollection<CString, CGraphPlotter> pPlots;
+			int nRect = 0;
+			for (auto& pRect : pageEnd->Rectangles.Items)
+			{
+				if (nRect++ > nPlotEnd)
+				{
+					pRects.add(pRect.first, pRect.second);
+				}
+			}
+			int nPlot = 0;
+			for (auto& pPlot : pageEnd->Plots.Items)
+			{
+				if (nPlot++ > nPlotEnd)
+				{
+					pPlots.add(pPlot.first, pPlot.second);
+				}
+			}
+			pageEnd->Rectangles = pRects;
+			pageEnd->Plots = pPlots;
+		}
+		if (!bDeleteFirstPage)
+		{
+			nFirstDeletedPage++;
+			bDeleteStartPlots = true;
+			CKeyedCollection<CString, CRect> pRects;
+			CKeyedCollection<CString, CGraphPlotter> pPlots;
+			int nRect = 0;
+			for (auto& pRect : pageStart->Rectangles.Items)
+			{
+				if (nRect++ < nPlotStart)
+				{
+					pRects.add(pRect.first, pRect.second);
+				}
+			}
+			int nPlot = 0;
+			for (auto& pPlot : pageStart->Plots.Items)
+			{
+				if (nPlot++ < nPlotStart)
+				{
+					pPlots.add(pPlot.first, pPlot.second);
+				}
+			}
+			pageStart->Rectangles = pRects;
+			pageStart->Plots = pPlots;
+		}
+		if (nFirstDeletedPage <= nLastDeletedPage)
+		{
+			bDeletePages = true;
+		}
+	}
+	else // single page
+	{
+		bDeleteFirstPage = nPlotStart == 0 && nPlotEnd == nEndPlots - 1;
+		if (bDeleteFirstPage)
+		{
+			bDeletePages = true;
+		}
+		else
+		{
+			bDeleteStartPlots = true;
+			CKeyedCollection<CString, CRect> pRects;
+			CKeyedCollection<CString, CGraphPlotter> pPlots;
+			int nRect = 0;
+			for (auto& pRect : pageStart->Rectangles.Items)
+			{
+				if (nRect < nPlotStart || nRect > nPlotEnd)
+				{
+					pRects.add(pRect.first, pRect.second);
+				}
+				nRect++;
+			}
+			int nPlot = 0;
+			for (auto& pPlot : pageStart->Plots.Items)
+			{
+				if (nPlot < nPlotStart || nPlot > nPlotEnd)
+				{
+					pPlots.add(pPlot.first, pPlot.second);
+				}
+				nPlot++;
+			}
+			pageStart->Rectangles = pRects;
+			pageStart->Plots = pPlots;
+		}
+	}
+
+	if (bDeletePages)
+	{
+		const double dPageHeight = HeightOfPage;
+		const double dTopOfPage = pView->TopOfView;
+
+		long lPage = long(nStartIndex);
+		Page = lPage + 1;
+		long lPages = m_arrPages.Count;
+		for (int nPage = nLastDeletedPage; nPage >= nFirstDeletedPage; nPage--)
+		{
+			m_arrPages.remove(nPage);
+			lPages--;
+			Pages = lPages;
+		}
+
+		if (lPage == lPages - 1)
+		{
+			Page = lPage + 1;
+			const double dTop = dPageHeight * lPage;
+			pView->TopOfView = dTop;
+			pView->SetupScrollBars();
+			pView->Invalidate();
+		} 
+		else
+		{
+			int nDelta = nLastDeletedPage - nFirstDeletedPage + 1;
+			for (; lPage < lPages; lPage++)
+			{
+				shared_ptr<CPage> pPage = m_arrPages.get(lPage);
+				UINT uiPage = pPage->Page;
+				pPage->Page = uiPage - nDelta;
+			}
+		}
+	}
+
+	// deselect
+	SelectLimit[-1] = -1;
+
+	pView->Invalidate();
+
+	CMainFrame* pFrame = (CMainFrame*)AfxGetMainWnd();
+	CPropertiesWnd* pProperties = pFrame->PropertiesPane;
+	pProperties->UpdateTableOfContents();
 
 } // OnEditDelete
 
@@ -1681,15 +1864,26 @@ void CClimateExplorerDoc::OnUpdateEditDelete(CCmdUI* pCmdUI)
 {
 	pCmdUI->Enable(FALSE);
 
-	// one based page numbers
-	long lPages = Pages;
-	long lPage = Page;
-	UINT nPagesTOC = TableOfContentsPages;
-	long lOverhead = long(nPagesTOC + 1);
-	if (lPage > lOverhead && lPage <= lPages)
+	// if there is a selection, then enable delete
+	if (Selection)
 	{
 		pCmdUI->Enable();
 	}
+	else
+	{
+		CClimateExplorerView* pView = ClimateExplorerView;
+		const double dPageHeight = HeightOfPage;
+		const double dTopOfPage = pView->TopOfView;
+		double dPage = dTopOfPage / dPageHeight;
+		UINT uiPage = UINT(dPage) + 1;
+		Page = uiPage;
+		UINT uiPagesTOC = TableOfContentsPages;
+		if (uiPage > uiPagesTOC + 1)
+		{
+			pCmdUI->Enable();
+		}
+	}
+
 } // OnUpdateEditDelete
 
 /////////////////////////////////////////////////////////////////////////////

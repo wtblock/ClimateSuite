@@ -368,7 +368,12 @@ public:
 		return m_arrRectangles;
 	}
 	// image names and rectangles
-	__declspec(property(get = GetRectangles))
+	void SetRectangles(CKeyedCollection<CString, CRect>& pRect)
+	{
+		m_arrRectangles = pRect;
+	}
+	// image names and rectangles
+	__declspec(property(get = GetRectangles, put = SetRectangles))
 		CKeyedCollection<CString, CRect>& Rectangles;
 
 	// the key is the image title associated with the given plot
@@ -377,7 +382,12 @@ public:
 		return m_arrPlots;
 	}
 	// the key is the image title associated with the given plot
-	__declspec(property(get = GetPlots))
+	void SetPlots(CKeyedCollection<CString, CGraphPlotter>& pPlots)
+	{
+		m_arrPlots = pPlots;
+	}
+	// the key is the image title associated with the given plot
+	__declspec(property(get = GetPlots, put = SetPlots))
 		CKeyedCollection<CString, CGraphPlotter>& Plots;
 
 	// is the page full of images

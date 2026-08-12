@@ -671,9 +671,9 @@ void CClimateExplorerView::RenderImagePage
 	pDC->SetWindowOrg(nLeftOfView, nTopOfView);
 
 	shared_ptr<CPage> page = pDoc->CurrentPage;
-	UINT uiPage = page->Page;
 	if (page != nullptr)
 	{
+		UINT uiPage = page->Page;
 		CString csTitle = page->Title;
 		CKeyedCollection<CString, CRect>& mapRectangles = page->Rectangles;
 		CKeyedCollection<CString, CGraphPlotter>& mapPlots = page->Plots;
