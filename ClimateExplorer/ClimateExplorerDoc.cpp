@@ -585,75 +585,18 @@ vector<pair<CString, int>>& CClimateExplorerDoc::GetTitleTableOfContents()
 	m_arrTOC.clear();
 	pair<CString, int> item;
 
-	//// account for the title page
-	//item.first = L"Title Page";
-	//item.second = 1;
-	//m_arrTOC.push_back(item);
-
-	//// account for the table of contents page
-	//item.first = L"Table of Contents";
-	//item.second = 2;
-	//m_arrTOC.push_back(item);
-
-	// current number of TOC pages
-	int nOriginalTOC = 0;
-
-	// number of lines in the table of contents
-	int nLines = 2; // account for the overhead of cover page and TOC lines
+	bool bTOC = false;
 	for (auto& node : m_arrPages.Items)
 	{
-		CString csTitle = node->Title;
-		if ( csTitle == L"Table of Contents")
-		{
-			nOriginalTOC++;
-			continue;
-		}
-		if ( csTitle == L"Cover Page")
+		CPage::PAGE_TYPE eType = node->PageType;
+		if (bTOC && eType == CPage::pageTOC)
 		{
 			continue;
 		}
-		nLines++;
-	}
-
-	// there are 55 lines per page of TOC
-	int nPagesTOC = nLines / 55;
-	if (nLines % 55 > 0)
-	{
-		nPagesTOC++;
-	}
-
-	CSmartArray<CPage> arrPages;
-	if (nPagesTOC > nOriginalTOC)
-	{
-		UINT nPageNum = 1;
-		shared_ptr<CPage> pCover = shared_ptr<CPage>(new CPage(nPageNum++, L"Full"));
-		arrPages.append(pCover);
-		pCover->Title = L"Cover Page";
-
-		// account for the TOC pages
-		for (int nToc = 0; nToc < nPagesTOC; nToc++)
+		if (eType == CPage::pageTOC)
 		{
-			shared_ptr<CPage> pTOC = shared_ptr<CPage>(new CPage(nPageNum++, L"Full"));
-			arrPages.append(pTOC);
-			pTOC->Title = L"Table of Contents";
+			bTOC = true;
 		}
-
-		for (auto& node : m_arrPages.Items)
-		{
-			CString csTitle = node->Title;
-			if (csTitle == L"Cover Page" || csTitle == L"Table of Contents")
-			{
-				continue;
-			}
-			node->Page = nPageNum++;
-			arrPages.append(node);
-		}
-
-		m_arrPages = arrPages;
-	}
-
-	for (auto& node : m_arrPages.Items)
-	{
 		CString csTitle = node->Title;
 		int nPage = node->Page;
 		item.first = csTitle;
@@ -947,7 +890,8 @@ void CClimateExplorerDoc::OnExecuteQuery()
 		shared_ptr<CPage> pPage = m_arrPages.get(nPage);
 		if (pPage->PageIsFull)
 		{
-			pPage = shared_ptr<CPage>(new CPage(nPages + 1, Layout));
+			pPage = shared_ptr<CPage>
+				(new CPage(nPages + 1, Layout, this, CPage::pageGraph));
 			m_arrPages.append(pPage);
 			Pages = (UINT)m_arrPages.Count;
 		}
@@ -1727,16 +1671,7 @@ void CClimateExplorerDoc::OnEditDelete()
 		{
 			nLastDeletedPage--;
 			bDeleteEndPlots = true;
-			CKeyedCollection<CString, CRect> pRects;
 			CKeyedCollection<CString, CGraphPlotter> pPlots;
-			int nRect = 0;
-			for (auto& pRect : pageEnd->Rectangles.Items)
-			{
-				if (nRect++ > nPlotEnd)
-				{
-					pRects.add(pRect.first, pRect.second);
-				}
-			}
 			int nPlot = 0;
 			for (auto& pPlot : pageEnd->Plots.Items)
 			{
@@ -1745,23 +1680,13 @@ void CClimateExplorerDoc::OnEditDelete()
 					pPlots.add(pPlot.first, pPlot.second);
 				}
 			}
-			pageEnd->Rectangles = pRects;
 			pageEnd->Plots = pPlots;
 		}
 		if (!bDeleteFirstPage)
 		{
 			nFirstDeletedPage++;
 			bDeleteStartPlots = true;
-			CKeyedCollection<CString, CRect> pRects;
 			CKeyedCollection<CString, CGraphPlotter> pPlots;
-			int nRect = 0;
-			for (auto& pRect : pageStart->Rectangles.Items)
-			{
-				if (nRect++ < nPlotStart)
-				{
-					pRects.add(pRect.first, pRect.second);
-				}
-			}
 			int nPlot = 0;
 			for (auto& pPlot : pageStart->Plots.Items)
 			{
@@ -1770,7 +1695,6 @@ void CClimateExplorerDoc::OnEditDelete()
 					pPlots.add(pPlot.first, pPlot.second);
 				}
 			}
-			pageStart->Rectangles = pRects;
 			pageStart->Plots = pPlots;
 		}
 		if (nFirstDeletedPage <= nLastDeletedPage)
@@ -1788,17 +1712,7 @@ void CClimateExplorerDoc::OnEditDelete()
 		else
 		{
 			bDeleteStartPlots = true;
-			CKeyedCollection<CString, CRect> pRects;
 			CKeyedCollection<CString, CGraphPlotter> pPlots;
-			int nRect = 0;
-			for (auto& pRect : pageStart->Rectangles.Items)
-			{
-				if (nRect < nPlotStart || nRect > nPlotEnd)
-				{
-					pRects.add(pRect.first, pRect.second);
-				}
-				nRect++;
-			}
 			int nPlot = 0;
 			for (auto& pPlot : pageStart->Plots.Items)
 			{
@@ -1808,7 +1722,6 @@ void CClimateExplorerDoc::OnEditDelete()
 				}
 				nPlot++;
 			}
-			pageStart->Rectangles = pRects;
 			pageStart->Plots = pPlots;
 		}
 	}
@@ -1848,9 +1761,83 @@ void CClimateExplorerDoc::OnEditDelete()
 		}
 	}
 
+	// shift images if necessary
+	long lPages = Pages;
+	ASSERT(lPages == m_arrPages.Count);
+	long lPage = 0;
+	for (auto& pPage : m_arrPages.Items)
+	{
+		if (lPage == lPages - 1)
+		{
+			break;
+		}
+		if (pPage->PageIsFull)
+		{
+			lPage++;
+			continue;
+		}
+		
+		UINT uiImages = pPage->ImageCount;
+		UINT uiMax = pPage->MaximumImages;
+		UINT uiDelta = uiMax - uiImages;
+
+		long lNext = lPage + 1;
+		shared_ptr<CPage> pNext = m_arrPages.get(lNext);
+		vector<CString> arrKeys;
+		UINT uiNext = pNext->ImageCount;
+
+		for (auto& Plot : pNext->Plots.Items)
+		{
+			CString csKey = Plot.first;
+			shared_ptr<CGraphPlotter> pGraph = Plot.second;
+			pPage->Plots.add(csKey, pGraph);
+			//pNext->Plots.remove(csKey);
+			arrKeys.push_back(csKey);
+
+			uiDelta--;
+			if (uiDelta == 0)
+			{
+				break;
+			}
+			if (--uiNext == 0)
+			{
+				break;
+			}
+		}
+
+		// remove the plots we shifted up to the previous page
+		for (auto& csKey : arrKeys)
+		{
+			pNext->Plots.remove(csKey);
+		}
+		lPage++;
+	}
+
+	// if there are no images on the last page and that
+	// page is a graph page, then delete it
+	shared_ptr<CPage> pPage = m_arrPages.get(lPages - 1);
+	long lImages = pPage->ImageCount;
+	if (lImages == 0 && pPage->PageType == CPage::pageGraph)
+	{
+		m_arrPages.remove(lPages - 1);
+		Pages = m_arrPages.Count;
+	}
+
+	UINT uiPage = Page;
+	UINT uiPages = Pages;
+	if (uiPage >= uiPages)
+	{
+		uiPage = uiPages - 1;
+		Page = uiPage;
+	}
+
 	// deselect
 	SelectLimit[-1] = -1;
 
+	double dPageHeight = HeightOfPage;
+	double dTop = dPageHeight * (nPages - 1);
+	pView->TopOfView = dTop;
+	pView->SetupScrollBars();
 	pView->Invalidate();
 
 	CMainFrame* pFrame = (CMainFrame*)AfxGetMainWnd();

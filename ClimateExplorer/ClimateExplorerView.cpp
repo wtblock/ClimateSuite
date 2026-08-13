@@ -675,20 +675,20 @@ void CClimateExplorerView::RenderImagePage
 	{
 		UINT uiPage = page->Page;
 		CString csTitle = page->Title;
-		CKeyedCollection<CString, CRect>& mapRectangles = page->Rectangles;
+		vector<CRect> arrRectangles = page->Rectangles;
 		CKeyedCollection<CString, CGraphPlotter>& mapPlots = page->Plots;
 
 		int nImage = -1;
-		for (auto& node : mapRectangles.Items)
+		for (auto& node : mapPlots.Items)
 		{
 			nImage++;
 			pair<int, int> pairImage(uiPage, nImage);
 			bool bSelected = pDoc->Selected[pairImage];
 
 			const CString csImage = node.first;
-			shared_ptr<CRect> pRect = node.second;
-			double dTop = LogicalToInches(pRect->top);
-			double dBottom = LogicalToInches(pRect->bottom);
+			CRect imageRect = arrRectangles[nImage];
+			double dTop = LogicalToInches(imageRect.top);
+			double dBottom = LogicalToInches(imageRect.bottom);
 			if (dBottomOfView < dTop) // entire view is above rectangle
 			{
 				break; // we are done
@@ -732,7 +732,7 @@ void CClimateExplorerView::RenderImagePage
 				}
 			}
 
-			DrawImage(pDC, pImage, pRect.get(), bSelected, ir);
+			DrawImage(pDC, pImage, &imageRect, bSelected, ir);
 			RenderMargins(pDC, dLeftOfView, dTopOfView, dRightOfView, dBottomOfView);
 
 			//shared_ptr<Image> pImage = pDoc->FindImage(csTitle, csImage);

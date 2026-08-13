@@ -134,6 +134,11 @@ void CPropertiesWnd::PopulateLocationsForState(const CString& scope, const CStri
 	else if (scope.CompareNoCase(L"Location") == 0)
 	{
 		m_pPropLocation->AddOption(L"All");
+		if (state == L"All")
+		{
+			return;
+		}
+
 		CString csCity;
 		if (pDoc != nullptr)
 		{
@@ -409,7 +414,7 @@ LRESULT CPropertiesWnd::OnPropertyChange
 
 			if (scope.CompareNoCase(L"National") == 0)
 			{
-				m_pPropState->Enable(TRUE);
+				m_pPropState->Enable();
 				m_pPropLocation->Enable(FALSE);
 
 				m_pPropState->Show(FALSE);
@@ -426,14 +431,18 @@ LRESULT CPropertiesWnd::OnPropertyChange
 			}
 			else if (scope.CompareNoCase(L"Location") == 0)
 			{
-				m_pPropState->Enable(TRUE);
-				m_pPropLocation->Enable(TRUE);
+				m_pPropState->Enable();
+				m_pPropLocation->Enable();
 
 				m_pPropState->Show();
 				m_pPropLocation->Show();
 
 				CString csState = pDoc->State;
 				PopulateLocationsForState(scope, csState);
+				if (csState == L"All")
+				{
+					m_pPropLocation->Show(FALSE);
+				}
 			}
 
 			CString csTitle = pDoc->Title;
@@ -1963,8 +1972,18 @@ void CPropertiesWnd::HandleStateChanged(CMFCPropertyGridProperty* pProp)
 
 	if (scope.CompareNoCase(L"State") == 0)
 		m_pPropLocation->SetValue(L"All");
+
+	if (state == L"All")
+	{
+		m_pPropLocation->SetValue(L"All");
+		m_pPropLocation->Show(FALSE);
+		pDoc->Location = L"All";
+	}
 	else
+	{
+		m_pPropLocation->Show();
 		m_pPropLocation->SetValue(L"None");
+	}
 } // HandleStateChanged
 
 /////////////////////////////////////////////////////////////////////////////

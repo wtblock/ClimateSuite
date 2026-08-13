@@ -150,6 +150,7 @@ public:
 	{
 		CBaseDoc* pDoc = Document;
 		const int value = pDoc->Map;
+		return value;
 	}
 	// logical pixels per inch
 	__declspec( property( get = GetMap ) )

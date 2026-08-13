@@ -7,6 +7,9 @@
 #include "CHelper.h"
 
 /////////////////////////////////////////////////////////////////////////////
+class CClimateExplorerDoc;
+
+/////////////////////////////////////////////////////////////////////////////
 // CPage
 //
 // Represents a single page in a ClimateExplorer document. Each page contains
@@ -52,10 +55,28 @@
 /////////////////////////////////////////////////////////////////////////////
 class CPage
 {
+// public typedefs
+public:
+	typedef enum PAGE_TYPE
+	{
+		pageCover,
+		pageTOC,
+		pageGraph,
+	} PAGE_TYPE;
+
 // protected data
 protected:
 	// the page number
 	UINT m_nPage;
+
+	// Layout (Full, Half, Quarter)
+	CString m_csLayout;
+
+	// page type
+	PAGE_TYPE m_ePageType;
+
+	// logical pixels per inch
+	int m_nMap;
 
 	// height of page in inches
 	double m_dHeightOfPage;
@@ -63,21 +84,29 @@ protected:
 	// width of page in inches
 	double m_dWidthOfPage;
 
+	// top margin in inches
+	double m_dTopMargin;
+
+	// bottom margin in inches
+	double m_dBottomMargin;
+
+	// inside margin in inches
+	double m_dInsideMargin;
+
+	// outside margin in inches
+	double m_dOutsideMargin;
+
+	// gutter in inches
+	double m_dGutter;
+
 	// page boundary rectangle varies depending on the page
 	// number being an even or odd number. Even pages are
 	// on the left and odd pages are on the right of the
 	// printed document.
 	CRect m_Rect;
 
-	// Layout (Full, Half, Quarter)
-	CString m_csLayout;
-
 	// title of the page
 	CString m_csTitle;
-
-	// the key is the image name associated with the given rectangle the
-	// image will be drawn in
-	CKeyedCollection<CString, CRect> m_arrRectangles;
 
 	// the key is the image title associated with the given plot
 	CKeyedCollection<CString, CGraphPlotter> m_arrPlots;
@@ -93,7 +122,6 @@ public:
 	void SetPage(UINT value)
 	{
 		m_nPage = value;
-		ComputeRectangles();
 	}
 	// current page
 	__declspec( property( get = GetPage, put = SetPage ) )
@@ -155,46 +183,71 @@ public:
 	// top margin in inches
 	double GetTopMargin()
 	{
-		return 0.5;
+		return m_dTopMargin;
 	}
 	// top margin in inches
-	__declspec(property(get = GetTopMargin))
+	void SetTopMargin(double value)
+	{
+		m_dTopMargin = value;
+	}
+	// top margin in inches
+	__declspec(property(get = GetTopMargin, put = SetTopMargin))
 		double TopMargin;
 
 	// bottom margin in inches
 	double GetBottomMargin()
 	{
-		return 0.5;
+		return m_dBottomMargin;
 	}
 	// bottom margin in inches
-	__declspec(property(get = GetBottomMargin))
+	void SetBottomMargin(double value)
+	{
+		m_dBottomMargin = value;
+	}
+	// bottom margin in inches
+	__declspec(property(get = GetBottomMargin, put = SetBottomMargin))
 		double BottomMargin;
 
 	// inside margin in inches
 	double GetInsideMargin()
 	{
-		return 0.6;
+		return m_dInsideMargin;
 	}
 	// inside margin in inches
-	__declspec(property(get = GetInsideMargin))
+	void SetInsideMargin(double value)
+	{
+		m_dInsideMargin = value;
+	}
+	// inside margin in inches
+	__declspec(property(get = GetInsideMargin, put = SetInsideMargin))
 		double InsideMargin;
 
 	// outside margin in inches
 	double GetOutsideMargin()
 	{
-		return 0.4;
+		return m_dOutsideMargin;
 	}
 	// outside margin in inches
-	__declspec(property(get = GetOutsideMargin))
+	void SetOutsideMargin(double value)
+	{
+		m_dOutsideMargin = value;
+	}
+	// outside margin in inches
+	__declspec(property(get = GetOutsideMargin, put = SetOutsideMargin))
 		double OutsideMargin;
 
 	// gutter in inches
 	double GetGutter()
 	{
-		return 0.2;
+		return m_dGutter;
 	}
 	// gutter in inches
-	__declspec(property(get = GetGutter))
+	void SetGutter(double value)
+	{
+		m_dGutter = value;
+	}
+	// gutter in inches
+	__declspec(property(get = GetGutter, put = SetGutter))
 		double Gutter;
 
 	// left margin of the current page
@@ -230,12 +283,17 @@ public:
 		double RightMargin;
 
 	// logical pixels per inch
-	static int GetMap()
+	int GetMap()
 	{
-		return 1000;
+		return m_nMap;
 	}
 	// logical pixels per inch
-	__declspec(property(get = GetMap))
+	void SetMap(int value)
+	{
+		m_nMap = value;
+	}
+	// logical pixels per inch
+	__declspec(property(get = GetMap, put = SetMap))
 		int Map;
 
 	// convert logical co-ordinate value to inches
@@ -286,7 +344,7 @@ public:
 	// number of images on the page
 	UINT GetImageCount()
 	{
-		return (UINT)m_arrRectangles.Count;
+		return (UINT)m_arrPlots.Count;
 	}
 	// number of images on the page
 	__declspec( property( get = GetImageCount) )
@@ -305,6 +363,59 @@ public:
 	// Layout (Full, Half, Quarter)
 	__declspec(property(get = GetLayout, put = SetLayout))
 		CString Layout;
+
+	// page type
+	PAGE_TYPE GetPageType()
+	{
+		return m_ePageType;
+	}
+	// page type
+	void SetPageType(PAGE_TYPE value)
+	{
+		m_ePageType = value;
+	}
+	// page type
+	__declspec(property(get = GetPageType, put = SetPageType))
+		PAGE_TYPE PageType;
+
+	// maximum image count
+	UINT GetMaximumImages()
+	{
+		UINT value = 1;
+		CString csLayout = Layout;
+		if (csLayout == L"Half")
+		{
+			value = 2;
+		}
+		else if (csLayout == L"Quarter")
+		{
+			value = 4;
+		}
+
+		return value;
+	}
+	// maximum image count
+	__declspec( property( get = GetMaximumImages) )
+		UINT MaximumImages;
+
+	// is the page full of images
+	bool GetPageIsFull()
+	{
+		CString csTitle = Title;
+		if (csTitle == L"Cover Page" || csTitle == L"Table of Contents")
+		{
+			return true;
+		}
+
+		bool value = false;
+		UINT nImages = ImageCount;
+		UINT nMax = MaximumImages;
+		value = nImages == nMax;
+		return value;
+	}
+	// is the page full of images
+	__declspec(property(get = GetPageIsFull))
+		bool PageIsFull;
 
 	// page boundary rectangle varies depending on the page
 	// number being an even or odd number. Even pages are
@@ -332,49 +443,29 @@ public:
 	// title of the page
 	CString GetTitle()
 	{
-		if (m_csTitle.IsEmpty())
+		CString value;
+		CPage::PAGE_TYPE eType = PageType;
+
+		switch (eType)
 		{
-			if (Page == 1)
+		case CPage::pageCover:
+			value = L"Cover Page";
+			break;
+		case CPage::pageTOC:
+			value = L"Table of Contents";
+			break;
+		case CPage::pageGraph:
+			if (m_arrPlots.Count != 0)
 			{
-				Title = L"Cover Page";
-			}
-			else if (Page == 2)
-			{
-				Title = L"Table of Contents";
-			}
-			else if (!Plots.Count == 0)
-			{
-				for (auto& plot : Plots.Items)
-				{
-					Title = plot.second->GraphTitle;
-					break;
-				}
+				shared_ptr<CGraphPlotter> plot = m_arrPlots.Items.begin()->second;
+				value = plot->GraphTitle;
 			}
 		}
-		return m_csTitle;
+		return value;
 	}
 	// title of the page
-	void SetTitle(CString value)
-	{
-		m_csTitle = value;
-	}
-	// title of the page
-	__declspec(property(get = GetTitle, put = SetTitle))
+	__declspec(property(get = GetTitle))
 		CString Title;
-
-	// image names and rectangles
-	CKeyedCollection<CString, CRect>& GetRectangles()
-	{
-		return m_arrRectangles;
-	}
-	// image names and rectangles
-	void SetRectangles(CKeyedCollection<CString, CRect>& pRect)
-	{
-		m_arrRectangles = pRect;
-	}
-	// image names and rectangles
-	__declspec(property(get = GetRectangles, put = SetRectangles))
-		CKeyedCollection<CString, CRect>& Rectangles;
 
 	// the key is the image title associated with the given plot
 	CKeyedCollection<CString, CGraphPlotter>& GetPlots()
@@ -390,43 +481,16 @@ public:
 	__declspec(property(get = GetPlots, put = SetPlots))
 		CKeyedCollection<CString, CGraphPlotter>& Plots;
 
-	// is the page full of images
-	bool GetPageIsFull()
-	{
-		CString csTitle = Title;
-		if (csTitle == L"Cover Page" || csTitle == L"Table of Contents")
-		{
-			return true;
-		}
-
-		bool value = false;
-		int nImages = ImageCount;
-		CString csLayout = Layout;
-		if (csLayout == L"Full")
-		{
-			value = nImages == 1;
-		}
-		else if (csLayout == L"Half")
-		{
-			value = nImages == 2;
-		}
-		else if (csLayout == L"Quarter")
-		{
-			value = nImages == 4;
-		}
-
-		return value;
-	}
-	// is the page full of images
-	__declspec(property(get = GetPageIsFull))
-		bool PageIsFull;
+	// rectangles corresponding to the images based on
+	// the current page number and layout
+	vector<CRect> GetRectangles();
+	// rectangles corresponding to the images based on
+	// the current page number and layout
+	__declspec(property(get = GetRectangles))
+		vector<CRect> Rectangles;
 
 // protected methods
 protected:
-	// after getting a new page number, rectangles
-	// may need adjusting
-	void ComputeRectangles();
-
 // public methods
 public:
 	// add an image to the page
@@ -435,15 +499,13 @@ public:
 	// render the image rectangles
 	void RenderImageRectangles(CDC* pDC)
 	{
-		for (auto& image : m_arrRectangles.Items)
+		vector<CRect> arrRect = Rectangles;
+
+		for (auto& rectPlot : arrRect )
 		{
-			shared_ptr<CRect> pRect = image.second;
-			pDC->Rectangle(pRect.get());
+			pDC->Rectangle(rectPlot);
 		}
 	}
-
-	// offset rectangles
-	void OffsetRectangles(int nX, int nY);
 
 // protected overrides
 protected:
@@ -453,26 +515,12 @@ public:
 
 // public constructor/destructor
 public:
-	CPage()
-	{
-		Page = 0;
-		m_Rect.SetRectEmpty();
-		Layout = L"Half";
-		HeightOfPage = 11.0;
-		WidthOfPage = 8.5;
-		
-	}
-	CPage( UINT nPage, CString csLayout )
-	{
-		m_Rect.SetRectEmpty();
-		HeightOfPage = 11.0;
-		WidthOfPage = 8.5;
-		Layout = csLayout;
-
-		// page must be set after the above because the page number
-		// calculates the rectangle of the page
-		Page = nPage;
-	}
+	CPage
+	(
+		UINT nPage, CString csLayout, 
+		CClimateExplorerDoc* pDoc,
+		CPage::PAGE_TYPE
+	);
 	~CPage()
 	{
 

@@ -424,13 +424,13 @@ public:
 		shared_ptr<CPage> pPage = m_arrPages.get(lPage);
 		if (pPage != nullptr)
 		{	
+			vector<CRect> arrRects = pPage->Rectangles;
 			int nPage = pPage->Page;
 			int nImage = -1;
-			for (auto& node : pPage->Rectangles.Items)
+			for (auto& rectImage : arrRects)
 			{
 				nImage++;
-				shared_ptr<CRect> pRect = node.second;
-				if (pRect->PtInRect(ptLogical))
+				if (rectImage.PtInRect(ptLogical))
 				{
 					SelectLimit[nPage] = nImage;
 					return;
@@ -527,7 +527,13 @@ public:
 			{
 				if (pairStart.first <= nPage && nPage <= pairEnd.first)
 				{
-					if (nPage == pairStart.first)
+					if (pairStart.first == nPage && nPage == pairEnd.first)
+					{
+						value = 
+							nImage >= pairStart.second && 
+							nImage <= pairEnd.second;
+					}
+					else if (nPage == pairStart.first)
 					{
 						value = nImage >= pairStart.second;
 					}
@@ -1935,17 +1941,13 @@ protected:
 	{
 		m_arrPages.clear();
 
-		long lPage = m_arrPages.add();
-		shared_ptr<CPage> title = m_arrPages.get(lPage);
-		title->Layout = L"Full";
-		title->Page = 1;
-		title->Title = L"Cover Page";
+		shared_ptr<CPage> pCover =
+			shared_ptr<CPage>(new CPage(1, L"Full", this, CPage::pageCover));
+		m_arrPages.append(pCover);
 
-		lPage = m_arrPages.add();
-		shared_ptr<CPage> toc = m_arrPages.get(lPage);
-		toc->Layout = L"Full";
-		toc->Page = 2;
-		toc->Title = L"Table of Contents";
+		shared_ptr<CPage> pTOC =
+			shared_ptr<CPage>(new CPage(2, L"Full", this, CPage::pageTOC));
+		m_arrPages.append(pTOC);
 
 		Pages = (UINT)m_arrPages.Count;;
 		Height = HeightOfPage * Pages;
