@@ -15,6 +15,29 @@ class CGraphPlotter
 {
 // protected data
 protected:
+
+	// Query Type (Picker, Natural Language, or SQL)
+	CString             m_csQueryType;
+	// when true, estimated data is ignored in addition to QC flagged data
+	bool                m_bPure;
+	// Scope (National, State, and Location)
+	CString             m_csScope;
+	// The year when the query begins
+	int                 m_nYearStart;
+	// The year when the query ends
+	int                 m_nYearEnd;
+	// Subtype of query (Maximum, Minimum, Average, Threshold, and Stations)
+	CString             m_csSubtype;
+	// threshold temperature in the current units selection
+	// for Subtype Threshold
+	int                 m_nThreshold;
+	// Units (degF, degC, or raw)
+	CString             m_csUnits;
+	// Output (Plot, Table, or Map+Plot
+	CString             m_csOutput;
+	// the SQL created by the above
+	CString             m_csSQL;
+
 	// -------------------------------------------------------------
 	// Graph text properties
 	// -------------------------------------------------------------
@@ -62,7 +85,7 @@ protected:
 	// -------------------------------------------------------------
 	// Tick mark length (inches)
 	// -------------------------------------------------------------
-	double           m_fTickLengthInches;
+	double             m_fTickLengthInches;
 
 	// Layout (Full, Half, or Quarter page)
 	CString m_csLayout;
@@ -78,6 +101,153 @@ protected:
 
 // public properties
 public:
+	/////////////////////////////////////////////////////////////////////////////
+	// Query Properties
+	/////////////////////////////////////////////////////////////////////////////
+	
+	// Query Type (Picker, Natural Language, or SQL)
+	CString GetQueryType()
+	{
+		return m_csQueryType;
+	}
+	// Query Type (Picker, Natural Language, or SQL)
+	void SetQueryType(CString value)
+	{
+		m_csQueryType = value;
+	}
+	// Query Type (Picker, Natural Language, or SQL)
+	__declspec(property(get = GetQueryType, put = SetQueryType))
+		CString QueryType;
+
+	// when true, estimated data is ignored in addition to QC flagged data
+	bool GetPure()
+	{
+		return m_bPure;
+	}
+	// when true, estimated data is ignored in addition to QC flagged data
+	void SetPure(bool value)
+	{
+		m_bPure = value;
+	}
+	// when true, estimated data is ignored in addition to QC flagged data
+	__declspec(property(get = GetPure, put = SetPure))
+		bool Pure;
+
+	// Scope (National, State, and Location)
+	CString GetScope()
+	{
+		return m_csScope;
+	}
+	// Scope (National, State, and Location)
+	void SetScope(CString value)
+	{
+		m_csScope = value;
+	}
+	// Scope (National, State, and Location)
+	__declspec(property(get = GetScope, put = SetScope))
+		CString Scope;
+
+	// The year when the query begins
+	int GetYearStart()
+	{
+		return m_nYearStart;
+	}
+	// The year when the query begins
+	void SetYearStart(int value)
+	{
+		m_nYearStart = value;
+	}
+	// The year when the query begins
+	__declspec(property(get = GetYearStart, put = SetYearStart))
+		int YearStart;
+
+	// The year when the query ends
+	int GetYearEnd()
+	{
+		return m_nYearEnd;
+	}
+	// The year when the query ends
+	void SetYearEnd(int value)
+	{
+		m_nYearEnd = value;
+	}
+	// The year when the query ends
+	__declspec(property(get = GetYearEnd, put = SetYearEnd))
+		int YearEnd;
+
+	// Subtype of query (Maximum, Minimum, Average, Threshold, and Stations)
+	CString GetSubtype()
+	{
+		return m_csSubtype;
+	}
+	// Subtype of query (Maximum, Minimum, Average, Threshold, and Stations)
+	void SetSubtype(CString value)
+	{
+		m_csSubtype = value;
+	}
+	// Subtype of query (Maximum, Minimum, Average, Threshold, and Stations)
+	__declspec(property(get = GetSubtype, put = SetSubtype))
+		CString Subtype;
+
+	// threshold temperature in the current units selection
+	// for Subtype Threshold
+	int GetThreshold()
+	{
+		return m_nThreshold;
+	}
+	// threshold temperature in the current units selection
+	// for Subtype Threshold
+	void SetThreshold(int value)
+	{
+		m_nThreshold = value;
+	}
+	// threshold temperature in the current units selection
+	// for Subtype Threshold
+	__declspec(property(get = GetThreshold, put = SetThreshold))
+		int Threshold;
+
+	// Units (degF, degC, or raw)
+	CString GetUnits()
+	{
+		return m_csUnits;
+	}
+	// Units (degF, degC, or raw)
+	void SetUnits(CString value)
+	{
+		m_csUnits = value;
+	}
+	// Units (degF, degC, or raw)
+	__declspec(property(get = GetUnits, put = SetUnits))
+		CString Units;
+
+	// Output (Plot, Table, or Map+Plot
+	CString GetOutput()
+	{
+		return m_csOutput;
+	}
+	// Output (Plot, Table, or Map+Plot
+	void SetOutput(CString value)
+	{
+		m_csOutput = value;
+	}
+	// Output (Plot, Table, or Map+Plot
+	__declspec(property(get = GetOutput, put = SetOutput))
+		CString Output;
+
+	// the SQL created by the above
+	CString GetSQL()
+	{
+		return m_csSQL;
+	}
+	// the SQL created by the above
+	void SetSQL(CString value)
+	{
+		m_csSQL = value;
+	}
+	// the SQL created by the above
+	__declspec(property(get = GetSQL, put = SetSQL))
+		CString SQL;
+
 	/////////////////////////////////////////////////////////////////////////////
 	// Station data
 	/////////////////////////////////////////////////////////////////////////////

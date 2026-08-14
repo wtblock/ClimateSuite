@@ -175,7 +175,7 @@ public:
 		m_pPropThreshold->Enable(bEnable);
 	}
 
-	void UpdateTableOfContents();
+	void UpdateTableOfContents( CClimateExplorerDoc* pDoc = nullptr);
 
 	void AdjustLayout();
 

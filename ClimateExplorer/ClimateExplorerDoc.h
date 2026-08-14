@@ -10,6 +10,7 @@
 #include "NaturalLanguage.h"
 #include "Page.h"
 #include "SmartArray.h"
+#include <xmllite.h>
 
 /////////////////////////////////////////////////////////////////////////////
 class CClimateExplorerDoc : public CBaseDoc
@@ -99,6 +100,24 @@ protected:
 
 	// collection of page numbers to be exported
 	CKeyedCollection<UINT, UINT> m_keyExportPages;
+
+	// logical pixels per inch
+	int m_nMap;
+
+	// top margin in inches
+	double m_dTopMargin;
+
+	// bottom margin in inches
+	double m_dBottomMargin;
+
+	// inside margin in inches
+	double m_dInsideMargin;
+
+	// outside margin in inches
+	double m_dOutsideMargin;
+
+	// gutter in inches
+	double m_dGutter;
 
 	// number of pages in the document
 	UINT m_nPages;
@@ -360,6 +379,20 @@ public:
 	// number of pages in the document
 	__declspec(property(get = GetPages, put = SetPages))
 		UINT Pages;
+
+	// logical pixels per inch
+	virtual int GetMap()
+	{
+		return m_nMap;
+	}
+	// logical pixels per inch
+	void SetMap(int value)
+	{
+		m_nMap = value;
+	}
+	// logical pixels per inch
+	__declspec(property(get = GetMap, put = SetMap))
+		int Map;
 
 	// current page number of the entire document
 	// including the overhead pages of title and
@@ -711,10 +744,15 @@ public:
 	// top margin in inches
 	double GetTopMargin()
 	{
-		return 0.5;
+		return m_dTopMargin;
 	}
 	// top margin in inches
-	__declspec(property(get = GetTopMargin))
+	void SetTopMargin(double value)
+	{
+		m_dTopMargin = value;
+	}
+	// top margin in inches
+	__declspec(property(get = GetTopMargin, put = SetTopMargin))
 		double TopMargin;
 
 	// bottom margin in inches
@@ -723,7 +761,12 @@ public:
 		return 0.5;
 	}
 	// bottom margin in inches
-	__declspec(property(get = GetBottomMargin))
+	void SetBottomMargin(double value)
+	{
+		m_dBottomMargin = value;
+	}
+	// bottom margin in inches
+	__declspec(property(get = GetBottomMargin, put = SetBottomMargin))
 		double BottomMargin;
 
 	// inside margin in inches
@@ -732,25 +775,40 @@ public:
 		return 0.6;
 	}
 	// inside margin in inches
-	__declspec(property(get = GetInsideMargin))
+	void SetInsideMargin(double value)
+	{
+		m_dInsideMargin = value;
+	}
+	// inside margin in inches
+	__declspec(property(get = GetInsideMargin, put = SetInsideMargin))
 		double InsideMargin;
 
 	// outside margin in inches
 	double GetOutsideMargin()
 	{
-		return 0.4;
+		return m_dOutsideMargin;
 	}
 	// outside margin in inches
-	__declspec(property(get = GetOutsideMargin))
+	void SetOutsideMargin(double value)
+	{
+		m_dOutsideMargin = value;
+	}
+	// outside margin in inches
+	__declspec(property(get = GetOutsideMargin, put = SetOutsideMargin))
 		double OutsideMargin;
 
 	// gutter in inches
 	double GetGutter()
 	{
-		return 0.2;
+		return m_dGutter;
 	}
 	// gutter in inches
-	__declspec(property(get = GetGutter))
+	void SetGutter(double value)
+	{
+		m_dGutter = value;
+	}
+	// gutter in inches
+	__declspec(property(get = GetGutter, put = SetGutter))
 		double Gutter;
 
 	// left margin of the current page
@@ -1963,10 +2021,28 @@ protected:
 	// Conversion methods
 	// -------------------------------------------------------------
 	void ConvertTemperatureRows(const CSmartArray<CSmartArray<CString>>& arrRaw);
+	void ConvertTemperatureRows
+	(
+		const CSmartArray<CSmartArray<CString>>& arrRaw,
+		vector<double>& outYears,
+		vector<double>& outValues
+	);
 
 	void ConvertThresholdRows(const CSmartArray<CSmartArray<CString>>& arrRaw);
+	void ConvertThresholdRows
+	(
+		const CSmartArray<CSmartArray<CString>>& arrRaw,
+		vector<double>& outYears,
+		vector<double>& outValues
+	);
 
 	void ConvertStationRows(const CSmartArray<CSmartArray<CString>>& arrRaw);
+	void ConvertStationRows
+	(
+		const CSmartArray<CSmartArray<CString>>& arrRaw,
+		vector<double>& outYears,
+		vector<double>& outValues
+	);
 
 	// -------------------------------------------------------------
 	// Text formatting methods
@@ -1985,6 +2061,269 @@ protected:
 	void FormatThresholdCSV();
 
 	void FormatStationCSV();
+
+	// -------------------------------------------------------------
+// Formatting helpers
+// -------------------------------------------------------------
+	CString FormatInt(int value)
+	{
+		CString cs;
+		cs.Format(L"%d", value);
+		return cs;
+	}
+
+	CString FormatDouble(double value)
+	{
+		CString cs;
+		cs.Format(L"%.6f", value);
+		return cs;
+	}
+
+	CString FormatColor(COLORREF rgb)
+	{
+		CString cs;
+		cs.Format(L"%02x%02x%02x",
+			GetRValue(rgb),
+			GetGValue(rgb),
+			GetBValue(rgb));
+		return cs;
+	}
+
+	CString DashStyleToString(Gdiplus::DashStyle style)
+	{
+		switch (style)
+		{
+		case Gdiplus::DashStyleSolid:      return L"Solid";
+		case Gdiplus::DashStyleDash:       return L"Dash";
+		case Gdiplus::DashStyleDot:        return L"Dot";
+		case Gdiplus::DashStyleDashDot:    return L"DashDot";
+		case Gdiplus::DashStyleDashDotDot: return L"DashDotDot";
+		default:                           return L"Solid";
+		}
+	}
+
+	// -------------------------------------------------------------
+	// XML attribute readers
+	// -------------------------------------------------------------
+	CString ReadValueAttribute(IXmlReader* pReader)
+	{
+		if (pReader->MoveToFirstAttribute() == S_OK)
+		{
+			do
+			{
+				const WCHAR* pwszAttrName = nullptr;
+				const WCHAR* pwszValue = nullptr;
+
+				pReader->GetLocalName(&pwszAttrName, nullptr);
+				pReader->GetValue(&pwszValue, nullptr);
+
+				if (wcscmp(pwszAttrName, L"value") == 0)
+					return CString(pwszValue);
+
+			} while (pReader->MoveToNextAttribute() == S_OK);
+		}
+		return L"";
+	}
+
+	CString ReadAttribute(IXmlReader* pReader, LPCWSTR attrName)
+	{
+		if (pReader->MoveToFirstAttribute() == S_OK)
+		{
+			do
+			{
+				const WCHAR* pwszAttrName = nullptr;
+				const WCHAR* pwszValue = nullptr;
+
+				pReader->GetLocalName(&pwszAttrName, nullptr);
+				pReader->GetValue(&pwszValue, nullptr);
+
+				if (wcscmp(pwszAttrName, attrName) == 0)
+					return CString(pwszValue);
+
+			} while (pReader->MoveToNextAttribute() == S_OK);
+		}
+		return L"";
+	}
+
+	// -------------------------------------------------------------
+	// Identify document-level properties
+	// -------------------------------------------------------------
+	bool IsDocProperty(const CString& name)
+	{
+		return
+			name == L"Title" ||
+			name == L"Subtitle" ||
+			name == L"Publisher" ||
+			name == L"ISBN" ||
+			name == L"Copyright" ||
+			name == L"Description" ||
+			name == L"ExportFolder" ||
+			name == L"ExportPages" ||
+			name == L"ExportDPI" ||
+			name == L"ExportQuality" ||
+			name == L"PageWidthInches" ||
+			name == L"PageHeightInches" ||
+			name == L"LogicalDPI" ||
+			name == L"MarginTop" ||
+			name == L"MarginBottom" ||
+			name == L"MarginInside" ||
+			name == L"MarginOutside" ||
+			name == L"MarginGutter";
+	}
+
+	// -------------------------------------------------------------
+	// Assign document-level properties
+	// -------------------------------------------------------------
+	void AssignDocumentProperty(const CString& name, const CString& value)
+	{
+		if (name == L"Title") Title = value;
+		else if (name == L"Subtitle") Subtitle = value;
+		else if (name == L"Publisher") Publisher = value;
+		else if (name == L"ISBN") ISBN = value;
+		else if (name == L"Copyright") Copyright = value;
+		else if (name == L"Description") Description = value;
+		else if (name == L"ExportFolder") ExportFolder = value;
+		else if (name == L"ExportPages") ExportPages = value;
+		else if (name == L"ExportDPI") ExportDPI = _ttoi(value);
+		else if (name == L"ExportQuality") ExportQuality = _ttoi(value);
+		else if (name == L"PageWidthInches") WidthOfPage = _ttof(value);
+		else if (name == L"PageHeightInches") HeightOfPage = _ttof(value);
+		else if (name == L"LogicalDPI") Map = _ttoi(value);
+		else if (name == L"MarginTop") TopMargin = _ttof(value);
+		else if (name == L"MarginBottom") BottomMargin = _ttof(value);
+		else if (name == L"MarginInside") InsideMargin = _ttof(value);
+		else if (name == L"MarginOutside") OutsideMargin = _ttof(value);
+		else if (name == L"MarginGutter") Gutter = _ttof(value);
+	}
+
+	// -------------------------------------------------------------
+	// Identify plot-level properties
+	// -------------------------------------------------------------
+	bool IsPlotProperty(const CString& name)
+	{
+		return
+			name == L"QueryType" ||
+			name == L"Pure" ||
+			name == L"Scope" ||
+			name == L"YearStart" ||
+			name == L"YearEnd" ||
+			name == L"Subtype" ||
+			name == L"Threshold" ||
+			name == L"Units" ||
+			name == L"Output" ||
+			name == L"State" ||
+			name == L"Location" ||
+			name == L"Station" ||
+			name == L"Latitude" ||
+			name == L"Longitude" ||
+			name == L"SQL" ||
+
+			name == L"GraphTitle" ||
+			name == L"AxisLabelX" ||
+			name == L"AxisLabelY" ||
+
+			name == L"LineColor" ||
+			name == L"LineStyle" ||
+			name == L"LineThicknessInches" ||
+
+			name == L"TrendLine" ||
+			name == L"TrendLineColor" ||
+			name == L"TrendLineStyle" ||
+			name == L"TrendLineThicknessInches" ||
+
+			name == L"GridLineColor" ||
+			name == L"GridLineStyle" ||
+			name == L"GridLineThicknessInches" ||
+
+			name == L"TitleFontSizePoints" ||
+			name == L"AxisLabelFontSizePoints" ||
+			name == L"TickLabelFontSizePoints" ||
+
+			name == L"PaddingLeft" ||
+			name == L"PaddingRight" ||
+			name == L"PaddingTop" ||
+			name == L"PaddingBottom" ||
+
+			name == L"TickLengthInches" ||
+			name == L"Layout";
+	}
+
+	// -------------------------------------------------------------
+	// Assign plot-level properties
+	// -------------------------------------------------------------
+	void AssignPlotProperty(shared_ptr<CGraphPlotter>& pPlot,
+		const CString& name,
+		const CString& value)
+	{
+		if (!pPlot) return;
+
+		if (name == L"QueryType") pPlot->QueryType = value;
+		else if (name == L"Pure") pPlot->Pure = (value == L"true");
+		else if (name == L"Scope") pPlot->Scope = value;
+		else if (name == L"YearStart") pPlot->YearStart = _ttoi(value);
+		else if (name == L"YearEnd") pPlot->YearEnd = _ttoi(value);
+		else if (name == L"Subtype") pPlot->Subtype = value;
+		else if (name == L"Threshold") pPlot->Threshold = _ttoi(value);
+		else if (name == L"Units") pPlot->Units = value;
+		else if (name == L"Output") pPlot->Output = value;
+
+		else if (name == L"State") pPlot->State = value;
+		else if (name == L"Location") pPlot->Location = value;
+		else if (name == L"Station") pPlot->Station = value;
+
+		else if (name == L"Latitude") pPlot->Latitude = (float)_ttof(value);
+		else if (name == L"Longitude") pPlot->Longitude = (float)_ttof(value);
+
+		else if (name == L"SQL") pPlot->SQL = value;
+
+		else if (name == L"GraphTitle") pPlot->GraphTitle = value;
+		else if (name == L"AxisLabelX") pPlot->AxisLabelX = value;
+		else if (name == L"AxisLabelY") pPlot->AxisLabelY = value;
+
+		else if (name == L"LineColor") pPlot->LineColor = wcstol(value, nullptr, 16);
+		else if (name == L"LineStyle") pPlot->LineStyle = StringToDashStyle(value);
+		else if (name == L"LineThicknessInches") pPlot->LineThicknessInches = _ttof(value);
+
+		else if (name == L"TrendLine") pPlot->TrendLine = (value == L"true");
+		else if (name == L"TrendLineColor") pPlot->TrendLineColor = wcstol(value, nullptr, 16);
+		else if (name == L"TrendLineStyle") pPlot->TrendLineStyle = StringToDashStyle(value);
+		else if (name == L"TrendLineThicknessInches") pPlot->TrendLineThicknessInches = _ttof(value);
+
+		else if (name == L"GridLineColor") pPlot->GridColor = wcstol(value, nullptr, 16);
+		else if (name == L"GridLineStyle") pPlot->GridLineStyle = StringToDashStyle(value);
+		else if (name == L"GridLineThicknessInches") pPlot->GridLineThicknessInches = _ttof(value);
+
+		else if (name == L"TitleFontSizePoints") pPlot->TitleFontSizePoints = _ttoi(value);
+		else if (name == L"AxisLabelFontSizePoints") pPlot->AxisLabelFontSizePoints = _ttoi(value);
+		else if (name == L"TickLabelFontSizePoints") pPlot->TickLabelFontSizePoints = _ttoi(value);
+
+		else if (name == L"PaddingLeft") pPlot->LeftPaddingInches = _ttof(value);
+		else if (name == L"PaddingRight") pPlot->RightPaddingInches = _ttof(value);
+		else if (name == L"PaddingTop") pPlot->TopPaddingInches = _ttof(value);
+		else if (name == L"PaddingBottom") pPlot->BottomPaddingInches = _ttof(value);
+
+		else if (name == L"TickLengthInches") pPlot->TickLengthInches = _ttof(value);
+		else if (name == L"Layout") pPlot->Layout = value;
+	}
+
+	Gdiplus::DashStyle StringToDashStyle(const CString& s)
+	{
+		if (s == L"Solid") return Gdiplus::DashStyleSolid;
+		if (s == L"Dash") return Gdiplus::DashStyleDash;
+		if (s == L"Dot") return Gdiplus::DashStyleDot;
+		if (s == L"DashDot") return Gdiplus::DashStyleDashDot;
+		if (s == L"DashDotDot") return Gdiplus::DashStyleDashDotDot;
+		return Gdiplus::DashStyleSolid;
+	}
+
+	CString FormatPageKey(UINT page)
+	{
+		CString cs;
+		cs.Format(L"Page_%u", page);
+		return cs;
+	}
+
+	void ExecutePlotQuery(shared_ptr<CGraphPlotter>& pPlot);
 
 // public methods
 public:

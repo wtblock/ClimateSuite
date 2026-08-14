@@ -1187,7 +1187,7 @@ void CClimateExplorerView::OnInitialUpdate()
 	// update the table of contents in the property panel
 	CMainFrame* pMainFrame = static_cast<CMainFrame*>(AfxGetMainWnd());
 	CPropertiesWnd* pProps = pMainFrame->PropertiesPane;
-	pProps->UpdateTableOfContents();
+	//pProps->UpdateTableOfContents();
 
 	CSize sizeTotal(nWidth, nHeight);
 	SetScrollSizes(MM_HIENGLISH, sizeTotal);

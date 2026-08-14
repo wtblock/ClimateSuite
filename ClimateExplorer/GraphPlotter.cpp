@@ -91,12 +91,32 @@ CGraphPlotter::~CGraphPlotter()
 /////////////////////////////////////////////////////////////////////////////
 void CGraphPlotter::SetDefaults(CClimateExplorerDoc* pDoc)
 {
+	// -------------------------------------------------------------
+	// Query properties
+	// -------------------------------------------------------------
+	QueryType = pDoc->QueryType;
+	Pure = pDoc->Pure;
+	Scope = pDoc->Scope;
+	YearStart = pDoc->YearStart;
+	YearEnd = pDoc->YearEnd;
+	Subtype = pDoc->Subtype;
+	Threshold = pDoc->Threshold;
+	Units = pDoc->Units;
+	Output = pDoc->Output;
+	SQL = pDoc->SQL;
+	State = pDoc->State;
+	Location = pDoc->Location;
+
+	// -------------------------------------------------------------
+	// Station data
+	// -------------------------------------------------------------
 	Station = L"";
-	State = L"";
-	Location = L"";
 	Longitude = 0.0f;
 	Latitude = 0.0f;
 
+	// -------------------------------------------------------------
+	// Title and labels
+	// -------------------------------------------------------------
 	GraphTitle = pDoc->GraphTitle;
 	AxisLabelX = pDoc->AxisLabelX;
 	AxisLabelY = pDoc->AxisLabelY;

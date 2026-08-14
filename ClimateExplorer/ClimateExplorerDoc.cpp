@@ -9,7 +9,6 @@
 #include "ThumbnailDialog.h"
 #include "MainFrm.h"
 #include <propkey.h>
-#include <xmllite.h>
 #include <set>
 #include "Color.h"
 
@@ -71,6 +70,13 @@ CClimateExplorerDoc::~CClimateExplorerDoc()
 /////////////////////////////////////////////////////////////////////////////
 void CClimateExplorerDoc::InitializeProperties()
 {
+	Map = 1000;
+	TopMargin = 0.5;
+	BottomMargin = 0.5;
+	InsideMargin = 0.6;
+	OutsideMargin = 0.4;
+	Gutter = 0.2;
+
 	HeightOfPage = 11.0;
 	WidthOfPage = 8.5;
 
@@ -192,101 +198,185 @@ CString CClimateExplorerDoc::GenerateMapLink(double dLat, double dLong, bool bBi
 /////////////////////////////////////////////////////////////////////////////
 BOOL CClimateExplorerDoc::OnSaveDocument(CString& csPath)
 {
-	bool value = false;
+	BOOL value = FALSE;
 	IStream* pFileStream = nullptr;
+
 	HRESULT hr = SHCreateStreamOnFileW(
 		csPath, STGM_CREATE | STGM_WRITE, &pFileStream);
 
 	if (FAILED(hr))
 	{
 		AfxMessageBox(L"Failed to create file stream.");
-		return value;
+		return FALSE;
 	}
 
 	IXmlWriter* pWriter = nullptr;
 	hr = CreateXmlWriter(__uuidof(IXmlWriter),
-		reinterpret_cast<void**>(&pWriter),
-		nullptr);
+		reinterpret_cast<void**>(&pWriter), nullptr);
+
 	if (FAILED(hr))
 	{
 		AfxMessageBox(L"Failed to create XML writer.");
 		pFileStream->Release();
-		return value;
+		return FALSE;
 	}
 
-	hr = pWriter->SetOutput(pFileStream);
-	if (FAILED(hr))
-	{
-		AfxMessageBox(L"Failed to set output for XML writer.");
-		pWriter->Release();
-		pFileStream->Release();
-		return value;
-	}
-
-	// ⭐ Enable pretty-print formatting
+	pWriter->SetOutput(pFileStream);
 	pWriter->SetProperty(XmlWriterProperty_Indent, TRUE);
 
-	value = true;
-
-	pWriter->WriteStartDocument(XmlStandalone_Yes);
-	pWriter->WriteStartElement(nullptr, L"ClimateExplorer", nullptr);
-
-	auto WriteStringProp = [&](LPCWSTR name, const CString& val)
+	auto WriteProp = [&](LPCWSTR name, const CString& val, LPCWSTR type)
 	{
 		pWriter->WriteStartElement(nullptr, name, nullptr);
 		pWriter->WriteAttributeString(nullptr, L"value", nullptr, val);
-		pWriter->WriteAttributeString(nullptr, L"type", nullptr, L"string");
+		pWriter->WriteAttributeString(nullptr, L"type", nullptr, type);
 		pWriter->WriteEndElement();
 	};
 
-	WriteStringProp(L"Title", Title);
-	WriteStringProp(L"Subtitle", Subtitle);
-	WriteStringProp(L"Publisher", Publisher);
-	WriteStringProp(L"ISBN", ISBN);
-	WriteStringProp(L"Copyright", Copyright);
-	WriteStringProp(L"Description", Description);
-	WriteStringProp(L"ExportFolder", ExportFolder);
-	WriteStringProp(L"ExportPages", ExportPages);
+	// ============================================================
+	// START DOCUMENT
+	// ============================================================
+	pWriter->WriteStartDocument(XmlStandalone_Yes);
+	pWriter->WriteStartElement(nullptr, L"ClimateExplorer", nullptr);
 
-	CString csDpi;
-	csDpi.Format(L"%d", ExportDPI > 0 ? ExportDPI : 400);
-	WriteStringProp(L"ExportDPI", csDpi);
+	// ============================================================
+	// DOCUMENT METADATA
+	// ============================================================
+	WriteProp(L"Title", Title, L"string");
+	WriteProp(L"Subtitle", Subtitle, L"string");
+	WriteProp(L"Publisher", Publisher, L"string");
+	WriteProp(L"ISBN", ISBN, L"string");
+	WriteProp(L"Copyright", Copyright, L"string");
+	WriteProp(L"Description", Description, L"string");
 
-	CString csQuality;
-	csQuality.Format(L"%d", ExportQuality > 0 ? ExportQuality : 75);
-	WriteStringProp(L"ExportQuality", csQuality);
+	// ============================================================
+	// EXPORT SETTINGS
+	// ============================================================
+	WriteProp(L"ExportFolder", ExportFolder, L"string");
+	WriteProp(L"ExportPages", ExportPages, L"string");
 
-	pWriter->WriteEndElement();   // </ClimateExplorer>
+	CString csDpi; csDpi.Format(L"%d", ExportDPI);
+	WriteProp(L"ExportDPI", csDpi, L"int");
+
+	CString csQuality; csQuality.Format(L"%d", ExportQuality);
+	WriteProp(L"ExportQuality", csQuality, L"int");
+
+	// ============================================================
+	// PAGE LAYOUT SETTINGS
+	// ============================================================
+	WriteProp(L"PageWidthInches", FormatDouble(WidthOfPage), L"double");
+	WriteProp(L"PageHeightInches", FormatDouble(HeightOfPage), L"double");
+
+	CString csMap; csMap.Format(L"%d", Map);
+	WriteProp(L"LogicalDPI", csMap, L"int");
+
+	WriteProp(L"MarginTop", FormatDouble(TopMargin), L"double");
+	WriteProp(L"MarginBottom", FormatDouble(BottomMargin), L"double");
+	WriteProp(L"MarginInside", FormatDouble(InsideMargin), L"double");
+	WriteProp(L"MarginOutside", FormatDouble(OutsideMargin), L"double");
+	WriteProp(L"MarginGutter", FormatDouble(Gutter), L"double");
+
+	// ============================================================
+	// PAGES
+	// ============================================================
+	pWriter->WriteStartElement(nullptr, L"Pages", nullptr);
+
+	for (auto& pPage : m_arrPages.Items)
+	{
+		pWriter->WriteStartElement(nullptr, L"Page", nullptr);
+
+		CString csPageNum; csPageNum.Format(L"%u", pPage->Page);
+		CString csType;
+		switch (pPage->PageType)
+		{
+		case CPage::pageCover: csType = L"Cover"; break;
+		case CPage::pageTOC:   csType = L"TOC"; break;
+		case CPage::pageGraph: csType = L"Graph"; break;
+		}
+
+		pWriter->WriteAttributeString(nullptr, L"number", nullptr, csPageNum);
+		pWriter->WriteAttributeString(nullptr, L"type", nullptr, csType);
+		pWriter->WriteAttributeString(nullptr, L"layout", nullptr, pPage->Layout);
+
+		// ========================================================
+		// PLOTS ON THIS PAGE
+		// ========================================================
+		pWriter->WriteStartElement(nullptr, L"Plots", nullptr);
+
+		for (auto& plotNode : pPage->Plots.Items)
+		{
+			shared_ptr<CGraphPlotter> pPlot = plotNode.second;
+
+			pWriter->WriteStartElement(nullptr, L"Plot", nullptr);
+
+			// ---------------- QUERY PROPERTIES -------------------
+			WriteProp(L"QueryType", pPlot->QueryType, L"string");
+			WriteProp(L"Pure", pPlot->Pure ? L"true" : L"false", L"bool");
+			WriteProp(L"Scope", pPlot->Scope, L"string");
+
+			WriteProp(L"YearStart", FormatInt(pPlot->YearStart), L"int");
+			WriteProp(L"YearEnd", FormatInt(pPlot->YearEnd), L"int");
+
+			WriteProp(L"Subtype", pPlot->Subtype, L"string");
+			WriteProp(L"Threshold", FormatInt(pPlot->Threshold), L"int");
+
+			WriteProp(L"Units", pPlot->Units, L"string");
+			WriteProp(L"Output", pPlot->Output, L"string");
+
+			WriteProp(L"State", pPlot->State, L"string");
+			WriteProp(L"Location", pPlot->Location, L"string");
+			WriteProp(L"Station", pPlot->Station, L"string");
+
+			WriteProp(L"Latitude", FormatDouble(pPlot->Latitude), L"double");
+			WriteProp(L"Longitude", FormatDouble(pPlot->Longitude), L"double");
+
+			WriteProp(L"SQL", pPlot->SQL, L"string");
+
+			// ---------------- APPEARANCE PROPERTIES --------------
+			WriteProp(L"GraphTitle", pPlot->GraphTitle, L"string");
+			WriteProp(L"AxisLabelX", pPlot->AxisLabelX, L"string");
+			WriteProp(L"AxisLabelY", pPlot->AxisLabelY, L"string");
+
+			WriteProp(L"LineColor", FormatColor(pPlot->LineColor), L"color");
+			WriteProp(L"LineStyle", DashStyleToString(pPlot->LineStyle), L"string");
+			WriteProp(L"LineThicknessInches", FormatDouble(pPlot->LineThicknessInches), L"double");
+
+			WriteProp(L"TrendLine", pPlot->TrendLine ? L"true" : L"false", L"bool");
+			WriteProp(L"TrendLineColor", FormatColor(pPlot->TrendLineColor), L"color");
+			WriteProp(L"TrendLineStyle", DashStyleToString(pPlot->TrendLineStyle), L"string");
+			WriteProp(L"TrendLineThicknessInches", FormatDouble(pPlot->TrendLineThicknessInches), L"double");
+
+			WriteProp(L"GridLineColor", FormatColor(pPlot->GridColor), L"color");
+			WriteProp(L"GridLineStyle", DashStyleToString(pPlot->GridLineStyle), L"string");
+			WriteProp(L"GridLineThicknessInches", FormatDouble(pPlot->GridLineThicknessInches), L"double");
+
+			WriteProp(L"TitleFontSizePoints", FormatInt(pPlot->TitleFontSizePoints), L"int");
+			WriteProp(L"AxisLabelFontSizePoints", FormatInt(pPlot->AxisLabelFontSizePoints), L"int");
+			WriteProp(L"TickLabelFontSizePoints", FormatInt(pPlot->TickLabelFontSizePoints), L"int");
+
+			WriteProp(L"PaddingLeft", FormatDouble(pPlot->LeftPaddingInches), L"double");
+			WriteProp(L"PaddingRight", FormatDouble(pPlot->RightPaddingInches), L"double");
+			WriteProp(L"PaddingTop", FormatDouble(pPlot->TopPaddingInches), L"double");
+			WriteProp(L"PaddingBottom", FormatDouble(pPlot->BottomPaddingInches), L"double");
+
+			WriteProp(L"TickLengthInches", FormatDouble(pPlot->TickLengthInches), L"double");
+			WriteProp(L"Layout", pPlot->Layout, L"string");
+
+			pWriter->WriteEndElement(); // </Plot>
+		}
+
+		pWriter->WriteEndElement(); // </Plots>
+		pWriter->WriteEndElement(); // </Page>
+	}
+
+	pWriter->WriteEndElement(); // </Pages>
+	pWriter->WriteEndElement(); // </ClimateExplorer>
 	pWriter->WriteEndDocument();
 
 	pWriter->Release();
 	pFileStream->Release();
 
-	CMainFrame* pFrame = (CMainFrame*)AfxGetMainWnd();
-	CPropertiesWnd* pProperties = pFrame->PropertiesPane;
-	CPropertyGridCtrl* pProps = pProperties->PropList;
-	pProperties->UpdatePropertiesFromDocument(this);
-
-	// Build flat list of editable properties
-	vector<CMFCPropertyGridProperty*> flat;
-	pProps->BuildFlatList(flat);
-
-	// clear modified state on every property so they are no 
-	// longer bolded
-	for ( auto& pProp : flat)
-	{
-		if (pProp->IsModified())
-		{
-			COleVariant var = pProp->GetValue();
-			pProp->SetOriginalValue(var);
-			pProp->ResetOriginalValue();
-		}
-	}
-
 	SetModifiedFlag(FALSE);
-	pProps->Invalidate();
-
-	return value;
+	return TRUE;
 } // OnSaveDocument
 
 /////////////////////////////////////////////////////////////////////////////
@@ -311,145 +401,127 @@ BOOL CClimateExplorerDoc::PromptForFileName(CString& strFilePath)
 // open a data file
 bool CClimateExplorerDoc::Open(LPCTSTR szFilename, bool bRead, LPCTSTR pcszFileID)
 {
-	bool value = false;
-
 	IStream* pFileStream = nullptr;
 	HRESULT hr = SHCreateStreamOnFileW(szFilename, STGM_READ, &pFileStream);
 	if (FAILED(hr))
 	{
-		AfxMessageBox( L"Failed to create file stream." );
-		return value;
+		AfxMessageBox(L"Failed to open file.");
+		return false;
 	}
 
 	IXmlReader* pReader = nullptr;
-	hr = CreateXmlReader
-	(
-		__uuidof(IXmlReader), reinterpret_cast<void**>(&pReader), nullptr
-	);
+	hr = CreateXmlReader(__uuidof(IXmlReader),
+		reinterpret_cast<void**>(&pReader), nullptr);
 	if (FAILED(hr))
 	{
-		AfxMessageBox(L"Failed to create XML reader." );
+		AfxMessageBox(L"Failed to create XML reader.");
 		pFileStream->Release();
-		return value;
+		return false;
 	}
 
-	hr = pReader->SetInput(pFileStream);
-	if (FAILED(hr))
-	{
-		AfxMessageBox(L"Failed to set input for XML reader." );
-		pReader->Release();
-		pFileStream->Release();
-		return value;
-	}
+	pReader->SetInput(pFileStream);
 
 	XmlNodeType nodeType;
+	CString currentElement;
+
+	shared_ptr<CPage>         currentPage;
+	shared_ptr<CGraphPlotter> currentPlot;
+
+	m_arrPages.clear();
+
 	while (S_OK == pReader->Read(&nodeType))
 	{
 		if (nodeType == XmlNodeType_Element)
 		{
 			const WCHAR* pwszLocalName = nullptr;
 			pReader->GetLocalName(&pwszLocalName, nullptr);
+			currentElement = pwszLocalName;
 
-			if
-				(
-					wcscmp(pwszLocalName, L"Title") == 0 ||
-					wcscmp(pwszLocalName, L"Subtitle") == 0 ||
-					wcscmp(pwszLocalName, L"Publisher") == 0 ||
-					wcscmp(pwszLocalName, L"ISBN") == 0 ||
-					wcscmp(pwszLocalName, L"Copyright") == 0 ||
-					wcscmp(pwszLocalName, L"Description") == 0 ||
-					wcscmp(pwszLocalName, L"StartFolder") == 0 ||
-					wcscmp(pwszLocalName, L"EndFolder") == 0 ||
-					wcscmp(pwszLocalName, L"Query") == 0 ||
-					wcscmp(pwszLocalName, L"ExportFolder") == 0 ||
-					wcscmp(pwszLocalName, L"ExportPages") == 0 ||
-					wcscmp(pwszLocalName, L"ExportDPI") == 0 ||
-					wcscmp(pwszLocalName, L"ExportQuality") == 0
-				)
+			// document-level properties
+			if (IsDocProperty(currentElement))
 			{
-				if (pReader->MoveToFirstAttribute() == S_OK)
+				CString val = ReadValueAttribute(pReader);
+				AssignDocumentProperty(currentElement, val);
+			}
+			// page start
+			else if (currentElement == L"Page")
+			{
+				CString csNumber = ReadAttribute(pReader, L"number");
+				CString csType = ReadAttribute(pReader, L"type");
+				CString csLayout = ReadAttribute(pReader, L"layout");
+
+				UINT nPage = _tstol(csNumber);
+
+				CPage::PAGE_TYPE eType =
+					csType == L"Cover" ? CPage::pageCover :
+					csType == L"TOC" ? CPage::pageTOC :
+					CPage::pageGraph;
+
+				currentPage = make_shared<CPage>(nPage, csLayout, this, eType);
+				m_arrPages.append(currentPage);
+			}
+			// plot start
+			else if (currentElement == L"Plot")
+			{
+				currentPlot = make_shared<CGraphPlotter>(this);
+			}
+			// plot property
+			else if (IsPlotProperty(currentElement))
+			{
+				CString val = ReadValueAttribute(pReader);
+				AssignPlotProperty(currentPlot, currentElement, val);
+			}
+		}
+		else if (nodeType == XmlNodeType_EndElement)
+		{
+			const WCHAR* pwszLocalName = nullptr;
+			pReader->GetLocalName(&pwszLocalName, nullptr);
+			CString endElement = pwszLocalName;
+
+			if (endElement == L"Plot")
+			{
+				// rebuild plot data from SQL
+				ExecutePlotQuery(currentPlot);
+
+				// use plot title as key
+				CString csKey = currentPlot->GraphTitle;
+				if (csKey.IsEmpty())
+					csKey = L"Untitled Plot";
+
+				// ensure uniqueness if needed
+				int suffix = 1;
+				CString csOrigKey = csKey;
+				while (currentPage->Plots.Exists[csKey])
 				{
-					do
-					{
-						const WCHAR* pwszAttrName = nullptr;
-						const WCHAR* pwszValue = nullptr;
-
-						pReader->GetLocalName(&pwszAttrName, nullptr);
-						pReader->GetValue(&pwszValue, nullptr);
-
-						if (wcscmp(pwszAttrName, L"value") == 0)
-						{
-							CString elementName(pwszLocalName);
-							CString elementValue(pwszValue);
-
-							if (elementName == L"Title")
-							{
-								Title = elementValue;
-
-							}
-							else if (elementName == L"Subtitle")
-							{
-								Subtitle = elementValue;
-
-							}
-							else if (elementName == L"Publisher")
-							{
-								Publisher = elementValue;
-
-							}
-							else if (elementName == L"ISBN")
-							{
-								ISBN = elementValue;
-
-							}
-							else if (elementName == L"Copyright")
-							{
-								Copyright = elementValue;
-
-							}
-							else if (elementName == L"Description")
-							{
-								Description = elementValue;
-
-							}
-							else if (elementName == L"ExportFolder")
-							{
-								ExportFolder = elementValue;
-							}
-							else if (elementName == L"ExportPages")
-							{
-								ExportPages = elementValue;
-							}
-							else if (elementName == L"ExportDPI")
-							{
-								if (elementValue.IsEmpty())
-								{
-									elementValue = L"400";
-								}
-								UINT nValue = (UINT)_tstol(elementValue);
-
-								ExportDPI = nValue;
-							}
-							else if (elementName == L"ExportQuality")
-							{
-								if (elementValue.IsEmpty())
-								{
-									elementValue = L"75";
-								}
-								UINT nValue = (UINT)_tstol(elementValue);
-
-								ExportQuality = nValue;
-							}
-						}
-					} while (pReader->MoveToNextAttribute() == S_OK);
+					csKey.Format(L"%s (%d)", csOrigKey.GetString(), suffix++);
 				}
+
+				currentPage->Plots.add(csKey, currentPlot);
 			}
 		}
 	}
-	value = true;
+
 	pReader->Release();
 	pFileStream->Release();
-	return value;
+
+	Pages = (UINT)m_arrPages.Count;
+
+	CMainFrame* pFrame = (CMainFrame*)AfxGetMainWnd();
+	if (pFrame != nullptr)
+	{
+		CPropertiesWnd* pProps = pFrame->PropertiesPane;
+		if (pProps != nullptr)
+			pProps->UpdateTableOfContents(this);
+
+		CClimateExplorerView* pView = ClimateExplorerView;
+		if (pView != nullptr)
+		{
+			pView->SetupScrollBars();
+			pView->Invalidate();
+		}
+	}
+
+	return true;
 } // Open
 
 /////////////////////////////////////////////////////////////////////////////
@@ -704,7 +776,7 @@ BOOL CClimateExplorerDoc::OnOpenDocument(LPCTSTR lpszPathName)
 		CPropertiesWnd* pProperties = pFrame->PropertiesPane;
 		pProperties->UpdatePropertiesFromDocument( this );
 		pProperties->PropList->ResetOriginalValues();
-		InitDocument();
+		//InitDocument();
 		CClimateExplorerView* pView = ClimateExplorerView;
 		pView->Invalidate();
 		value = TRUE;
@@ -734,6 +806,51 @@ void CClimateExplorerDoc::OnCloseDocument()
 
 	CBaseDoc::OnCloseDocument();
 } // OnCloseDocument
+
+/////////////////////////////////////////////////////////////////////////////
+void CClimateExplorerDoc::ExecutePlotQuery(shared_ptr<CGraphPlotter>& pPlot)
+{
+	if (!pPlot) return;
+
+	// -------------------------------------------------------------
+	// 1. Clear previous results
+	// -------------------------------------------------------------
+	pPlot->Years.clear();
+	pPlot->Values.clear();
+
+	// -------------------------------------------------------------
+	// 2. Execute SQL
+	// -------------------------------------------------------------
+	CSmartArray<CSmartArray<CString>> arrRawRows;
+	CString csSQL = pPlot->SQL;
+
+	ClimateDatabase->ExecuteTable(csSQL, arrRawRows);
+
+	// -------------------------------------------------------------
+	// 3. Branch based on Subtype
+	// -------------------------------------------------------------
+	CString csSubtype = pPlot->Subtype;
+
+	if (csSubtype == L"Maximum" ||
+		csSubtype == L"Minimum" ||
+		csSubtype == L"Average")
+	{
+		ConvertTemperatureRows(arrRawRows, pPlot->Years, pPlot->Values);
+		return;
+	}
+
+	if (csSubtype == L"Threshold")
+	{
+		ConvertThresholdRows(arrRawRows, pPlot->Years, pPlot->Values);
+		return;
+	}
+
+	if (csSubtype == L"Stations")
+	{
+		ConvertStationRows(arrRawRows, pPlot->Years, pPlot->Values);
+		return;
+	}
+} // ExecutePlotQuery
 
 /////////////////////////////////////////////////////////////////////////////
 void CClimateExplorerDoc::OnExecuteQuery()
@@ -949,8 +1066,6 @@ void CClimateExplorerDoc::OnExecuteQuery()
 		shared_ptr<CGraphPlotter> pPlot = 
 			shared_ptr<CGraphPlotter>( new CGraphPlotter(this, Years, Values));
 		pPlot->Station = csStation;
-		pPlot->State = csState;
-		pPlot->Location = csCity;
 		pPlot->Latitude = fLatitude;
 		pPlot->Longitude = fLongitude;
 
@@ -1446,6 +1561,42 @@ void CClimateExplorerDoc::ConvertTemperatureRows
 } // ConvertTemperatureRows
 
 /////////////////////////////////////////////////////////////////////////////
+void CClimateExplorerDoc::ConvertTemperatureRows
+(
+	const CSmartArray<CSmartArray<CString>>& arrRaw,
+	vector<double>& outYears,
+	vector<double>& outValues
+)
+{
+	outYears.clear();
+	outValues.clear();
+
+	for (auto& pRow : arrRaw.Items)
+	{
+		int nCol = 0;
+		int year = 0;
+		double temp = 0.0;
+
+		for (auto& pCol : pRow->Items)
+		{
+			switch (nCol)
+			{
+			case 0:
+				year = _ttoi(*pCol);
+				break;
+			case 1:
+				temp = _ttof(*pCol);
+				break;
+			}
+			nCol++;
+		}
+
+		outYears.push_back((double)year);
+		outValues.push_back(temp);
+	}
+}
+
+/////////////////////////////////////////////////////////////////////////////
 // ConvertThresholdRows
 /////////////////////////////////////////////////////////////////////////////
 void CClimateExplorerDoc::ConvertThresholdRows
@@ -1486,6 +1637,42 @@ void CClimateExplorerDoc::ConvertThresholdRows
 } // ConvertThresholdRows
 
 /////////////////////////////////////////////////////////////////////////////
+void CClimateExplorerDoc::ConvertThresholdRows
+(
+	const CSmartArray<CSmartArray<CString>>& arrRaw,
+	vector<double>& outYears,
+	vector<double>& outValues
+)
+{
+	outYears.clear();
+	outValues.clear();
+
+	for (auto& pRow : arrRaw.Items)
+	{
+		int nCol = 0;
+		int year = 0;
+		double percent = 0.0;
+
+		for (auto& pCol : pRow->Items)
+		{
+			switch (nCol)
+			{
+			case 0:
+				year = _ttoi(*pCol);
+				break;
+			case 1:
+				percent = _ttof(*pCol);
+				break;
+			}
+			nCol++;
+		}
+
+		outYears.push_back((double)year);
+		outValues.push_back(percent);
+	}
+} // ConvertThresholdRows
+
+/////////////////////////////////////////////////////////////////////////////
 // ConvertStationRows
 /////////////////////////////////////////////////////////////////////////////
 void CClimateExplorerDoc::ConvertStationRows
@@ -1523,6 +1710,42 @@ void CClimateExplorerDoc::ConvertStationRows
 		m_arrStationRows.push_back(r);
 	}
 
+} // ConvertStationRows
+
+/////////////////////////////////////////////////////////////////////////////
+void CClimateExplorerDoc::ConvertStationRows
+(
+	const CSmartArray<CSmartArray<CString>>& arrRaw,
+	vector<double>& outYears,
+	vector<double>& outValues
+)
+{
+	outYears.clear();
+	outValues.clear();
+
+	for (auto& pRow : arrRaw.Items)
+	{
+		int nCol = 0;
+		int year = 0;
+		int count = 0;
+
+		for (auto& pCol : pRow->Items)
+		{
+			switch (nCol)
+			{
+			case 0:
+				year = _ttoi(*pCol);
+				break;
+			case 1:
+				count = _ttoi(*pCol);
+				break;
+			}
+			nCol++;
+		}
+
+		outYears.push_back((double)year);
+		outValues.push_back((double)count);
+	}
 } // ConvertStationRows
 
 /////////////////////////////////////////////////////////////////////////////

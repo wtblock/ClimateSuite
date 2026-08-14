@@ -1987,9 +1987,12 @@ void CPropertiesWnd::HandleStateChanged(CMFCPropertyGridProperty* pProp)
 } // HandleStateChanged
 
 /////////////////////////////////////////////////////////////////////////////
-void CPropertiesWnd::UpdateTableOfContents()
+void CPropertiesWnd::UpdateTableOfContents(CClimateExplorerDoc* pDoc)
 {
-	CClimateExplorerDoc* pDoc = ClimateExplorerDocument;
+	if (pDoc == nullptr)
+	{
+		pDoc = ClimateExplorerDocument;
+	}
 
 	if (!pDoc || !m_wndPropList.GetSafeHwnd())
 		return;

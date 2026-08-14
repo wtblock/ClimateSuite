@@ -55,10 +55,10 @@ protected: // create from serialization only
 	CBaseDoc();
 	DECLARE_DYNCREATE(CBaseDoc)
 
-	// properties
+// properties
 public:
 	// logical pixels per inch
-	static int GetMap()
+	virtual int GetMap()
 	{
 		return 1000;
 	}
