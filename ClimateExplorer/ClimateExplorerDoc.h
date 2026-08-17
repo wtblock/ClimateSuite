@@ -15,8 +15,16 @@
 /////////////////////////////////////////////////////////////////////////////
 class CClimateExplorerDoc : public CBaseDoc
 {
-	// public definitions
+// public definitions
 public:
+	// Temporary storage for CE PNGs before ZIP packaging
+	struct CEPNG
+	{
+		CString filename;
+		std::vector<BYTE> bytes;
+	};
+
+	std::vector<CEPNG> m_arrCEPNGs;
 
 	/////////////////////////////////////////////////////////////////////////////
 	// Row structures for each Subtype
@@ -56,6 +64,118 @@ public:
 		CClimateStationRow()
 			: nYear(0)
 			, nCount(0)
+		{
+		}
+	};
+
+	/////////////////////////////////////////////////////////////////////////////
+	// PlotProps
+	//
+	// Temporary structure used only during LoadCEx() to collect plot-level
+	// properties from the XML before restoring them into the document.
+	// OnExecuteQuery() will regenerate pages and plots using these restored
+	// document properties.
+	//
+	/////////////////////////////////////////////////////////////////////////////
+	struct PlotProps
+	{
+		// -------------------------------------------------------------
+		// Query properties
+		// -------------------------------------------------------------
+		CString QueryType;
+		bool    Pure;
+		CString Scope;
+		long    YearStart;
+		long    YearEnd;
+		CString Subtype;
+		int     Threshold;
+		CString Units;
+		CString Output;
+		CString State;
+		CString Location;
+		CString Station;
+		double  Latitude;
+		double  Longitude;
+
+		// -------------------------------------------------------------
+		// Appearance: Titles and labels
+		// -------------------------------------------------------------
+		CString GraphTitle;
+		CString AxisLabelX;
+		CString AxisLabelY;
+
+		// -------------------------------------------------------------
+		// Curve line appearance
+		// -------------------------------------------------------------
+		COLORREF LineColor;
+		CString  LineStyle;
+		double   LineThicknessInches;
+
+		// -------------------------------------------------------------
+		// Trend line appearance
+		// -------------------------------------------------------------
+		BOOL     TrendLine;
+		COLORREF TrendLineColor;
+		CString  TrendLineStyle;
+		double   TrendLineThicknessInches;
+
+		// -------------------------------------------------------------
+		// Grid appearance
+		// -------------------------------------------------------------
+		COLORREF GridColor;
+		CString  GridLineStyle;
+		double   GridLineThicknessInches;
+
+		// -------------------------------------------------------------
+		// Font sizes
+		// -------------------------------------------------------------
+		long TitleFontSizePoints;
+		long AxisLabelFontSizePoints;
+		long TickLabelFontSizePoints;
+
+		// -------------------------------------------------------------
+		// Padding
+		// -------------------------------------------------------------
+		double LeftPaddingInches;
+		double RightPaddingInches;
+		double TopPaddingInches;
+		double BottomPaddingInches;
+
+		// -------------------------------------------------------------
+		// Tick length
+		// -------------------------------------------------------------
+		double TickLengthInches;
+
+		// -------------------------------------------------------------
+		// Layout
+		// -------------------------------------------------------------
+		CString Layout;
+
+		// -------------------------------------------------------------
+		// Constructor initializes defaults
+		// -------------------------------------------------------------
+		PlotProps()
+			: Pure(false)
+			, YearStart(0)
+			, YearEnd(0)
+			, Threshold(0)
+			, Latitude(0.0)
+			, Longitude(0.0)
+			, LineColor(RGB(0, 0, 0))
+			, LineThicknessInches(0.0)
+			, TrendLine(FALSE)
+			, TrendLineColor(RGB(0, 0, 0))
+			, TrendLineThicknessInches(0.0)
+			, GridColor(RGB(0, 0, 0))
+			, GridLineThicknessInches(0.0)
+			, TitleFontSizePoints(0)
+			, AxisLabelFontSizePoints(0)
+			, TickLabelFontSizePoints(0)
+			, LeftPaddingInches(0.0)
+			, RightPaddingInches(0.0)
+			, TopPaddingInches(0.0)
+			, BottomPaddingInches(0.0)
+			, TickLengthInches(0.0)
 		{
 		}
 	};
@@ -365,6 +485,37 @@ public:
 	// number of pages in the table of contents
 	__declspec(property(get = GetTableOfContentsPages))
 		UINT TableOfContentsPages;
+
+	// existing number of pages for the table of contents
+	UINT GetExistingPagesForTOC()
+	{
+		UINT value = 0;
+		bool bDone = false;
+		for (auto& node : m_arrPages.Items)
+		{
+			CPage::PAGE_TYPE eType = node->PageType;
+			switch (eType)
+			{
+			case CPage::pageCover:
+				break;
+			case CPage::pageGraph:
+				bDone = true;
+				break;
+			case CPage::pageTOC:
+				value++;
+			}
+
+			// if we are past the TOC pages, we are done
+			if (bDone)
+			{
+				break;
+			}
+		}
+		return value;
+	}
+	// existing number of pages for the table of contents
+	__declspec(property(get = GetExistingPagesForTOC))
+		UINT ExistingPagesForTOC;
 
 	// number of pages in the document
 	virtual UINT GetPages()
@@ -2017,6 +2168,8 @@ protected:
 
 	CString BuildPickerSQL();
 
+	void AdjustForTOC();
+
 	// -------------------------------------------------------------
 	// Conversion methods
 	// -------------------------------------------------------------
@@ -2148,105 +2301,17 @@ protected:
 	// -------------------------------------------------------------
 	// Identify document-level properties
 	// -------------------------------------------------------------
-	bool IsDocProperty(const CString& name)
-	{
-		return
-			name == L"Title" ||
-			name == L"Subtitle" ||
-			name == L"Publisher" ||
-			name == L"ISBN" ||
-			name == L"Copyright" ||
-			name == L"Description" ||
-			name == L"ExportFolder" ||
-			name == L"ExportPages" ||
-			name == L"ExportDPI" ||
-			name == L"ExportQuality" ||
-			name == L"PageWidthInches" ||
-			name == L"PageHeightInches" ||
-			name == L"LogicalDPI" ||
-			name == L"MarginTop" ||
-			name == L"MarginBottom" ||
-			name == L"MarginInside" ||
-			name == L"MarginOutside" ||
-			name == L"MarginGutter";
-	}
+	bool IsDocProperty(const CString& name);
 
 	// -------------------------------------------------------------
 	// Assign document-level properties
 	// -------------------------------------------------------------
-	void AssignDocumentProperty(const CString& name, const CString& value)
-	{
-		if (name == L"Title") Title = value;
-		else if (name == L"Subtitle") Subtitle = value;
-		else if (name == L"Publisher") Publisher = value;
-		else if (name == L"ISBN") ISBN = value;
-		else if (name == L"Copyright") Copyright = value;
-		else if (name == L"Description") Description = value;
-		else if (name == L"ExportFolder") ExportFolder = value;
-		else if (name == L"ExportPages") ExportPages = value;
-		else if (name == L"ExportDPI") ExportDPI = _ttoi(value);
-		else if (name == L"ExportQuality") ExportQuality = _ttoi(value);
-		else if (name == L"PageWidthInches") WidthOfPage = _ttof(value);
-		else if (name == L"PageHeightInches") HeightOfPage = _ttof(value);
-		else if (name == L"LogicalDPI") Map = _ttoi(value);
-		else if (name == L"MarginTop") TopMargin = _ttof(value);
-		else if (name == L"MarginBottom") BottomMargin = _ttof(value);
-		else if (name == L"MarginInside") InsideMargin = _ttof(value);
-		else if (name == L"MarginOutside") OutsideMargin = _ttof(value);
-		else if (name == L"MarginGutter") Gutter = _ttof(value);
-	}
+	void AssignDocumentProperty(const CString& name, const CString& value);
 
 	// -------------------------------------------------------------
 	// Identify plot-level properties
 	// -------------------------------------------------------------
-	bool IsPlotProperty(const CString& name)
-	{
-		return
-			name == L"QueryType" ||
-			name == L"Pure" ||
-			name == L"Scope" ||
-			name == L"YearStart" ||
-			name == L"YearEnd" ||
-			name == L"Subtype" ||
-			name == L"Threshold" ||
-			name == L"Units" ||
-			name == L"Output" ||
-			name == L"State" ||
-			name == L"Location" ||
-			name == L"Station" ||
-			name == L"Latitude" ||
-			name == L"Longitude" ||
-			name == L"SQL" ||
-
-			name == L"GraphTitle" ||
-			name == L"AxisLabelX" ||
-			name == L"AxisLabelY" ||
-
-			name == L"LineColor" ||
-			name == L"LineStyle" ||
-			name == L"LineThicknessInches" ||
-
-			name == L"TrendLine" ||
-			name == L"TrendLineColor" ||
-			name == L"TrendLineStyle" ||
-			name == L"TrendLineThicknessInches" ||
-
-			name == L"GridLineColor" ||
-			name == L"GridLineStyle" ||
-			name == L"GridLineThicknessInches" ||
-
-			name == L"TitleFontSizePoints" ||
-			name == L"AxisLabelFontSizePoints" ||
-			name == L"TickLabelFontSizePoints" ||
-
-			name == L"PaddingLeft" ||
-			name == L"PaddingRight" ||
-			name == L"PaddingTop" ||
-			name == L"PaddingBottom" ||
-
-			name == L"TickLengthInches" ||
-			name == L"Layout";
-	}
+	bool IsPlotProperty(const CString& name);
 
 	// -------------------------------------------------------------
 	// Assign plot-level properties
@@ -2297,10 +2362,10 @@ protected:
 		else if (name == L"AxisLabelFontSizePoints") pPlot->AxisLabelFontSizePoints = _ttoi(value);
 		else if (name == L"TickLabelFontSizePoints") pPlot->TickLabelFontSizePoints = _ttoi(value);
 
-		else if (name == L"PaddingLeft") pPlot->LeftPaddingInches = _ttof(value);
-		else if (name == L"PaddingRight") pPlot->RightPaddingInches = _ttof(value);
-		else if (name == L"PaddingTop") pPlot->TopPaddingInches = _ttof(value);
-		else if (name == L"PaddingBottom") pPlot->BottomPaddingInches = _ttof(value);
+		else if (name == L"LeftPaddingInches") pPlot->LeftPaddingInches = _ttof(value);
+		else if (name == L"RightPaddingInches") pPlot->RightPaddingInches = _ttof(value);
+		else if (name == L"TopPaddingInches") pPlot->TopPaddingInches = _ttof(value);
+		else if (name == L"BottomPaddingInches") pPlot->BottomPaddingInches = _ttof(value);
 
 		else if (name == L"TickLengthInches") pPlot->TickLengthInches = _ttof(value);
 		else if (name == L"Layout") pPlot->Layout = value;
@@ -2323,7 +2388,35 @@ protected:
 		return cs;
 	}
 
+	void ExecuteQuery(bool bProgres = true);
+
 	void ExecutePlotQuery(shared_ptr<CGraphPlotter>& pPlot);
+
+	BOOL SaveCE(const CString& csPath);
+	BOOL SaveCEx(CString& csPath);
+
+	COLORREF ParseColor(const CString& csValue);
+
+	void AssignPlotPropertyToTemp
+	(
+		PlotProps& temp,
+		const CString& csName,
+		const CString& csValue
+	);
+
+	void ApplyPlotPropsToDocument(const PlotProps& temp);
+
+	BOOL LoadCE(const CString& csPath);
+	BOOL LoadCEx(const CString& csPath);
+
+	CRect ConvertLogicalToPixels(const CRect& rcLogical);
+
+	bool RenderPlotToPNG
+	(
+		std::shared_ptr<CGraphPlotter> pPlot,
+		const CRect& rcPixels,
+		std::vector<BYTE>& outBytes
+	);
 
 // public methods
 public:

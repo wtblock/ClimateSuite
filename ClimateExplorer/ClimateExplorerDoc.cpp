@@ -6,11 +6,13 @@
 #include "ClimateExplorerDoc.h"
 #include "ClimateExplorerView.h"
 #include "ClimateStation.h"
+#include "ImagePlus.h"
 #include "ThumbnailDialog.h"
 #include "MainFrm.h"
 #include <propkey.h>
 #include <set>
 #include "Color.h"
+#include "ZipWriter.h"
 
 /////////////////////////////////////////////////////////////////////////////
 #pragma comment(lib, "xmllite.lib")
@@ -57,8 +59,6 @@ CClimateExplorerDoc::CClimateExplorerDoc()
 			(new Gdiplus::DashStyle(node.second));
 		m_mapDash.add(csKey, pDash);
 	}
-
-	
 
 } // CClimateExplorerDoc
 
@@ -196,7 +196,7 @@ CString CClimateExplorerDoc::GenerateMapLink(double dLat, double dLong, bool bBi
 } // GenerateMapLink
 
 /////////////////////////////////////////////////////////////////////////////
-BOOL CClimateExplorerDoc::OnSaveDocument(CString& csPath)
+BOOL CClimateExplorerDoc::SaveCEx(CString& csPath)
 {
 	BOOL value = FALSE;
 	IStream* pFileStream = nullptr;
@@ -239,6 +239,12 @@ BOOL CClimateExplorerDoc::OnSaveDocument(CString& csPath)
 	pWriter->WriteStartElement(nullptr, L"ClimateExplorer", nullptr);
 
 	// ============================================================
+	// DOCUMENT NUMBER OF PAGES
+	// ============================================================
+	CString csPages; csPages.Format(L"%d", Pages);
+	WriteProp(L"PageCount", csPages, L"int");
+
+	// ============================================================
 	// DOCUMENT METADATA
 	// ============================================================
 	WriteProp(L"Title", Title, L"string");
@@ -263,17 +269,17 @@ BOOL CClimateExplorerDoc::OnSaveDocument(CString& csPath)
 	// ============================================================
 	// PAGE LAYOUT SETTINGS
 	// ============================================================
-	WriteProp(L"PageWidthInches", FormatDouble(WidthOfPage), L"double");
-	WriteProp(L"PageHeightInches", FormatDouble(HeightOfPage), L"double");
+	WriteProp(L"WidthOfPage", FormatDouble(WidthOfPage), L"double");
+	WriteProp(L"HeightOfPage", FormatDouble(HeightOfPage), L"double");
 
 	CString csMap; csMap.Format(L"%d", Map);
 	WriteProp(L"LogicalDPI", csMap, L"int");
 
-	WriteProp(L"MarginTop", FormatDouble(TopMargin), L"double");
-	WriteProp(L"MarginBottom", FormatDouble(BottomMargin), L"double");
-	WriteProp(L"MarginInside", FormatDouble(InsideMargin), L"double");
-	WriteProp(L"MarginOutside", FormatDouble(OutsideMargin), L"double");
-	WriteProp(L"MarginGutter", FormatDouble(Gutter), L"double");
+	WriteProp(L"TopMargin", FormatDouble(TopMargin), L"double");
+	WriteProp(L"BottomMargin", FormatDouble(BottomMargin), L"double");
+	WriteProp(L"InsideMargin", FormatDouble(InsideMargin), L"double");
+	WriteProp(L"OutsideMargin", FormatDouble(OutsideMargin), L"double");
+	WriteProp(L"Gutter", FormatDouble(Gutter), L"double");
 
 	// ============================================================
 	// PAGES
@@ -353,10 +359,10 @@ BOOL CClimateExplorerDoc::OnSaveDocument(CString& csPath)
 			WriteProp(L"AxisLabelFontSizePoints", FormatInt(pPlot->AxisLabelFontSizePoints), L"int");
 			WriteProp(L"TickLabelFontSizePoints", FormatInt(pPlot->TickLabelFontSizePoints), L"int");
 
-			WriteProp(L"PaddingLeft", FormatDouble(pPlot->LeftPaddingInches), L"double");
-			WriteProp(L"PaddingRight", FormatDouble(pPlot->RightPaddingInches), L"double");
-			WriteProp(L"PaddingTop", FormatDouble(pPlot->TopPaddingInches), L"double");
-			WriteProp(L"PaddingBottom", FormatDouble(pPlot->BottomPaddingInches), L"double");
+			WriteProp(L"LeftPaddingInches", FormatDouble(pPlot->LeftPaddingInches), L"double");
+			WriteProp(L"RightPaddingInches", FormatDouble(pPlot->RightPaddingInches), L"double");
+			WriteProp(L"TopPaddingInches", FormatDouble(pPlot->TopPaddingInches), L"double");
+			WriteProp(L"BottomPaddingInches", FormatDouble(pPlot->BottomPaddingInches), L"double");
 
 			WriteProp(L"TickLengthInches", FormatDouble(pPlot->TickLengthInches), L"double");
 			WriteProp(L"Layout", pPlot->Layout, L"string");
@@ -377,15 +383,249 @@ BOOL CClimateExplorerDoc::OnSaveDocument(CString& csPath)
 
 	SetModifiedFlag(FALSE);
 	return TRUE;
+} // SaveCEx
+
+/////////////////////////////////////////////////////////////////////////////
+BOOL CClimateExplorerDoc::SaveCE(const CString& csPath)
+{
+	BOOL value = FALSE;
+
+	// -------------------------------------------------------------
+	// 1. Create the output stream
+	// -------------------------------------------------------------
+	IStream* pXmlStream = nullptr;
+	HRESULT hr = CreateStreamOnHGlobal(NULL, TRUE, &pXmlStream);
+
+	if (FAILED(hr))
+	{
+		AfxMessageBox(L"Failed to create CE file stream.");
+		return FALSE;
+	}
+
+	// -------------------------------------------------------------
+	// 2. Create the XmlLite writer
+	// -------------------------------------------------------------
+	IXmlWriter* pWriter = nullptr;
+	hr = CreateXmlWriter(__uuidof(IXmlWriter),
+		reinterpret_cast<void**>(&pWriter), nullptr);
+
+	if (FAILED(hr))
+	{
+		AfxMessageBox(L"Failed to create CE XML writer.");
+		pXmlStream->Release();
+		return FALSE;
+	}
+
+	pWriter->SetOutput(pXmlStream);
+	pWriter->SetProperty(XmlWriterProperty_Indent, TRUE);
+
+	// Helper lambda for CE properties (trimmed set)
+	auto WriteCEProp = [&](LPCWSTR name, const CString& val)
+	{
+		pWriter->WriteStartElement(nullptr, name, nullptr);
+		pWriter->WriteAttributeString(nullptr, L"value", nullptr, val);
+		pWriter->WriteEndElement();
+	};
+
+	// -------------------------------------------------------------
+	// 3. Begin CE XML document
+	// -------------------------------------------------------------
+	pWriter->WriteStartDocument(XmlStandalone_Yes);
+	pWriter->WriteStartElement(nullptr, L"ClimateExplorer", nullptr);
+
+	// -------------------------------------------------------------
+	// 4. Document-level properties (trimmed)
+	// -------------------------------------------------------------
+	CString csPages; csPages.Format(L"%u", Pages);
+	WriteCEProp(L"PageCount", csPages);
+
+	WriteCEProp(L"Title", Title);
+	WriteCEProp(L"Subtitle", Subtitle);
+	WriteCEProp(L"Publisher", Publisher);
+	WriteCEProp(L"Copyright", Copyright);
+
+	// -------------------------------------------------------------
+	// 5. Pages
+	// -------------------------------------------------------------
+	pWriter->WriteStartElement(nullptr, L"Pages", nullptr);
+
+	for (auto& pPage : m_arrPages.Items)
+	{
+		pWriter->WriteStartElement(nullptr, L"Page", nullptr);
+
+		CString csPageNum; csPageNum.Format(L"%u", pPage->Page);
+		CString csType;
+
+		switch (pPage->PageType)
+		{
+		case CPage::pageCover: csType = L"Cover"; break;
+		case CPage::pageTOC:   csType = L"TOC"; break;
+		case CPage::pageGraph: csType = L"Graph"; break;
+		}
+
+		pWriter->WriteAttributeString(nullptr, L"number", nullptr, csPageNum);
+		pWriter->WriteAttributeString(nullptr, L"type", nullptr, csType);
+		pWriter->WriteAttributeString(nullptr, L"layout", nullptr, pPage->Layout);
+
+		// ---------------------------------------------------------
+		// 6. Plots (trimmed metadata only)
+		// ---------------------------------------------------------
+		pWriter->WriteStartElement(nullptr, L"Plots", nullptr);
+
+		UINT plotIndex = 0;
+		for (auto& plotNode : pPage->Plots.Items)
+		{
+			shared_ptr<CGraphPlotter> pPlot = plotNode.second;
+
+			pWriter->WriteStartElement(nullptr, L"Plot", nullptr);
+
+			WriteCEProp(L"GraphTitle", pPlot->GraphTitle);
+			WriteCEProp(L"Scope", pPlot->Scope);
+			WriteCEProp(L"Subtype", pPlot->Subtype);
+
+			WriteCEProp(L"YearStart", FormatInt(pPlot->YearStart));
+			WriteCEProp(L"YearEnd", FormatInt(pPlot->YearEnd));
+
+			WriteCEProp(L"State", pPlot->State);
+			WriteCEProp(L"Location", pPlot->Location);
+
+			// -------------------------------------------------------------
+			// Render PNG for this plot and write filename
+			// -------------------------------------------------------------
+
+			// 1. Compute rectangles for this page
+			vector<CRect> arrRects = pPage->Rectangles;
+
+			// 2. Find this plot's rectangle
+			CRect rcLogical = arrRects[plotIndex];
+
+			// 3. Convert logical → pixel rectangle (400 DPI)
+			CRect rcPixels = ConvertLogicalToPixels(rcLogical);
+
+			// 4. Render PNG bytes
+			std::vector<BYTE> pngBytes;
+			RenderPlotToPNG(pPlot, rcPixels, pngBytes);
+
+			// 5. Assign CE filename
+			CString csFilename;
+			csFilename.Format
+			(
+				L"Plots/Page_%04u_Plot_%02u.png",
+				pPage->Page,
+				plotIndex + 1
+			);
+
+			// 6. Write filename into CE XML
+			WriteCEProp(L"Image", csFilename);
+
+			// 7. Store PNG bytes for ZIP packaging (Step 5)
+			CEPNG item;
+			item.filename = csFilename;
+			item.bytes = std::move(pngBytes);
+			m_arrCEPNGs.push_back(std::move(item));
+
+			WriteCEProp(L"Layout", pPlot->Layout);
+
+			pWriter->WriteEndElement(); // </Plot>
+
+			plotIndex++;
+		}
+
+		pWriter->WriteEndElement(); // </Plots>
+		pWriter->WriteEndElement(); // </Page>
+
+	}
+
+	pWriter->WriteEndElement(); // </Pages>
+	pWriter->WriteEndElement(); // </ClimateExplorer>
+	pWriter->WriteEndDocument();
+
+	// -------------------------------------------------------------
+	// 7. Cleanup
+	// -------------------------------------------------------------
+	pWriter->Release();
+
+	// -------------------------------------------------------------
+	// Extract XML bytes from the memory stream
+	// -------------------------------------------------------------
+	STATSTG stat;
+	pXmlStream->Stat(&stat, STATFLAG_NONAME);
+
+	ULONG xmlSize = (ULONG)stat.cbSize.QuadPart;
+	std::vector<BYTE> xmlBytes(xmlSize);
+
+	LARGE_INTEGER liZero = {};
+	pXmlStream->Seek(liZero, STREAM_SEEK_SET, NULL);
+
+	ULONG bytesRead = 0;
+	pXmlStream->Read(xmlBytes.data(), xmlSize, &bytesRead);
+
+	// -------------------------------------------------------------
+	// Create CE ZIP file using CZipWriter
+	// -------------------------------------------------------------
+	CZipWriter zip;
+	if (!zip.Create(csPath))
+	{
+		pXmlStream->Release();
+		return FALSE;
+	}
+
+	// Add XML file
+	zip.AddFile(L"ClimateExplorer.xml", xmlBytes.data(), xmlBytes.size());
+
+	// Add PNGs
+	for (const auto& item : m_arrCEPNGs)
+	{
+		zip.AddFile(item.filename, item.bytes.data(), item.bytes.size());
+	}
+
+	// Finalize ZIP
+	zip.Close();
+
+	// Cleanup
+	pXmlStream->Release();
+
+	value = TRUE;
+	return value;
+} // SaveCE
+
+/////////////////////////////////////////////////////////////////////////////
+BOOL CClimateExplorerDoc::OnSaveDocument(CString& csPath)
+{
+	BOOL value = FALSE;
+
+	CString csExt = CHelper::GetExtension(csPath);
+	csExt.MakeLower();
+
+	if (csExt == L".cex")
+	{
+		value = SaveCEx(csPath);
+	}
+	else if (csExt == L".ce")
+	{
+		value = SaveCE(csPath);
+	}
+	else
+	{
+		AfxMessageBox(L"Unknown file type.");
+	}
+
+	return value;
 } // OnSaveDocument
 
 /////////////////////////////////////////////////////////////////////////////
 BOOL CClimateExplorerDoc::PromptForFileName(CString& strFilePath)
 {
+	const CString csFilter =
+		_T("All Possible|*.CEx;*.CE|")
+		_T("Climate Explorer XML (*.CEx)|*.CEx|")
+		_T("Climate Explorer (*.CE)|*.CE|")
+		_T("All Files (*.*)|*.*||");
+
 	CFileDialog fileDlg
 	(
-		FALSE, L"CEx", NULL, OFN_HIDEREADONLY | OFN_OVERWRITEPROMPT,
-		L"Climate Explorer Files (*.CEx)|*.CEx|All Files (*.*)|*.*||"
+		FALSE, L"CE", NULL, OFN_HIDEREADONLY | OFN_OVERWRITEPROMPT,
+		csFilter
 	);
 
 	if (fileDlg.DoModal() == IDOK)
@@ -409,6 +649,8 @@ bool CClimateExplorerDoc::Open(LPCTSTR szFilename, bool bRead, LPCTSTR pcszFileI
 		return false;
 	}
 
+	CString csData = CHelper::GetDataName(szFilename);
+
 	IXmlReader* pReader = nullptr;
 	hr = CreateXmlReader(__uuidof(IXmlReader),
 		reinterpret_cast<void**>(&pReader), nullptr);
@@ -429,13 +671,43 @@ bool CClimateExplorerDoc::Open(LPCTSTR szFilename, bool bRead, LPCTSTR pcszFileI
 
 	m_arrPages.clear();
 
+	// prepare the progress dialog
+	theApp.OnIdle(0);
+	CMainFrame* pFrame = (CMainFrame*)AfxGetMainWnd();
+
+	// launch the progress dialog
+	CThumbnailDialog dlg;
+	dlg.Parent = pFrame;
+	dlg.CreateDlg();
+	dlg.ShowWindow(SW_SHOW);
+	CString csDialogTitle;
+	csDialogTitle.Format(L"Opening document %s", csData);
+
+	dlg.SetWindowText(csDialogTitle);
+	dlg.Objects = L"Pages";
+
+	dlg.TotalImages = (int)0;
+	bool bAbort = false;
+
 	while (S_OK == pReader->Read(&nodeType))
 	{
+		// let the user cancel out
+		if (dlg.Cancel)
+		{
+			bAbort = true;
+			break;
+		}
+
 		if (nodeType == XmlNodeType_Element)
 		{
 			const WCHAR* pwszLocalName = nullptr;
 			pReader->GetLocalName(&pwszLocalName, nullptr);
 			currentElement = pwszLocalName;
+			if (currentElement == L"PageCount")
+			{
+				CString val = ReadValueAttribute(pReader);
+				dlg.TotalImages = _tstol(val);
+			}
 
 			// document-level properties
 			if (IsDocProperty(currentElement))
@@ -451,6 +723,10 @@ bool CClimateExplorerDoc::Open(LPCTSTR szFilename, bool bRead, LPCTSTR pcszFileI
 				CString csLayout = ReadAttribute(pReader, L"layout");
 
 				UINT nPage = _tstol(csNumber);
+
+				// update the progress dialog's status
+				dlg.CurrentImage = nPage;
+
 
 				CPage::PAGE_TYPE eType =
 					csType == L"Cover" ? CPage::pageCover :
@@ -499,27 +775,20 @@ bool CClimateExplorerDoc::Open(LPCTSTR szFilename, bool bRead, LPCTSTR pcszFileI
 				currentPage->Plots.add(csKey, currentPlot);
 			}
 		}
+
+		// wait one milliseconds while letting normal 
+		// window messaging to run
+		pFrame->Wait(1);
 	}
+
+	// done with the progress dialog
+	dlg.DestroyWindow();
 
 	pReader->Release();
 	pFileStream->Release();
 
-	Pages = (UINT)m_arrPages.Count;
-
-	CMainFrame* pFrame = (CMainFrame*)AfxGetMainWnd();
-	if (pFrame != nullptr)
-	{
-		CPropertiesWnd* pProps = pFrame->PropertiesPane;
-		if (pProps != nullptr)
-			pProps->UpdateTableOfContents(this);
-
-		CClimateExplorerView* pView = ClimateExplorerView;
-		if (pView != nullptr)
-		{
-			pView->SetupScrollBars();
-			pView->Invalidate();
-		}
-	}
+	// adjust for possible TOC size increase
+	AdjustForTOC();
 
 	return true;
 } // Open
@@ -764,26 +1033,842 @@ CKeyedCollection<UINT, UINT>& CClimateExplorerDoc::GetExportPageNumbers()
 } // GetExportPageNumbers
 
 /////////////////////////////////////////////////////////////////////////////
-BOOL CClimateExplorerDoc::OnOpenDocument(LPCTSTR lpszPathName)
+// ParseColor
+//
+// Converts a hex "RRGGBB" string into a COLORREF.
+// Example: "8b0000" -> RGB(139, 0, 0)
+//
+// If the format is invalid, returns RGB(0,0,0).
+//
+/////////////////////////////////////////////////////////////////////////////
+COLORREF CClimateExplorerDoc::ParseColor(const CString& csValue)
+{
+	COLORREF rgb = RGB(0, 0, 0);
+
+	CString cs = csValue;
+	cs.Trim();
+
+	if (cs.IsEmpty())
+	{
+		return rgb;
+	}
+
+	// Expect exactly 6 hex digits: RRGGBB
+	if (cs.GetLength() != 6)
+	{
+		return rgb;
+	}
+
+	// Parse as hex
+	wchar_t* pEnd = nullptr;
+	unsigned long n = wcstoul(cs, &pEnd, 16);
+
+	if (pEnd == cs.GetString())
+	{
+		// No conversion performed
+		return rgb;
+	}
+
+	int r = (n >> 16) & 0xFF;
+	int g = (n >> 8) & 0xFF;
+	int b = n & 0xFF;
+
+	rgb = RGB(r, g, b);
+
+	return rgb;
+
+} // ParseColor
+
+/////////////////////////////////////////////////////////////////////////////
+// AssignDocumentProperty
+//
+// Maps a single XML document-level property into the document.
+// Used by LoadCEx() before OnExecuteQuery() regenerates pages and plots.
+//
+// All property names match those written by SaveCEx().
+//
+/////////////////////////////////////////////////////////////////////////////
+void CClimateExplorerDoc::AssignDocumentProperty
+(
+	const CString& csName,
+	const CString& csValue
+)
+{
+	// -------------------------------------------------------------
+	// Query properties
+	// -------------------------------------------------------------
+	if (csName == L"QueryType")
+	{
+		QueryType = csValue;
+	}
+	else if (csName == L"Pure")
+	{
+		Pure = (csValue == L"true");
+	}
+	else if (csName == L"Scope")
+	{
+		Scope = csValue;
+	}
+	else if (csName == L"YearStart")
+	{
+		YearStart = _tstol(csValue);
+	}
+	else if (csName == L"YearEnd")
+	{
+		YearEnd = _tstol(csValue);
+	}
+	else if (csName == L"Subtype")
+	{
+		Subtype = csValue;
+	}
+	else if (csName == L"Threshold")
+	{
+		Threshold = _tstol(csValue);
+	}
+	else if (csName == L"Units")
+	{
+		Units = csValue;
+	}
+	else if (csName == L"Output")
+	{
+		Output = csValue;
+	}
+
+	// -------------------------------------------------------------
+	// Location / Station selection
+	// -------------------------------------------------------------
+	else if (csName == L"State")
+	{
+		State = csValue;
+	}
+	else if (csName == L"Location")
+	{
+		Location = csValue;
+	}
+
+	// -------------------------------------------------------------
+	// Page geometry
+	// -------------------------------------------------------------
+	else if (csName == L"WidthOfPage")
+	{
+		WidthOfPage = _tstof(csValue);
+	}
+	else if (csName == L"HeightOfPage")
+	{
+		HeightOfPage = _tstof(csValue);
+	}
+
+	// -------------------------------------------------------------
+	// Margins
+	// -------------------------------------------------------------
+	else if (csName == L"Gutter")
+	{
+		Gutter = _tstof(csValue);
+	}
+	else if (csName == L"InsideMargin")
+	{
+		InsideMargin = _tstof(csValue);
+	}
+	else if (csName == L"OutsideMargin")
+	{
+		OutsideMargin = _tstof(csValue);
+	}
+	else if (csName == L"TopMargin")
+	{
+		TopMargin = _tstof(csValue);
+	}
+	else if (csName == L"BottomMargin")
+	{
+		BottomMargin = _tstof(csValue);
+	}
+
+	// -------------------------------------------------------------
+	// Layout (document-level)
+	// -------------------------------------------------------------
+	else if (csName == L"Layout")
+	{
+		Layout = csValue;
+	}
+
+	// -------------------------------------------------------------
+	// Export settings
+	// -------------------------------------------------------------
+	else if (csName == L"ExportDPI")
+	{
+		ExportDPI = _tstol(csValue);
+	}
+	else if (csName == L"ExportQuality")
+	{
+		ExportQuality = _tstol(csValue);
+	}
+
+	// -------------------------------------------------------------
+	// PageCount (informational only)
+	// -------------------------------------------------------------
+	else if (csName == L"PageCount")
+	{
+		// PageCount is informational; loader does not use it.
+	}
+
+} // AssignDocumentProperty
+
+/////////////////////////////////////////////////////////////////////////////
+// IsDocProperty
+//
+// Returns TRUE if the given XML element name corresponds to a document-level
+// property written by SaveCEx(). Used by LoadCEx() to route XML values into
+// AssignDocumentProperty().
+//
+// These properties apply to the entire document, not individual plots.
+//
+/////////////////////////////////////////////////////////////////////////////
+bool CClimateExplorerDoc::IsDocProperty(const CString& csName)
+{
+	// -------------------------------------------------------------
+	// Query properties
+	// -------------------------------------------------------------
+	if (csName == L"QueryType") return true;
+	if (csName == L"Pure") return true;
+	if (csName == L"Scope") return true;
+	if (csName == L"YearStart") return true;
+	if (csName == L"YearEnd") return true;
+	if (csName == L"Subtype") return true;
+	if (csName == L"Threshold") return true;
+	if (csName == L"Units") return true;
+	if (csName == L"Output") return true;
+
+	// -------------------------------------------------------------
+	// Location / Station selection
+	// -------------------------------------------------------------
+	if (csName == L"State") return true;
+	if (csName == L"Location") return true;
+
+	// -------------------------------------------------------------
+	// Page geometry
+	// -------------------------------------------------------------
+	if (csName == L"HeightOfPage") return true;
+	if (csName == L"WidthOfPage") return true;
+
+	// -------------------------------------------------------------
+	// Margins
+	// -------------------------------------------------------------
+	if (csName == L"Gutter") return true;
+	if (csName == L"InsideMargin") return true;
+	if (csName == L"OutsideMargin") return true;
+	if (csName == L"TopMargin") return true;
+	if (csName == L"BottomMargin") return true;
+
+	// -------------------------------------------------------------
+	// Layout (document-level)
+	// -------------------------------------------------------------
+	if (csName == L"Layout") return true;
+
+	// -------------------------------------------------------------
+	// Export settings
+	// -------------------------------------------------------------
+	if (csName == L"ExportDPI") return true;
+	if (csName == L"ExportQuality") return true;
+
+	// -------------------------------------------------------------
+	// Page count (informational)
+	// -------------------------------------------------------------
+	if (csName == L"PageCount") return true;
+
+	return false;
+
+} // IsDocProperty
+
+/////////////////////////////////////////////////////////////////////////////
+// IsPlotProperty
+//
+// Returns TRUE if the given XML element name corresponds to a plot-level
+// property written by SaveCEx(). Used by LoadCEx() to route XML values
+// into AssignPlotPropertyToTemp().
+//
+/////////////////////////////////////////////////////////////////////////////
+bool CClimateExplorerDoc::IsPlotProperty(const CString& csName)
+{
+	// -------------------------------------------------------------
+	// Query properties
+	// -------------------------------------------------------------
+	if (csName == L"QueryType") return true;
+	if (csName == L"Pure") return true;
+	if (csName == L"Scope") return true;
+	if (csName == L"YearStart") return true;
+	if (csName == L"YearEnd") return true;
+	if (csName == L"Subtype") return true;
+	if (csName == L"Threshold") return true;
+	if (csName == L"Units") return true;
+	if (csName == L"Output") return true;
+	if (csName == L"State") return true;
+	if (csName == L"Location") return true;
+	if (csName == L"Station") return true;
+	if (csName == L"Latitude") return true;
+	if (csName == L"Longitude") return true;
+	if (csName == L"SQL") return true; // debug-only, ignored but recognized
+
+	// -------------------------------------------------------------
+	// Appearance: Titles and labels
+	// -------------------------------------------------------------
+	if (csName == L"GraphTitle") return true;
+	if (csName == L"AxisLabelX") return true;
+	if (csName == L"AxisLabelY") return true;
+
+	// -------------------------------------------------------------
+	// Curve line appearance
+	// -------------------------------------------------------------
+	if (csName == L"LineColor") return true;
+	if (csName == L"LineStyle") return true;
+	if (csName == L"LineThicknessInches") return true;
+
+	// -------------------------------------------------------------
+	// Trend line appearance
+	// -------------------------------------------------------------
+	if (csName == L"TrendLine") return true;
+	if (csName == L"TrendLineColor") return true;
+	if (csName == L"TrendLineStyle") return true;
+	if (csName == L"TrendLineThicknessInches") return true;
+
+	// -------------------------------------------------------------
+	// Grid appearance
+	// -------------------------------------------------------------
+	if (csName == L"GridLineColor") return true;
+	if (csName == L"GridLineStyle") return true;
+	if (csName == L"GridLineThicknessInches") return true;
+
+	// -------------------------------------------------------------
+	// Font sizes
+	// -------------------------------------------------------------
+	if (csName == L"TitleFontSizePoints") return true;
+	if (csName == L"AxisLabelFontSizePoints") return true;
+	if (csName == L"TickLabelFontSizePoints") return true;
+
+	// -------------------------------------------------------------
+	// Padding
+	// -------------------------------------------------------------
+	if (csName == L"LeftPaddingInches") return true;
+	if (csName == L"RightPaddingInches") return true;
+	if (csName == L"TopPaddingInches") return true;
+	if (csName == L"BottomPaddingInches") return true;
+
+	// -------------------------------------------------------------
+	// Tick length
+	// -------------------------------------------------------------
+	if (csName == L"TickLengthInches") return true;
+
+	// -------------------------------------------------------------
+	// Layout
+	// -------------------------------------------------------------
+	if (csName == L"Layout") return true;
+
+	return false;
+
+} // IsPlotProperty
+
+/////////////////////////////////////////////////////////////////////////////
+// AssignPlotPropertyToTemp
+//
+// Maps a single XML plot property into the temporary PlotProps structure.
+// This function is used only during LoadCEx() before OnExecuteQuery()
+// regenerates the document.
+//
+// All property names match those written by SaveCEx().
+//
+/////////////////////////////////////////////////////////////////////////////
+void CClimateExplorerDoc::AssignPlotPropertyToTemp
+(
+	PlotProps& temp,
+	const CString& csName,
+	const CString& csValue
+)
+{
+	// -------------------------------------------------------------
+	// Query properties
+	// -------------------------------------------------------------
+	if (csName == L"QueryType")
+	{
+		temp.QueryType = csValue;
+	}
+	else if (csName == L"Pure")
+	{
+		temp.Pure = (csValue == L"true");
+	}
+	else if (csName == L"Scope")
+	{
+		temp.Scope = csValue;
+	}
+	else if (csName == L"YearStart")
+	{
+		temp.YearStart = _tstol(csValue);
+	}
+	else if (csName == L"YearEnd")
+	{
+		temp.YearEnd = _tstol(csValue);
+	}
+	else if (csName == L"Subtype")
+	{
+		temp.Subtype = csValue;
+	}
+	else if (csName == L"Threshold")
+	{
+		temp.Threshold = _tstol(csValue);
+	}
+	else if (csName == L"Units")
+	{
+		temp.Units = csValue;
+	}
+	else if (csName == L"Output")
+	{
+		temp.Output = csValue;
+	}
+	else if (csName == L"State")
+	{
+		temp.State = csValue;
+	}
+	else if (csName == L"Location")
+	{
+		temp.Location = csValue;
+	}
+	else if (csName == L"Station")
+	{
+		temp.Station = csValue;
+	}
+	else if (csName == L"Latitude")
+	{
+		temp.Latitude = _tstof(csValue);
+	}
+	else if (csName == L"Longitude")
+	{
+		temp.Longitude = _tstof(csValue);
+	}
+
+	// -------------------------------------------------------------
+	// Appearance: Titles and labels
+	// -------------------------------------------------------------
+	else if (csName == L"GraphTitle")
+	{
+		temp.GraphTitle = csValue;
+	}
+	else if (csName == L"AxisLabelX")
+	{
+		temp.AxisLabelX = csValue;
+	}
+	else if (csName == L"AxisLabelY")
+	{
+		temp.AxisLabelY = csValue;
+	}
+
+	// -------------------------------------------------------------
+	// Curve line appearance
+	// -------------------------------------------------------------
+	else if (csName == L"LineColor")
+	{
+		temp.LineColor = ParseColor(csValue);
+	}
+	else if (csName == L"LineStyle")
+	{
+		temp.LineStyle = csValue;
+	}
+	else if (csName == L"LineThicknessInches")
+	{
+		temp.LineThicknessInches = _tstof(csValue);
+	}
+
+	// -------------------------------------------------------------
+	// Trend line appearance
+	// -------------------------------------------------------------
+	else if (csName == L"TrendLine")
+	{
+		temp.TrendLine = (csValue == L"true");
+	}
+	else if (csName == L"TrendLineColor")
+	{
+		temp.TrendLineColor = ParseColor(csValue);
+	}
+	else if (csName == L"TrendLineStyle")
+	{
+		temp.TrendLineStyle = csValue;
+	}
+	else if (csName == L"TrendLineThicknessInches")
+	{
+		temp.TrendLineThicknessInches = _tstof(csValue);
+	}
+
+	// -------------------------------------------------------------
+	// Grid appearance
+	// -------------------------------------------------------------
+	else if (csName == L"GridLineColor")
+	{
+		temp.GridColor = ParseColor(csValue);
+	}
+	else if (csName == L"GridLineStyle")
+	{
+		temp.GridLineStyle = csValue;
+	}
+	else if (csName == L"GridLineThicknessInches")
+	{
+		temp.GridLineThicknessInches = _tstof(csValue);
+	}
+
+	// -------------------------------------------------------------
+	// Font sizes
+	// -------------------------------------------------------------
+	else if (csName == L"TitleFontSizePoints")
+	{
+		temp.TitleFontSizePoints = _tstol(csValue);
+	}
+	else if (csName == L"AxisLabelFontSizePoints")
+	{
+		temp.AxisLabelFontSizePoints = _tstol(csValue);
+	}
+	else if (csName == L"TickLabelFontSizePoints")
+	{
+		temp.TickLabelFontSizePoints = _tstol(csValue);
+	}
+
+	// -------------------------------------------------------------
+	// Padding
+	// -------------------------------------------------------------
+	else if (csName == L"LeftPaddingInches")
+	{
+		temp.LeftPaddingInches = _tstof(csValue);
+	}
+	else if (csName == L"RightPaddingInches")
+	{
+		temp.RightPaddingInches = _tstof(csValue);
+	}
+	else if (csName == L"TopPaddingInches")
+	{
+		temp.TopPaddingInches = _tstof(csValue);
+	}
+	else if (csName == L"BottomPaddingInches")
+	{
+		temp.BottomPaddingInches = _tstof(csValue);
+	}
+
+	// -------------------------------------------------------------
+	// Tick length
+	// -------------------------------------------------------------
+	else if (csName == L"TickLengthInches")
+	{
+		temp.TickLengthInches = _tstof(csValue);
+	}
+
+	// -------------------------------------------------------------
+	// Layout
+	// -------------------------------------------------------------
+	else if (csName == L"Layout")
+	{
+		temp.Layout = csValue;
+	}
+
+} // AssignPlotPropertyToTemp
+
+/////////////////////////////////////////////////////////////////////////////
+/////////////////////////////////////////////////////////////////////////////
+// ApplyPlotPropsToDocument
+//
+// Copies all fields from the temporary PlotProps structure into the
+// document's live properties so ExecuteQuery() can generate pages
+// exactly as they were saved.
+//
+/////////////////////////////////////////////////////////////////////////////
+void CClimateExplorerDoc::ApplyPlotPropsToDocument(const PlotProps& temp)
+{
+	// -------------------------------------------------------------
+	// Query properties
+	// -------------------------------------------------------------
+	QueryType = temp.QueryType;
+	Pure = temp.Pure;
+	Scope = temp.Scope;
+	YearStart = temp.YearStart;
+	YearEnd = temp.YearEnd;
+	Subtype = temp.Subtype;
+	Threshold = temp.Threshold;
+	Units = temp.Units;
+	Output = temp.Output;
+	State = temp.State;
+	Location = temp.Location;
+
+	// -------------------------------------------------------------
+	// Appearance: Titles and labels
+	// -------------------------------------------------------------
+	GraphTitle = temp.GraphTitle;
+	AxisLabelX = temp.AxisLabelX;
+	AxisLabelY = temp.AxisLabelY;
+
+	// -------------------------------------------------------------
+	// Curve line appearance
+	// -------------------------------------------------------------
+	LineColor = temp.LineColor;
+	LineStyle = LineStyleEnum[temp.LineStyle];
+	LineThicknessInches = temp.LineThicknessInches;
+
+	// -------------------------------------------------------------
+	// Trend line appearance
+	// -------------------------------------------------------------
+	TrendLine = temp.TrendLine;
+	TrendLineColor = temp.TrendLineColor;
+	TrendLineStyle = LineStyleEnum[temp.TrendLineStyle];
+	TrendLineThicknessInches = temp.TrendLineThicknessInches;
+
+	// -------------------------------------------------------------
+	// Grid appearance
+	// -------------------------------------------------------------
+	GridColor = temp.GridColor;
+	GridLineStyle = LineStyleEnum[temp.GridLineStyle];
+	GridLineThicknessInches = temp.GridLineThicknessInches;
+
+	// -------------------------------------------------------------
+	// Font sizes
+	// -------------------------------------------------------------
+	TitleFontSizePoints = temp.TitleFontSizePoints;
+	AxisLabelFontSizePoints = temp.AxisLabelFontSizePoints;
+	TickLabelFontSizePoints = temp.TickLabelFontSizePoints;
+
+	// -------------------------------------------------------------
+	// Padding
+	// -------------------------------------------------------------
+	//LeftPaddingInches = temp.LeftPaddingInches;
+	RightPaddingInches = temp.RightPaddingInches;
+	//TopPaddingInches = temp.TopPaddingInches;
+	BottomPaddingInches = temp.BottomPaddingInches;
+
+	// -------------------------------------------------------------
+	// Tick length
+	// -------------------------------------------------------------
+	TickLengthInches = temp.TickLengthInches;
+
+	// -------------------------------------------------------------
+	// Layout
+	// -------------------------------------------------------------
+	Layout = temp.Layout;
+
+} // ApplyPlotPropsToDocument
+
+/////////////////////////////////////////////////////////////////////////////
+BOOL CClimateExplorerDoc::LoadCE(const CString& csPath)
+{
+	AfxMessageBox(L"LoadCE() not implemented yet.");
+	return FALSE;
+} // LoadCE
+
+/////////////////////////////////////////////////////////////////////////////
+// LoadCEx
+//
+// Loads a full‑fidelity Climate Explorer (.CEx) document.
+// Restores all document and plot properties from XML,
+// then regenerates the document using OnExecuteQuery().
+//
+// SQL stored in the CEx file is debug‑only and is NOT executed.
+// The authoritative source is the restored properties.
+//
+// Pagination, page creation, and plot creation are handled
+// entirely by OnExecuteQuery(), exactly as during live execution.
+//
+/////////////////////////////////////////////////////////////////////////////
+BOOL CClimateExplorerDoc::LoadCEx(const CString& csFilename)
 {
 	BOOL value = FALSE;
-	if (!CBaseDoc::OnOpenDocument(lpszPathName))
-		return value;
 
-	if (Open(lpszPathName))
+	// -------------------------------------------------------------
+	// Open the XML file
+	// -------------------------------------------------------------
+	CComPtr<IStream> pStream;
+	HRESULT hr = SHCreateStreamOnFileEx
+	(
+		csFilename,
+		STGM_READ | STGM_SHARE_DENY_WRITE,
+		FILE_ATTRIBUTE_NORMAL,
+		FALSE,
+		nullptr,
+		&pStream
+	);
+
+	if (FAILED(hr) || pStream == nullptr)
+	{
+		return value;
+	}
+
+	CComPtr<IXmlReader> pReader;
+	hr = CreateXmlReader(__uuidof(IXmlReader), (void**)&pReader, nullptr);
+	if (FAILED(hr) || pReader == nullptr)
+	{
+		return value;
+	}
+
+	hr = pReader->SetInput(pStream);
+	if (FAILED(hr))
+	{
+		return value;
+	}
+
+	// -------------------------------------------------------------
+	// Suppress progress UI during load
+	// -------------------------------------------------------------
+	bool bProgress = false;
+
+	Pages = (UINT)m_arrPages.Count;
+
+	// -------------------------------------------------------------
+	// XML reading loop
+	// -------------------------------------------------------------
+	XmlNodeType eType;
+	CString csElement;
+
+	while (pReader->Read(&eType) == S_OK)
+	{
+		if (eType == XmlNodeType_Element)
+		{
+			const WCHAR* pwszName = nullptr;
+			pReader->GetLocalName(&pwszName, nullptr);
+			csElement = pwszName;
+
+			bool bEmpty = pReader->IsEmptyElement() == S_OK;
+
+			// ---------------------------------------------------------
+			// Document-level properties
+			// ---------------------------------------------------------
+			if (IsDocProperty(csElement))
+			{
+				CString csValue = ReadValueAttribute(pReader);
+				AssignDocumentProperty(csElement, csValue);
+				continue;
+			}
+
+			// ---------------------------------------------------------
+			// Page element
+			// ---------------------------------------------------------
+			if (csElement == L"Page")
+			{
+				CString csType;
+				CString csLayout;
+
+				if (pReader->MoveToFirstAttribute() == S_OK)
+				{
+					do
+					{
+						const WCHAR* pwszAttr = nullptr;
+						const WCHAR* pwszVal = nullptr;
+
+						pReader->GetLocalName(&pwszAttr, nullptr);
+						pReader->GetValue(&pwszVal, nullptr);
+
+						if (wcscmp(pwszAttr, L"type") == 0)
+						{
+							csType = pwszVal;
+						}
+						else if (wcscmp(pwszAttr, L"layout") == 0)
+						{
+							csLayout = pwszVal;
+						}
+
+					} while (pReader->MoveToNextAttribute() == S_OK);
+				}
+
+				// Ignore Cover and TOC pages (constructor already created them)
+				if (csType == L"Cover" || csType == L"TOC")
+				{
+					continue;
+				}
+
+				// Only Graph pages contain plots
+				if (csType == L"Graph")
+				{
+					// descend into <Plots>
+					continue;
+				}
+			}
+
+			// ---------------------------------------------------------
+			// Plot element
+			// ---------------------------------------------------------
+			if (csElement == L"Plot")
+			{
+				PlotProps temp;
+
+				// read all plot properties
+				while (pReader->Read(&eType) == S_OK)
+				{
+					if (eType == XmlNodeType_Element)
+					{
+						const WCHAR* pwszPlotName = nullptr;
+						pReader->GetLocalName(&pwszPlotName, nullptr);
+						CString csPlotName = pwszPlotName;
+
+						if (IsPlotProperty(csPlotName))
+						{
+							CString csValue = ReadValueAttribute(pReader);
+							AssignPlotPropertyToTemp(temp, csPlotName, csValue);
+						}
+					}
+					else if (eType == XmlNodeType_EndElement)
+					{
+						const WCHAR* pwszEnd = nullptr;
+						pReader->GetLocalName(&pwszEnd, nullptr);
+
+						if (wcscmp(pwszEnd, L"Plot") == 0)
+						{
+							break;
+						}
+					}
+				}
+
+				ApplyPlotPropsToDocument(temp);
+				ExecuteQuery(false);
+
+				continue;
+			}
+		}
+	}
+
+	// -------------------------------------------------------------
+	// Adjust TOC once at the end
+	// -------------------------------------------------------------
+	AdjustForTOC();
+
+	return TRUE;
+
+} // LoadCEx
+
+/////////////////////////////////////////////////////////////////////////////
+BOOL CClimateExplorerDoc::OnOpenDocument(LPCTSTR lpszPathName)
+{
+	if (!CBaseDoc::OnOpenDocument(lpszPathName))
+		return FALSE;
+
+	CString csExt = CHelper::GetExtension(lpszPathName);
+	csExt.MakeLower();
+
+	BOOL value = FALSE;
+
+	if (csExt == L".cex")
+	{
+		value = LoadCEx(lpszPathName); 
+	}
+	else if (csExt == L".ce")
+	{
+		value = LoadCE(lpszPathName);
+	}
+	else
+	{
+		AfxMessageBox(L"Unknown file type.");
+		return FALSE;
+	}
+
+	if (value)
 	{
 		CMainFrame* pFrame = (CMainFrame*)AfxGetMainWnd();
 		CPropertiesWnd* pProperties = pFrame->PropertiesPane;
-		pProperties->UpdatePropertiesFromDocument( this );
+		pProperties->UpdatePropertiesFromDocument(this);
 		pProperties->PropList->ResetOriginalValues();
-		//InitDocument();
+
 		CClimateExplorerView* pView = ClimateExplorerView;
 		pView->Invalidate();
-		value = TRUE;
 	}
 
 	return value;
-} // OnOpenDocument
+}
 
 /////////////////////////////////////////////////////////////////////////////
 void CClimateExplorerDoc::OnCloseDocument()
@@ -826,6 +1911,12 @@ void CClimateExplorerDoc::ExecutePlotQuery(shared_ptr<CGraphPlotter>& pPlot)
 
 	ClimateDatabase->ExecuteTable(csSQL, arrRawRows);
 
+	CMainFrame* pFrame = (CMainFrame*)AfxGetMainWnd();
+	if (pFrame != nullptr && pFrame->OutputPane != nullptr)
+	{
+		pFrame->OutputPane->SQLText = csSQL;
+	}
+
 	// -------------------------------------------------------------
 	// 3. Branch based on Subtype
 	// -------------------------------------------------------------
@@ -853,7 +1944,7 @@ void CClimateExplorerDoc::ExecutePlotQuery(shared_ptr<CGraphPlotter>& pPlot)
 } // ExecutePlotQuery
 
 /////////////////////////////////////////////////////////////////////////////
-void CClimateExplorerDoc::OnExecuteQuery()
+void CClimateExplorerDoc::ExecuteQuery(bool bProgress/* = true*/)
 {
 	CClimateExplorerView* pView = ClimateExplorerView;
 	if (pView == nullptr)
@@ -895,7 +1986,7 @@ void CClimateExplorerDoc::OnExecuteQuery()
 		{
 			arrLocations = pDB->States;
 		}
-		else 
+		else
 		{
 			arrLocations.push_back(csState);
 		}
@@ -932,22 +2023,27 @@ void CClimateExplorerDoc::OnExecuteQuery()
 	size_t nLocations = arrLocations.size();
 	int nLocation = 1;
 
-	// prepare the progress dialog
-	theApp.OnIdle(0);
-	CMainFrame* pFrame = (CMainFrame*)AfxGetMainWnd();
-
 	// launch the progress dialog
 	CThumbnailDialog dlg;
-	dlg.Parent = pFrame;
-	dlg.CreateDlg();
-	dlg.ShowWindow(SW_SHOW);
-	CString csDialogTitle;
-	csDialogTitle.Format(L"Rendering %s Locations", csScope);
 
-	dlg.SetWindowText(csDialogTitle);
-	dlg.Objects = L"Locations";
+	// did the caller disable this?
+	if (bProgress == true)
+	{
+		// prepare the progress dialog
+		theApp.OnIdle(0);
+		CMainFrame* pFrame = (CMainFrame*)AfxGetMainWnd();
 
-	dlg.TotalImages = (int)nLocations;
+		dlg.Parent = pFrame;
+		dlg.CreateDlg();
+		dlg.ShowWindow(SW_SHOW);
+		CString csDialogTitle;
+		csDialogTitle.Format(L"Rendering %s Locations", csScope);
+
+		dlg.SetWindowText(csDialogTitle);
+		dlg.Objects = L"Locations";
+
+		dlg.TotalImages = (int)nLocations;
+	}
 
 	bool bAbort = false;
 
@@ -974,15 +2070,19 @@ void CClimateExplorerDoc::OnExecuteQuery()
 			}
 		}
 
-		// let the user cancel out
-		if (dlg.Cancel)
+		// did the caller disable this?
+		if (bProgress == true)
 		{
-			bAbort = true;
-			break;
-		}
+			// let the user cancel out
+			if (dlg.Cancel)
+			{
+				bAbort = true;
+				break;
+			}
 
-		// update the progress dialog's status
-		dlg.CurrentImage = nLocation++;
+			// update the progress dialog's status
+			dlg.CurrentImage = nLocation++;
+		}
 
 		// 1. Build SQL from picker properties
 		CString csSQL = BuildPickerSQL();
@@ -1063,8 +2163,8 @@ void CClimateExplorerDoc::OnExecuteQuery()
 		// -------------------------------------------------------------
 		// Generate the graph bitmap
 		// -------------------------------------------------------------
-		shared_ptr<CGraphPlotter> pPlot = 
-			shared_ptr<CGraphPlotter>( new CGraphPlotter(this, Years, Values));
+		shared_ptr<CGraphPlotter> pPlot =
+			shared_ptr<CGraphPlotter>(new CGraphPlotter(this, Years, Values));
 		pPlot->Station = csStation;
 		pPlot->Latitude = fLatitude;
 		pPlot->Longitude = fLongitude;
@@ -1074,17 +2174,31 @@ void CClimateExplorerDoc::OnExecuteQuery()
 		// 5. Mark document modified (optional)
 		SetModifiedFlag(TRUE);
 
-		// wait ten milliseconds while letting normal 
-		// window messaging to run
-		pFrame->Wait(10);
+		if (bProgress == true)
+		{
+			// wait ten milliseconds while letting normal 
+			// window messaging to run
+			pFrame->Wait(10);
+		}
+
 	}
 
-	CPropertiesWnd* pProperties = pFrame->PropertiesPane;
-	pProperties->UpdateTableOfContents();
+	// did the caller disable this?
+	if (bProgress == true && dlg.m_hWnd != nullptr)
+	{
+		// done with the progress dialog
+		dlg.DestroyWindow();
+	}
 
-	// done with the progress dialog
-	dlg.DestroyWindow();
+} // ExecuteQuery
 
+/////////////////////////////////////////////////////////////////////////////
+void CClimateExplorerDoc::OnExecuteQuery()
+{
+	ExecuteQuery();
+
+	// adjust for possible TOC size increase
+	AdjustForTOC();
 } // OnExecuteQuery
 
 /////////////////////////////////////////////////////////////////////////////
@@ -1093,6 +2207,81 @@ void CClimateExplorerDoc::OnUpdateExecuteQuery(CCmdUI* pCmdUI)
 	// TODO: Add your command update UI handler code here
 
 } // OnUpdateExecuteQuery
+
+/////////////////////////////////////////////////////////////////////////////
+void CClimateExplorerDoc::AdjustForTOC()
+{
+	// if the table of contents grew, we need to add a page or pages
+	// and update the page numbers of the graphs that follow
+	UINT uiPagesTOC1 = ExistingPagesForTOC;
+	UINT uiPagesTOC2 = TableOfContentsPages;
+	UINT uiDeltaTOC = uiPagesTOC2 - uiPagesTOC1;
+	if (uiDeltaTOC != 0)
+	{
+		CSmartArray<CPage> arrPages = m_arrPages;
+		m_arrPages.clear();
+		bool bTOC = false;
+		for (auto& page : arrPages.Items)
+		{
+			CPage::PAGE_TYPE eType = page->PageType;
+			switch (eType)
+			{
+			case CPage::pageCover:
+				m_arrPages.append(page);
+				continue;
+			case CPage::pageGraph:
+			{
+				UINT uiPage = page->Page;
+				if (bTOC)
+				{
+					for (UINT uiTOC = 0; uiTOC < uiDeltaTOC; uiTOC++)
+					{
+						shared_ptr<CPage> pTOC =
+							make_shared<CPage>(uiPage++, L"Full", this, CPage::pageTOC);
+						m_arrPages.append(pTOC);
+					}
+					page->Page = uiPage;
+					m_arrPages.append(page);
+					bTOC = false;
+				}
+				else
+				{
+					uiPage += uiDeltaTOC;
+					page->Page = uiPage;
+					m_arrPages.append(page);
+				}
+				break;
+			}
+			case CPage::pageTOC:
+				bTOC = true;
+				m_arrPages.append(page);
+			}
+		}
+	}
+
+	CMainFrame* pFrame = (CMainFrame*)AfxGetMainWnd();
+	CPropertiesWnd* pProperties = pFrame->PropertiesPane;
+	pProperties->UpdateTableOfContents(this);
+
+	// adjust the count
+	UINT uiPages = m_arrPages.Count;
+	Pages = uiPages;
+
+	// adjust the current page and the view
+	Page = uiPages;
+	double dPageHeight = HeightOfPage;
+	double dTop = dPageHeight * (uiPages - 1);
+
+	CClimateExplorerView* pView = ClimateExplorerView;
+	if (pView == nullptr)
+	{
+		return;
+	}
+	pView->TopOfView = dTop;
+	pView->SetupScrollBars();
+	pView->Invalidate();
+
+}// AdjustForTOC
 
 /////////////////////////////////////////////////////////////////////////////
 // BuildPickerSQL
@@ -2095,5 +3284,65 @@ void CClimateExplorerDoc::OnUpdateEditDelete(CCmdUI* pCmdUI)
 	}
 
 } // OnUpdateEditDelete
+
+/////////////////////////////////////////////////////////////////////////////
+// Convert a logical rectangle (Map units) to a pixel rectangle at 400 DPI
+/////////////////////////////////////////////////////////////////////////////
+CRect CClimateExplorerDoc::ConvertLogicalToPixels(const CRect& rcLogical)
+{
+	CRect value(0, 0, 0, 0);
+
+	const int nMap = Map;          // logical units per inch
+	const double dpi = 400.0;      // graph rendering DPI (fixed)
+
+	const double leftInches = double(rcLogical.left) / double(nMap);
+	const double topInches = double(rcLogical.top) / double(nMap);
+	const double rightInches = double(rcLogical.right) / double(nMap);
+	const double bottomInches = double(rcLogical.bottom) / double(nMap);
+
+	const int widthPixels = int((rightInches - leftInches) * dpi + 0.5);
+	const int heightPixels = int((bottomInches - topInches) * dpi + 0.5);
+
+	value.left = 0;
+	value.top = 0;
+	value.right = widthPixels;
+	value.bottom = heightPixels;
+
+	return value;
+} // ConvertLogicalToPixels
+
+/////////////////////////////////////////////////////////////////////////////
+// Render a plot to PNG bytes in memory
+/////////////////////////////////////////////////////////////////////////////
+bool CClimateExplorerDoc::RenderPlotToPNG
+(
+	std::shared_ptr<CGraphPlotter> pPlot,
+	const CRect& rcPixels,
+	std::vector<BYTE>& outBytes
+)
+{
+	outBytes.clear();
+
+	// -------------------------------------------------------------
+	// 1. Render the plot to a GDI+ Bitmap
+	// -------------------------------------------------------------
+	std::unique_ptr<Gdiplus::Bitmap> pBmp = pPlot->RenderPlot(rcPixels);
+	if (!pBmp)
+		return false;
+
+	// -------------------------------------------------------------
+	// 2. Wrap Bitmap in CImagePlus
+	// -------------------------------------------------------------
+	std::shared_ptr<Gdiplus::Bitmap> spBmp(std::move(pBmp));
+	CImagePlus img(spBmp);
+
+	// -------------------------------------------------------------
+	// 3. Save to PNG in memory
+	// -------------------------------------------------------------
+	if (!img.SaveToStreamAsPNG(outBytes))
+		return false;
+
+	return true;
+} // RenderPlotToPNG
 
 /////////////////////////////////////////////////////////////////////////////

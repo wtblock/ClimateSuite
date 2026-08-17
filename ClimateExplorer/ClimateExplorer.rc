@@ -74,7 +74,7 @@ END
 // remains consistent on all systems.
 IDR_MAINFRAME           ICON                    "res\\ClimateExplorer.ico"
 
-IDR_ClimateExplorerTYPE ICON                    "res\\ClimateExplorerDoc.ico"
+IDR_CEX_TYPE            ICON                    "res\\ClimateExplorerDoc.ico"
 
 IDI_OUTPUT_WND          ICON                    "res\\output_wnd.ico"
 
@@ -200,7 +200,7 @@ BEGIN
     END
 END
 
-IDR_ClimateExplorerTYPE MENU
+IDR_CEX_TYPE MENU
 BEGIN
     POPUP "&File"
     BEGIN
@@ -264,7 +264,7 @@ BEGIN
     END
     POPUP "&Help"
     BEGIN
-        MENUITEM "&About ClimateExplorer...",   ID_APP_ABOUT
+        MENUITEM "&About Climate Explorer...",   ID_APP_ABOUT
     END
 END
 
@@ -460,7 +460,8 @@ END
 STRINGTABLE
 BEGIN
     IDR_MAINFRAME           "Climate Explorer"
-    IDR_ClimateExplorerTYPE "\nClimateExplorer\nClimateExplorer\nClimateExplorer Files (*.CEx)\n.CEx\nClimateExplorer.Document\nClimateExplorer.Document"
+    IDR_CEX_TYPE "\nClimateXML\nClimate Explorer XML\nClimate Explorer XML (*.CEx)\n.CEx\nClimateExplorerX.Document\nClimate Explorer XML (CEx)"
+    IDR_CE_TYPE "\nClimateBinary\nClimate Explorer Binary\nClimate Explorer Files (*.CE)\n.CE\nClimateExplorer.Document\nClimate Explorer (CE)"
     ID_WINDOW_MANAGER       "&Windows..."
 END
 

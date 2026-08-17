@@ -89,7 +89,8 @@ ClimateExplorerDoc.h, ClimateExplorerDoc.cpp - the document
         File type ID:        ClimateExplorer.Document
         Main frame caption:  Climate Explorer
         Doc type name:       ClimateExplorer
-        Filter name:         ClimateExplorer Files (*.CEx)
+        Filter name:         ClimateExplorer Files (*.CE)
+        Filter name:         ClimateExplorer Files XML (*.CEx)
         File new short name: ClimateExplorer
         File type long name: ClimateExplorer.Document
 

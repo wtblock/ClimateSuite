@@ -23,10 +23,10 @@
 BEGIN_MESSAGE_MAP(CClimateExplorerApp, CWinAppEx)
 	ON_COMMAND(ID_APP_ABOUT, &CClimateExplorerApp::OnAppAbout)
 	// Standard file based document commands
-	ON_COMMAND(ID_FILE_NEW, &CWinAppEx::OnFileNew)
 	ON_COMMAND(ID_FILE_OPEN, &CClimateExplorerApp::OnFileOpen)
 	// Standard print setup command
 	ON_COMMAND(ID_FILE_PRINT_SETUP, &CWinAppEx::OnFilePrintSetup)
+	ON_COMMAND(ID_FILE_NEW, &CClimateExplorerApp::OnFileNew)
 END_MESSAGE_MAP()
 
 /////////////////////////////////////////////////////////////////////////////
@@ -247,15 +247,19 @@ BOOL CClimateExplorerApp::InitInstance()
 
 	// Register the application's document templates.  Document templates
 	//  serve as the connection between documents, frame windows and views
-	CMultiDocTemplate* pDocTemplate;
-	pDocTemplate = new CMultiDocTemplate
+
+	// the CEx template stores the document in a pure XML format which
+	// when opened forces the database to be queried for each image in
+	// the document which can be very slow for large documents.
+	CMultiDocTemplate* pCexTemplate;
+	pCexTemplate = new CMultiDocTemplate
 	(
-		IDR_ClimateExplorerTYPE,
+		IDR_CEX_TYPE,
 		RUNTIME_CLASS(CClimateExplorerDoc),
 		RUNTIME_CLASS(CChildFrame), // custom MDI child frame
 		RUNTIME_CLASS(CClimateExplorerView)
 	);
-	if (!pDocTemplate)
+	if (!pCexTemplate)
 	{
 		// Shutdown GDI+
 		GdiplusShutdown(m_gdiplusToken);
@@ -263,7 +267,29 @@ BOOL CClimateExplorerApp::InitInstance()
 		return FALSE;
 	}
 
-	AddDocTemplate(pDocTemplate);
+	AddDocTemplate(pCexTemplate);
+
+	// the CE template stores the document in a binary format which
+	// when opened does not access the database but instead stores
+	// the images to be displayed in the document which for very 
+	// large documents can be much faster.
+	CMultiDocTemplate* pCeTemplate;
+	pCeTemplate = new CMultiDocTemplate
+	(
+		IDR_CE_TYPE,
+		RUNTIME_CLASS(CClimateExplorerDoc),
+		RUNTIME_CLASS(CChildFrame), // custom MDI child frame
+		RUNTIME_CLASS(CClimateExplorerView)
+	);
+	if (!pCeTemplate)
+	{
+		// Shutdown GDI+
+		GdiplusShutdown(m_gdiplusToken);
+
+		return FALSE;
+	}
+
+	AddDocTemplate(pCeTemplate);
 
 	// create main MDI Frame window
 	CMainFrame* pMainFrame = new CMainFrame;
@@ -329,7 +355,7 @@ int CClimateExplorerApp::ExitInstance()
 	CoUninitialize();
 
 	// Shutdown GDI+
-	GdiplusShutdown( m_gdiplusToken );
+	GdiplusShutdown(m_gdiplusToken);
 
 	return CWinAppEx::ExitInstance();
 } // ExitInstance
@@ -348,11 +374,16 @@ BOOL CClimateExplorerApp::OnIdle(LONG lCount)
 /////////////////////////////////////////////////////////////////////////////
 void CClimateExplorerApp::OnFileOpen()
 {
+	const CString csFilter =
+		_T("All Possible|*.CEx;*.CE|")
+		_T("Climate Explorer XML (*.CEx)|*.CEx|")
+		_T("Climate Explorer (*.CE)|*.CE|")
+		_T("All Files (*.*)|*.*||");
 	CString strFilePath;
 	CFileDialog fileDlg
 	(
-		TRUE, L"pp", NULL, OFN_FILEMUSTEXIST | OFN_HIDEREADONLY,
-		_T("Climate Explorer Files (*.CEx)|*.CEx|All Files (*.*)|*.*||")
+		TRUE, L"CE", NULL, OFN_FILEMUSTEXIST | OFN_HIDEREADONLY,
+		csFilter
 	);
 
 	if (fileDlg.DoModal() == IDOK)
@@ -361,6 +392,31 @@ void CClimateExplorerApp::OnFileOpen()
 		OpenDocumentFile(strFilePath);
 	}
 } // OnFileOpen
+
+/////////////////////////////////////////////////////////////////////////////
+void CClimateExplorerApp::OnFileNew()
+{
+	// Choose the XML template explicitly
+	CDocTemplate* pTemplate = nullptr;
+
+	POSITION pos = GetFirstDocTemplatePosition();
+	while (pos != nullptr)
+	{
+		CDocTemplate* p = GetNextDocTemplate(pos);
+		CString csDoc;
+		if (p->GetDocString(csDoc, CDocTemplate::regFileTypeId))
+		{
+			if ( csDoc == L"ClimateExplorer.Document")
+			{
+				pTemplate = p;
+				break;
+			}
+		}
+	}
+
+	if (pTemplate)
+		pTemplate->OpenDocumentFile(nullptr);
+} // OnFileNew
 
 /////////////////////////////////////////////////////////////////////////////
 // App command to run the dialog
@@ -391,3 +447,5 @@ void CClimateExplorerApp::SaveCustomState()
 }
 
 /////////////////////////////////////////////////////////////////////////////
+
+

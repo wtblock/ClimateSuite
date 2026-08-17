@@ -703,17 +703,17 @@ public:
 	__declspec(property(get = GetLayout, put = SetLayout))
 		CString Layout;
 
+	// -------------------------------------------------------------
+	// RenderPlot
+	// -------------------------------------------------------------
+	std::unique_ptr<Gdiplus::Bitmap> RenderPlot(const CRect& rcPixels);
+
 // protected methods
 protected:
 	// -------------------------------------------------------------
 	// Initialize default properties
 	// -------------------------------------------------------------
 	void SetDefaults(CClimateExplorerDoc* pDoc);
-
-	// -------------------------------------------------------------
-	// RenderPlot
-	// -------------------------------------------------------------
-	std::unique_ptr<Gdiplus::Bitmap> RenderPlot(const CRect& rcPixels);
 
 	// -------------------------------------------------------------
 	// GenerateTicks

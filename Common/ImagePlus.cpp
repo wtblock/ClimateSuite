@@ -380,4 +380,67 @@ void CImagePlus::Draw(CDC* pDC, CRect& rectDest, CRect& rectSrc)
 } // Draw
 
 /////////////////////////////////////////////////////////////////////////////
+// SaveToStreamAsPNG
+//
+// Saves the wrapped Bitmap to an in-memory PNG stream and returns the bytes.
+// Uses the same encoder lookup logic as Save(), but writes to IStream instead
+// of a file.
+//
+// Returns true on success.
+/////////////////////////////////////////////////////////////////////////////
+bool CImagePlus::SaveToStreamAsPNG(std::vector<BYTE>& outBytes)
+{
+	outBytes.clear();
+
+	if (!m_pImage)
+		return false;
+
+	// -------------------------------------------------------------
+	// 1. Create an in-memory IStream
+	// -------------------------------------------------------------
+	IStream* pStream = nullptr;
+	HRESULT hr = CreateStreamOnHGlobal(NULL, TRUE, &pStream);
+	if (FAILED(hr))
+		return false;
+
+	// -------------------------------------------------------------
+	// 2. Get PNG encoder CLSID
+	// -------------------------------------------------------------
+	CLSID clsidPng;
+	if (GetEncoderClsid(L"image/png", &clsidPng) < 0)
+	{
+		pStream->Release();
+		return false;
+	}
+
+	// -------------------------------------------------------------
+	// 3. Save Bitmap to PNG in the stream
+	// -------------------------------------------------------------
+	Status status = m_pImage->Save(pStream, &clsidPng, NULL);
+	if (status != Ok)
+	{
+		pStream->Release();
+		return false;
+	}
+
+	// -------------------------------------------------------------
+	// 4. Extract bytes from the stream
+	// -------------------------------------------------------------
+	STATSTG stat;
+	pStream->Stat(&stat, STATFLAG_NONAME);
+
+	ULONG size = (ULONG)stat.cbSize.QuadPart;
+	outBytes.resize(size);
+
+	LARGE_INTEGER liZero = {};
+	pStream->Seek(liZero, STREAM_SEEK_SET, NULL);
+
+	ULONG bytesRead = 0;
+	pStream->Read(outBytes.data(), size, &bytesRead);
+
+	pStream->Release();
+	return true;
+} // SaveToStreamAsPNG
+
+/////////////////////////////////////////////////////////////////////////////
 
