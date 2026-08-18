@@ -383,13 +383,7 @@ void CGraphPlotter::DrawAxisLabels
 
 	SolidBrush br
 	(
-		Color
-		(
-			255,
-			GetRValue(LineColor),
-			GetGValue(LineColor),
-			GetBValue(LineColor)
-		)
+		theApp.ColorPlus->ARGBByName[LineColor]
 	);
 
 	// -------------------------------------------------------------
@@ -588,10 +582,7 @@ void CGraphPlotter::DrawGrid
 	(
 		Color
 		(
-			255,
-			GetRValue(GridColor),
-			GetGValue(GridColor),
-			GetBValue(GridColor)
+			theApp.ColorPlus->ARGBByName[GridColor]
 		),
 		(REAL)GridLineThicknessInches
 	);
@@ -701,10 +692,7 @@ void CGraphPlotter::DrawTicks
 	(
 		Color
 		(
-			255,
-			GetRValue(LineColor),
-			GetGValue(LineColor),
-			GetBValue(LineColor)
+			theApp.ColorPlus->ARGBByName[LineColor]
 		),
 		(REAL)LineThicknessInches
 	);
@@ -849,10 +837,7 @@ void CGraphPlotter::DrawAxisNumbers
 	(
 		Color
 		(
-			255,
-			GetRValue(LineColor),
-			GetGValue(LineColor),
-			GetBValue(LineColor)
+			theApp.ColorPlus->ARGBByName[LineColor]
 		)
 	);
 
@@ -910,10 +895,7 @@ void CGraphPlotter::DrawAxisNumbers
 		(
 			Color
 			(
-				255,
-				GetRValue(LineColor),
-				GetGValue(LineColor),
-				GetBValue(LineColor)
+				theApp.ColorPlus->ARGBByName[LineColor]
 			)
 		);
 
@@ -1018,10 +1000,10 @@ void CGraphPlotter::DrawCurve
 
 	Pen penCurve
 	(
-		Color(255,
-			GetRValue(LineColor),
-			GetGValue(LineColor),
-			GetBValue(LineColor)),
+		Color
+		(
+			theApp.ColorPlus->ARGBByName[LineColor]
+		),
 		(REAL)LineThicknessInches
 	);
 
@@ -1109,10 +1091,10 @@ void CGraphPlotter::DrawTrendLine
 
 	Pen penAvg
 	(
-		Color(255,
-			GetRValue(TrendLineColor),
-			GetGValue(TrendLineColor),
-			GetBValue(TrendLineColor)),
+		Color
+		(
+			theApp.ColorPlus->ARGBByName[TrendLineColor]
+		),
 		(REAL)TrendLineThicknessInches
 	);
 
@@ -1306,10 +1288,7 @@ void CGraphPlotter::DrawTitle
 	(
 		Color
 		(
-			255,
-			GetRValue(LineColor),
-			GetGValue(LineColor),
-			GetBValue(LineColor)
+			theApp.ColorPlus->ARGBByName[LineColor]
 		)
 	);
 
@@ -1351,10 +1330,7 @@ void CGraphPlotter::DrawTitle
 		(
 			Color
 			(
-				255,
-				GetRValue(TrendLineColor),
-				GetGValue(TrendLineColor),
-				GetBValue(TrendLineColor)
+				theApp.ColorPlus->ARGBByName[TrendLineColor]
 			)
 		);
 

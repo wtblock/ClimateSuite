@@ -124,7 +124,7 @@ void CClimateExplorerDoc::InitializeProperties()
 	// -------------------------------------------------------------
 	// Curve line appearance
 	// -------------------------------------------------------------
-	LineColor = theApp.ColorPlus->RGBByName[L"DarkRed"];
+	LineColor = L"DarkRed";
 	LineStyle = Gdiplus::DashStyleDot;
 	LineThicknessInches = 0.015; // ~6 px at 400 DPI
 
@@ -132,14 +132,14 @@ void CClimateExplorerDoc::InitializeProperties()
 	// Trend line appearance
 	// -------------------------------------------------------------
 	TrendLine = TRUE;
-	TrendLineColor = theApp.ColorPlus->RGBByName[L"Red"];
+	TrendLineColor = L"Red";
 	TrendLineStyle = Gdiplus::DashStyleSolid;
 	TrendLineThicknessInches = 0.03; // ~12 px at 400 DPI
 
 	// -------------------------------------------------------------
 	// Grid appearance
 	// -------------------------------------------------------------
-	GridColor = theApp.ColorPlus->RGBByName[L"Silver"];
+	GridColor = L"Silver";
 	GridLineStyle = Gdiplus::DashStyleDot;
 	GridLineThicknessInches = 0.020; // ~8 px at 400 DPI
 
@@ -342,16 +342,16 @@ BOOL CClimateExplorerDoc::SaveCEx(CString& csPath)
 			WriteProp(L"AxisLabelX", pPlot->AxisLabelX, L"string");
 			WriteProp(L"AxisLabelY", pPlot->AxisLabelY, L"string");
 
-			WriteProp(L"LineColor", FormatColor(pPlot->LineColor), L"color");
+			WriteProp(L"LineColor", pPlot->LineColor, L"string");
 			WriteProp(L"LineStyle", DashStyleToString(pPlot->LineStyle), L"string");
 			WriteProp(L"LineThicknessInches", FormatDouble(pPlot->LineThicknessInches), L"double");
 
 			WriteProp(L"TrendLine", pPlot->TrendLine ? L"true" : L"false", L"bool");
-			WriteProp(L"TrendLineColor", FormatColor(pPlot->TrendLineColor), L"color");
+			WriteProp(L"TrendLineColor", pPlot->TrendLineColor, L"string");
 			WriteProp(L"TrendLineStyle", DashStyleToString(pPlot->TrendLineStyle), L"string");
 			WriteProp(L"TrendLineThicknessInches", FormatDouble(pPlot->TrendLineThicknessInches), L"double");
 
-			WriteProp(L"GridLineColor", FormatColor(pPlot->GridColor), L"color");
+			WriteProp(L"GridLineColor", pPlot->GridColor, L"string");
 			WriteProp(L"GridLineStyle", DashStyleToString(pPlot->GridLineStyle), L"string");
 			WriteProp(L"GridLineThicknessInches", FormatDouble(pPlot->GridLineThicknessInches), L"double");
 
@@ -508,16 +508,16 @@ BOOL CClimateExplorerDoc::SaveCE(const CString& csPath)
 			WriteCEProp(L"AxisLabelX", pPlot->AxisLabelX);
 			WriteCEProp(L"AxisLabelY", pPlot->AxisLabelY);
 
-			WriteCEProp(L"LineColor", FormatColor(pPlot->LineColor));
+			WriteCEProp(L"LineColor", pPlot->LineColor);
 			WriteCEProp(L"LineStyle", DashStyleToString(pPlot->LineStyle));
 			WriteCEProp(L"LineThicknessInches", FormatDouble(pPlot->LineThicknessInches));
 
 			WriteCEProp(L"TrendLine", pPlot->TrendLine ? L"true" : L"false");
-			WriteCEProp(L"TrendLineColor", FormatColor(pPlot->TrendLineColor));
+			WriteCEProp(L"TrendLineColor", pPlot->TrendLineColor);
 			WriteCEProp(L"TrendLineStyle", DashStyleToString(pPlot->TrendLineStyle));
 			WriteCEProp(L"TrendLineThicknessInches", FormatDouble(pPlot->TrendLineThicknessInches));
 
-			WriteCEProp(L"GridLineColor", FormatColor(pPlot->GridColor));
+			WriteCEProp(L"GridLineColor", pPlot->GridColor);
 			WriteCEProp(L"GridLineStyle", DashStyleToString(pPlot->GridLineStyle));
 			WriteCEProp(L"GridLineThicknessInches", FormatDouble(pPlot->GridLineThicknessInches));
 
@@ -1503,7 +1503,7 @@ void CClimateExplorerDoc::AssignPlotPropertyToTemp
 	// -------------------------------------------------------------
 	else if (csName == L"LineColor")
 	{
-		temp.LineColor = ParseColor(csValue);
+		temp.LineColor = csValue;
 	}
 	else if (csName == L"LineStyle")
 	{
@@ -1523,7 +1523,7 @@ void CClimateExplorerDoc::AssignPlotPropertyToTemp
 	}
 	else if (csName == L"TrendLineColor")
 	{
-		temp.TrendLineColor = ParseColor(csValue);
+		temp.TrendLineColor = csValue;
 	}
 	else if (csName == L"TrendLineStyle")
 	{
@@ -1539,7 +1539,7 @@ void CClimateExplorerDoc::AssignPlotPropertyToTemp
 	// -------------------------------------------------------------
 	else if (csName == L"GridLineColor")
 	{
-		temp.GridColor = ParseColor(csValue);
+		temp.GridColor = csValue;
 	}
 	else if (csName == L"GridLineStyle")
 	{

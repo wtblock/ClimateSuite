@@ -486,16 +486,13 @@ LRESULT CPropertiesWnd::OnPropertyChange
 				m_pPropThreshold->Show();
 				m_pPropUnits->Show();
 
-				COLORREF rgbLine = theApp.ColorPlus->RGBByName[L"DarkRed"];
-				COLORREF rgbTrend = theApp.ColorPlus->RGBByName[L"Red"];
-
-				pDoc->LineColor = rgbLine;
-				pDoc->TrendLineColor = rgbTrend;
+				pDoc->LineColor = L"DarkRed";
+				pDoc->TrendLineColor = L"Red";
 				pDoc->TrendLine = TRUE;
 
 				m_pPropTrendLine->SetValue(_variant_t(true));
-				m_pPropLineColor->SetValue(_variant_t(long(rgbLine)));
-				m_pPropTrendColor->SetValue(_variant_t(long(rgbTrend)));
+				m_pPropLineColor->SetValue(_variant_t(L"DarkRed"));
+				m_pPropTrendColor->SetValue(_variant_t(L"Red"));
 				m_pPropState->SetValue(_variant_t(pDoc->State));
 				m_pPropLocation->SetValue(_variant_t(pDoc->Location));
 			}
@@ -506,14 +503,12 @@ LRESULT CPropertiesWnd::OnPropertyChange
 
 			if (csSubtype == L"Stations")
 			{
-				COLORREF rgbLine = theApp.ColorPlus->RGBByName[L"DarkGreen"];
-
-				pDoc->LineColor = rgbLine;
+				pDoc->LineColor = L"DarkGreen";
 				pDoc->LineStyle = Gdiplus::DashStyleDash;
 				pDoc->TrendLine = FALSE;
 
 				m_pPropTrendLine->SetValue(_variant_t(false));
-				m_pPropLineColor->SetValue(_variant_t(long(rgbLine)));
+				m_pPropLineColor->SetValue(_variant_t(L"DarkGreen"));
 				m_pPropLineStyle->SetValue(L"Dash");
 				m_pPropUnits->Show(FALSE);
 				m_pPropState->SetValue(_variant_t(pDoc->State));
@@ -528,49 +523,40 @@ LRESULT CPropertiesWnd::OnPropertyChange
 
 			if (csSubtype == L"Maximum")
 			{
-				COLORREF rgbLine = theApp.ColorPlus->RGBByName[L"DarkRed"];
-				COLORREF rgbTrend = theApp.ColorPlus->RGBByName[L"Red"];
-
-				pDoc->LineColor = rgbLine;
-				pDoc->TrendLineColor = rgbTrend;
+				pDoc->LineColor = L"DarkRed";
+				pDoc->TrendLineColor = L"Red";
 				pDoc->TrendLine = TRUE;
 
 				m_pPropTrendLine->SetValue(_variant_t(true));
 
 				const COleVariant oLC = m_pPropLineColor->GetValue();
 				VARTYPE vt = oLC.vt;
-				m_pPropLineColor->SetValue(_variant_t(long(rgbLine)));
-				m_pPropTrendColor->SetValue(_variant_t(long(rgbTrend)));
+				m_pPropLineColor->SetValue(_variant_t(L"DarkRed"));
+				m_pPropTrendColor->SetValue(_variant_t(L"Red"));
 				m_pPropState->SetValue(_variant_t(pDoc->State));
 				m_pPropLocation->SetValue(_variant_t(pDoc->Location));
 			}
 			else if (csSubtype == L"Minimum")
 			{
-				COLORREF rgbLine = theApp.ColorPlus->RGBByName[L"DarkBlue"];
-				COLORREF rgbTrend = theApp.ColorPlus->RGBByName[L"Blue"];
-
-				pDoc->LineColor = rgbLine;
-				pDoc->TrendLineColor = rgbTrend;
+				pDoc->LineColor = L"DarkBlue";
+				pDoc->TrendLineColor = L"Blue";
 				pDoc->TrendLine = TRUE;
 
 				m_pPropTrendLine->SetValue(_variant_t(true));
-				m_pPropLineColor->SetValue(_variant_t(long(rgbLine)));
-				m_pPropTrendColor->SetValue(_variant_t(long(rgbTrend)));
+				m_pPropLineColor->SetValue(_variant_t(L"DarkBlue"));
+				m_pPropTrendColor->SetValue(_variant_t(L"Blue"));
 				m_pPropState->SetValue(_variant_t(pDoc->State));
 				m_pPropLocation->SetValue(_variant_t(pDoc->Location));
 			}
 			else if (csSubtype == L"Average")
 			{
-				COLORREF rgbLine = theApp.ColorPlus->RGBByName[L"DarkMagenta"];
-				COLORREF rgbTrend = theApp.ColorPlus->RGBByName[L"Magenta"];
-
-				pDoc->LineColor = rgbLine;
-				pDoc->TrendLineColor = rgbTrend;
+				pDoc->LineColor = L"DarkMagenta";
+				pDoc->TrendLineColor = L"Magenta";
 				pDoc->TrendLine = TRUE;
 
 				m_pPropTrendLine->SetValue(_variant_t(true));
-				m_pPropLineColor->SetValue(_variant_t(long(rgbLine)));
-				m_pPropTrendColor->SetValue(_variant_t(long(rgbTrend)));
+				m_pPropLineColor->SetValue(_variant_t(L"DarkMagenta"));
+				m_pPropTrendColor->SetValue(_variant_t(L"Magenta"));
 				m_pPropState->SetValue(_variant_t(pDoc->State));
 				m_pPropLocation->SetValue(_variant_t(pDoc->Location));
 			}
@@ -639,7 +625,7 @@ LRESULT CPropertiesWnd::OnPropertyChange
 		else if (csName == L"Primary Line Color")
 		{
 			CString csName = CString(varIn);
-			pDoc->LineColor = theApp.ColorPlus->RGBByName[csName];
+			pDoc->LineColor = csName;
 			m_wndPropList.EndEditItem();
 		}
 		else if (csName == L"Primary Line Style")
@@ -658,7 +644,7 @@ LRESULT CPropertiesWnd::OnPropertyChange
 		if (csName == L"Trend Line Color")
 		{
 			CString csName = CString(varIn);
-			pDoc->TrendLineColor = theApp.ColorPlus->RGBByName[csName];
+			pDoc->TrendLineColor = csName;
 			m_wndPropList.EndEditItem();
 		}
 		else if (csName == L"Trend Line Style")
@@ -673,7 +659,7 @@ LRESULT CPropertiesWnd::OnPropertyChange
 		if (csName == L"Grid Line Color")
 		{
 			CString csName = CString(varIn);
-			pDoc->GridColor = theApp.ColorPlus->RGBByName[csName];
+			pDoc->GridColor = csName;
 			m_wndPropList.EndEditItem();
 		}
 		else if (csName == L"Grid Line Style")
@@ -884,7 +870,7 @@ void CPropertiesWnd::UpdatePropertiesFromDocument(CClimateExplorerDoc* pDoc)
 			}
 			else if (csName == L"Primary Line Color")
 			{
-				long value = (long)pDoc->LineColor;
+				CString value = pDoc->LineColor;
 				pProp->SetValue(_variant_t(value));
 			}
 			else if (csName == L"Primary Line Style")
@@ -900,7 +886,7 @@ void CPropertiesWnd::UpdatePropertiesFromDocument(CClimateExplorerDoc* pDoc)
 			}
 			else if (csName == L"Trend Line Color")
 			{
-				long value = (long)pDoc->TrendLineColor;
+				CString value = pDoc->TrendLineColor;
 				pProp->SetValue(_variant_t(value));
 			}
 			else if (csName == L"Trend Line Style")
@@ -916,7 +902,7 @@ void CPropertiesWnd::UpdatePropertiesFromDocument(CClimateExplorerDoc* pDoc)
 			}
 			else if (csName == L"Grid Line Color")
 			{
-				long value = (long)pDoc->GridColor;
+				CString value = pDoc->GridColor;
 				pProp->SetValue(_variant_t(value));
 			}
 			else if (csName == L"Grid Line Style")

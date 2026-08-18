@@ -50,7 +50,7 @@ protected:
 	// -------------------------------------------------------------
 	// Curve line appearance
 	// -------------------------------------------------------------
-	COLORREF            m_rgbLineColor;
+	CString             m_csLineColor;
 	Gdiplus::DashStyle  m_dsLineStyle;
 	double              m_fLineThicknessInches;
 
@@ -58,14 +58,14 @@ protected:
 	// Trend line appearance
 	// -------------------------------------------------------------
 	BOOL                m_bTrendLine;
-	COLORREF            m_rgbTrendLineColor;
+	CString             m_csTrendLineColor;
 	Gdiplus::DashStyle  m_dsTrendLineStyle;
 	double              m_fTrendLineThicknessInches;
 
 	// -------------------------------------------------------------
 	// Grid appearance
 	// -------------------------------------------------------------
-	COLORREF            m_rgbGridColor;
+	CString             m_csGridColor;
 	Gdiplus::DashStyle  m_dsGridLineStyle;
 	double              m_fGridLineThicknessInches;
 
@@ -417,18 +417,18 @@ public:
 	// -------------------------------------------------------------
 	// LineColor
 	// -------------------------------------------------------------
-	COLORREF GetLineColor()
+	CString GetLineColor()
 	{
-		return m_rgbLineColor;
+		return m_csLineColor;
 	}
 
-	void SetLineColor(COLORREF value)
+	void SetLineColor(CString value)
 	{
-		m_rgbLineColor = value;
+		m_csLineColor = value;
 	}
 
 	__declspec(property(get = GetLineColor, put = SetLineColor))
-		COLORREF LineColor;
+		CString LineColor;
 
 	// -------------------------------------------------------------
 	// LineStyle
@@ -481,18 +481,18 @@ public:
 	// -------------------------------------------------------------
 	// TrendLineColor
 	// -------------------------------------------------------------
-	COLORREF GetTrendLineColor()
+	CString GetTrendLineColor()
 	{
-		return m_rgbTrendLineColor;
+		return m_csTrendLineColor;
 	}
 
-	void SetTrendLineColor(COLORREF value)
+	void SetTrendLineColor(CString value)
 	{
-		m_rgbTrendLineColor = value;
+		m_csTrendLineColor = value;
 	}
 
 	__declspec(property(get = GetTrendLineColor, put = SetTrendLineColor))
-		COLORREF TrendLineColor;
+		CString TrendLineColor;
 
 	// -------------------------------------------------------------
 	// TrendLineStyle
@@ -529,18 +529,18 @@ public:
 	// -------------------------------------------------------------
 	// GridColor
 	// -------------------------------------------------------------
-	COLORREF GetGridColor()
+	CString GetGridColor()
 	{
-		return m_rgbGridColor;
+		return m_csGridColor;
 	}
 
-	void SetGridColor(COLORREF value)
+	void SetGridColor(CString value)
 	{
-		m_rgbGridColor = value;
+		m_csGridColor = value;
 	}
 
 	__declspec(property(get = GetGridColor, put = SetGridColor))
-		COLORREF GridColor;
+		CString GridColor;
 
 	// -------------------------------------------------------------
 	// GridLineStyle

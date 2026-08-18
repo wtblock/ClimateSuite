@@ -107,7 +107,7 @@ public:
 		// -------------------------------------------------------------
 		// Curve line appearance
 		// -------------------------------------------------------------
-		COLORREF LineColor;
+		CString  LineColor;
 		CString  LineStyle;
 		double   LineThicknessInches;
 
@@ -115,14 +115,14 @@ public:
 		// Trend line appearance
 		// -------------------------------------------------------------
 		BOOL     TrendLine;
-		COLORREF TrendLineColor;
+		CString  TrendLineColor;
 		CString  TrendLineStyle;
 		double   TrendLineThicknessInches;
 
 		// -------------------------------------------------------------
 		// Grid appearance
 		// -------------------------------------------------------------
-		COLORREF GridColor;
+		CString  GridColor;
 		CString  GridLineStyle;
 		double   GridLineThicknessInches;
 
@@ -161,12 +161,12 @@ public:
 			, Threshold(0)
 			, Latitude(0.0)
 			, Longitude(0.0)
-			, LineColor(RGB(0, 0, 0))
+			, LineColor(L"DarkRed")
 			, LineThicknessInches(0.0)
 			, TrendLine(FALSE)
-			, TrendLineColor(RGB(0, 0, 0))
+			, TrendLineColor(L"Red")
 			, TrendLineThicknessInches(0.0)
-			, GridColor(RGB(0, 0, 0))
+			, GridColor(L"Silver")
 			, GridLineThicknessInches(0.0)
 			, TitleFontSizePoints(0)
 			, AxisLabelFontSizePoints(0)
@@ -358,7 +358,7 @@ protected:
 	// -------------------------------------------------------------
 	// Curve line appearance
 	// -------------------------------------------------------------
-	COLORREF            m_rgbLineColor;
+	CString             m_csLineColor;
 	Gdiplus::DashStyle  m_dsLineStyle;
 	double              m_fLineThicknessInches;
 
@@ -366,14 +366,14 @@ protected:
 	// Trend line appearance
 	// -------------------------------------------------------------
 	BOOL                m_bTrendLine;
-	COLORREF            m_rgbTrendLineColor;
+	CString             m_csTrendLineColor;
 	Gdiplus::DashStyle  m_dsTrendLineStyle;
 	double              m_fTrendLineThicknessInches;
 
 	// -------------------------------------------------------------
 	// Grid appearance
 	// -------------------------------------------------------------
-	COLORREF            m_rgbGridColor;
+	CString             m_csGridColor;
 	Gdiplus::DashStyle  m_dsGridLineStyle;
 	double              m_fGridLineThicknessInches;
 
@@ -1841,18 +1841,18 @@ public:
 	// -------------------------------------------------------------
 	// LineColor
 	// -------------------------------------------------------------
-	COLORREF GetLineColor()
+	CString GetLineColor()
 	{
-		return m_rgbLineColor;
+		return m_csLineColor;
 	}
 
-	void SetLineColor(COLORREF value)
+	void SetLineColor(CString value)
 	{
-		m_rgbLineColor = value;
+		m_csLineColor = value;
 	}
 
 	__declspec(property(get = GetLineColor, put = SetLineColor))
-		COLORREF LineColor;
+		CString LineColor;
 
 	// -------------------------------------------------------------
 	// LineStyle
@@ -1905,18 +1905,18 @@ public:
 	// -------------------------------------------------------------
 	// TrendLineColor
 	// -------------------------------------------------------------
-	COLORREF GetTrendLineColor()
+	CString GetTrendLineColor()
 	{
-		return m_rgbTrendLineColor;
+		return m_csTrendLineColor;
 	}
 
-	void SetTrendLineColor(COLORREF value)
+	void SetTrendLineColor(CString value)
 	{
-		m_rgbTrendLineColor = value;
+		m_csTrendLineColor = value;
 	}
 
 	__declspec(property(get = GetTrendLineColor, put = SetTrendLineColor))
-		COLORREF TrendLineColor;
+		CString TrendLineColor;
 
 	// -------------------------------------------------------------
 	// TrendLineStyle
@@ -1953,18 +1953,18 @@ public:
 	// -------------------------------------------------------------
 	// GridColor
 	// -------------------------------------------------------------
-	COLORREF GetGridColor()
+	CString GetGridColor()
 	{
-		return m_rgbGridColor;
+		return m_csGridColor;
 	}
 
-	void SetGridColor(COLORREF value)
+	void SetGridColor(CString value)
 	{
-		m_rgbGridColor = value;
+		m_csGridColor = value;
 	}
 
 	__declspec(property(get = GetGridColor, put = SetGridColor))
-		COLORREF GridColor;
+		CString GridColor;
 
 	// -------------------------------------------------------------
 	// GridLineStyle
@@ -2345,16 +2345,16 @@ protected:
 		else if (name == L"AxisLabelX") pPlot->AxisLabelX = value;
 		else if (name == L"AxisLabelY") pPlot->AxisLabelY = value;
 
-		else if (name == L"LineColor") pPlot->LineColor = wcstol(value, nullptr, 16);
+		else if (name == L"LineColor") pPlot->LineColor = value;
 		else if (name == L"LineStyle") pPlot->LineStyle = StringToDashStyle(value);
 		else if (name == L"LineThicknessInches") pPlot->LineThicknessInches = _ttof(value);
 
 		else if (name == L"TrendLine") pPlot->TrendLine = (value == L"true");
-		else if (name == L"TrendLineColor") pPlot->TrendLineColor = wcstol(value, nullptr, 16);
+		else if (name == L"TrendLineColor") pPlot->TrendLineColor = value;
 		else if (name == L"TrendLineStyle") pPlot->TrendLineStyle = StringToDashStyle(value);
 		else if (name == L"TrendLineThicknessInches") pPlot->TrendLineThicknessInches = _ttof(value);
 
-		else if (name == L"GridLineColor") pPlot->GridColor = wcstol(value, nullptr, 16);
+		else if (name == L"GridColor") pPlot->GridColor = value;
 		else if (name == L"GridLineStyle") pPlot->GridLineStyle = StringToDashStyle(value);
 		else if (name == L"GridLineThicknessInches") pPlot->GridLineThicknessInches = _ttof(value);
 
