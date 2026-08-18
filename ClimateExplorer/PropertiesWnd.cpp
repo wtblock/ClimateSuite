@@ -11,6 +11,7 @@
 #include "ClimateExplorerView.h"
 #include "ClimateExplorer.h"
 #include "PropertyGridMultilineText.h"
+#include "ColorNameProperty.h"
 #include "ClimateDatabase.h"
 #include "ImagePlus.h"
 #include "Color.h"
@@ -20,6 +21,9 @@
 static char THIS_FILE[] = __FILE__;
 #define new DEBUG_NEW
 #endif
+
+/////////////////////////////////////////////////////////////////////////////
+CColorPlus g_ColorPlus;
 
 /////////////////////////////////////////////////////////////////////////////
 // CResourceViewBar
@@ -638,8 +642,9 @@ LRESULT CPropertiesWnd::OnPropertyChange
 		}
 		else if (csName == L"Primary Line Color")
 		{
-			COLORREF rgb = COLORREF(varIn);
-			pDoc->LineColor = rgb;
+			CString csName = CString(varIn);
+			pDoc->LineColor = g_ColorPlus.RGBByName[csName];
+			m_wndPropList.EndEditItem();
 		}
 		else if (csName == L"Primary Line Style")
 		{
@@ -656,8 +661,9 @@ LRESULT CPropertiesWnd::OnPropertyChange
 		}
 		if (csName == L"Trend Line Color")
 		{
-			COLORREF rgb = COLORREF(varIn);
-			pDoc->TrendLineColor = rgb;
+			CString csName = CString(varIn);
+			pDoc->TrendLineColor = g_ColorPlus.RGBByName[csName];
+			m_wndPropList.EndEditItem();
 		}
 		else if (csName == L"Trend Line Style")
 		{
@@ -670,8 +676,9 @@ LRESULT CPropertiesWnd::OnPropertyChange
 		}
 		if (csName == L"Grid Line Color")
 		{
-			COLORREF rgb = COLORREF(varIn);
-			pDoc->GridColor = rgb;
+			CString csName = CString(varIn);
+			pDoc->GridColor = g_ColorPlus.RGBByName[csName];
+			m_wndPropList.EndEditItem();
 		}
 		else if (csName == L"Grid Line Style")
 		{
@@ -1749,10 +1756,7 @@ void CPropertiesWnd::InitPropList()
 	// Line properties
 	// -------------------------------------------------------------
 	m_pPropLineColor =
-		new CMFCPropertyGridColorProperty
-		(
-			L"Primary Line Color", CColor::darkred
-		);
+		new CColorNameProperty(L"Primary Line Color", L"DarkRed");
 
 	m_pPropLineColor->SetDescription(L"Line Color of the primary value being plotted.");
 
@@ -1791,10 +1795,7 @@ void CPropertiesWnd::InitPropList()
 		);
 
 	m_pPropTrendColor =
-		new CMFCPropertyGridColorProperty
-		(
-			L"Trend Line Color", CColor::red
-		);
+		new CColorNameProperty(L"Trend Line Color", L"Red");
 
 	m_pPropTrendColor->SetDescription(L"Line Color of the trend line being plotted.");
 
@@ -1825,10 +1826,7 @@ void CPropertiesWnd::InitPropList()
 	// Grid properties
 	// -------------------------------------------------------------
 	m_pPropGridColor =
-		new CMFCPropertyGridColorProperty
-		(
-			L"Grid Line Color", CColor::silver
-		);
+		new CColorNameProperty(L"Grid Line Color", L"Silver");
 
 	m_pPropGridColor->SetDescription(L"Line Color of the reference grid.");
 

@@ -196,6 +196,7 @@
     <ClInclude Include="ClimateExplorer.h" />
     <ClInclude Include="ClimateExplorerDoc.h" />
     <ClInclude Include="ClimateExplorerView.h" />
+    <ClInclude Include="ColorNameProperty.h" />
     <ClInclude Include="CommandLine.h" />
     <ClInclude Include="framework.h" />
     <ClInclude Include="GraphPlotter.h" />

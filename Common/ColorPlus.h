@@ -2,7 +2,7 @@
 // Copyright © 2026 by W. T. Block, all rights reserved
 /////////////////////////////////////////////////////////////////////////////
 #pragma once
-#include "PlusGDI.h"
+#include "ImagePlus.h"
 #include "GdiplusColor.h"
 #include "KeyedCollection.h"
 #include <vector>
@@ -94,6 +94,43 @@ public:
 	// get all color names
 	__declspec(property(get = GetAllColorNames))
 		vector<CString> AllColorNames;
+
+	// find the closest named color to the given RGB color
+	CString GetNearestColorName(COLORREF rgb)
+	{
+		CString bestName;
+		double bestDist = DBL_MAX;
+
+		int r1 = GetRValue(rgb);
+		int g1 = GetGValue(rgb);
+		int b1 = GetBValue(rgb);
+
+		for (auto& pair : m_mapColors.Items)
+		{
+			CString name = pair.first;
+			COLORREF rgb2 = RGBByName[name];
+
+			int r2 = GetRValue(rgb2);
+			int g2 = GetGValue(rgb2);
+			int b2 = GetBValue(rgb2);
+
+			double dist =
+				double(r1 - r2) * (r1 - r2) +
+				double(g1 - g2) * (g1 - g2) +
+				double(b1 - b2) * (b1 - b2);
+
+			if (dist < bestDist)
+			{
+				bestDist = dist;
+				bestName = name;
+			}
+		}
+
+		return bestName;
+	}
+	// find the closest named color to the given RGB color
+	__declspec(property(get = GetNearestColorName))
+		CString NearestColorName[];
 
 // protected methods
 protected:
