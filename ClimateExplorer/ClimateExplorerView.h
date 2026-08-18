@@ -339,6 +339,7 @@ public:
 	afx_msg void OnUpdateBingMap(CCmdUI* pCmdUI);
 	afx_msg void OnGoogleMap();
 	afx_msg void OnUpdateGoogleMap(CCmdUI* pCmdUI);
+	virtual void OnUpdate(CView* /*pSender*/, LPARAM /*lHint*/, CObject* /*pHint*/);
 };
 
 /////////////////////////////////////////////////////////////////////////////

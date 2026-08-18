@@ -110,6 +110,7 @@ public:
 
 // Overrides
 public:
+	virtual LRESULT OnIdleUpdateCmdUI(WPARAM wParam, LPARAM);
 	virtual BOOL PreCreateWindow(CREATESTRUCT& cs);
 	virtual BOOL LoadFrame
 	(

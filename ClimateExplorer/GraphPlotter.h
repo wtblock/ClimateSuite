@@ -15,6 +15,8 @@ class CGraphPlotter
 {
 // protected data
 protected:
+	// in GraphPlotter.h
+	std::vector<uint8_t> m_arrPNG;
 
 	// Query Type (Picker, Natural Language, or SQL)
 	CString             m_csQueryType;
@@ -326,6 +328,19 @@ public:
 	/////////////////////////////////////////////////////////////////////////////
 	// Graphing data
 	/////////////////////////////////////////////////////////////////////////////
+
+	std::vector<uint8_t>& GetBytesPNG()
+	{
+		return m_arrPNG;
+	}
+
+	void SetBytesPNG(std::vector<uint8_t>& value)
+	{
+		m_arrPNG = value;
+	}
+
+	__declspec(property(get = GetBytesPNG, put = SetBytesPNG))
+		std::vector<uint8_t> BytesPNG;
 
 	std::vector<double>& GetYears()
 	{
@@ -839,6 +854,10 @@ public:
 
 // public constructor/destructor
 public:
+	CGraphPlotter()
+	{
+
+	};
 	CGraphPlotter(CClimateExplorerDoc* pDoc);
 	CGraphPlotter
 	(

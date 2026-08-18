@@ -2405,6 +2405,7 @@ protected:
 	);
 
 	void ApplyPlotPropsToDocument(const PlotProps& temp);
+	void ApplyPlotPropsToPlotter(CGraphPlotter& plot, const PlotProps& props);
 
 	BOOL LoadCE(const CString& csPath);
 	BOOL LoadCEx(const CString& csPath);

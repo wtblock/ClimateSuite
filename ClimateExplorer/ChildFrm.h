@@ -25,6 +25,7 @@ public:
 
 // Implementation
 public:
+	virtual void ActivateFrame(int nCmdShow = -1);
 	virtual ~CChildFrame();
 #ifdef _DEBUG
 	virtual void AssertValid() const;
@@ -34,4 +35,5 @@ public:
 // Generated message map functions
 protected:
 	DECLARE_MESSAGE_MAP()
+
 };

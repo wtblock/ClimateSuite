@@ -13,6 +13,7 @@
 #include <set>
 #include "Color.h"
 #include "ZipWriter.h"
+#include "ZipReader.h"
 
 /////////////////////////////////////////////////////////////////////////////
 #pragma comment(lib, "xmllite.lib")
@@ -389,6 +390,7 @@ BOOL CClimateExplorerDoc::SaveCEx(CString& csPath)
 BOOL CClimateExplorerDoc::SaveCE(const CString& csPath)
 {
 	BOOL value = FALSE;
+	m_arrCEPNGs.clear();
 
 	// -------------------------------------------------------------
 	// 1. Create the output stream
@@ -479,30 +481,67 @@ BOOL CClimateExplorerDoc::SaveCE(const CString& csPath)
 
 			pWriter->WriteStartElement(nullptr, L"Plot", nullptr);
 
-			WriteCEProp(L"GraphTitle", pPlot->GraphTitle);
+			// ---------------- QUERY PROPERTIES -------------------
+			WriteCEProp(L"QueryType", pPlot->QueryType);
+			WriteCEProp(L"Pure", pPlot->Pure ? L"true" : L"false");
 			WriteCEProp(L"Scope", pPlot->Scope);
-			WriteCEProp(L"Subtype", pPlot->Subtype);
 
 			WriteCEProp(L"YearStart", FormatInt(pPlot->YearStart));
 			WriteCEProp(L"YearEnd", FormatInt(pPlot->YearEnd));
 
+			WriteCEProp(L"Subtype", pPlot->Subtype);
+			WriteCEProp(L"Threshold", FormatInt(pPlot->Threshold));
+
+			WriteCEProp(L"Units", pPlot->Units);
+			WriteCEProp(L"Output", pPlot->Output);
+
 			WriteCEProp(L"State", pPlot->State);
 			WriteCEProp(L"Location", pPlot->Location);
+			WriteCEProp(L"Station", pPlot->Station);
+
+			WriteCEProp(L"Latitude", FormatDouble(pPlot->Latitude));
+			WriteCEProp(L"Longitude", FormatDouble(pPlot->Longitude));
+
+			WriteCEProp(L"SQL", pPlot->SQL);
+
+			// ---------------- APPEARANCE PROPERTIES --------------
+			WriteCEProp(L"GraphTitle", pPlot->GraphTitle);
+			WriteCEProp(L"AxisLabelX", pPlot->AxisLabelX);
+			WriteCEProp(L"AxisLabelY", pPlot->AxisLabelY);
+
+			WriteCEProp(L"LineColor", FormatColor(pPlot->LineColor));
+			WriteCEProp(L"LineStyle", DashStyleToString(pPlot->LineStyle));
+			WriteCEProp(L"LineThicknessInches", FormatDouble(pPlot->LineThicknessInches));
+
+			WriteCEProp(L"TrendLine", pPlot->TrendLine ? L"true" : L"false");
+			WriteCEProp(L"TrendLineColor", FormatColor(pPlot->TrendLineColor));
+			WriteCEProp(L"TrendLineStyle", DashStyleToString(pPlot->TrendLineStyle));
+			WriteCEProp(L"TrendLineThicknessInches", FormatDouble(pPlot->TrendLineThicknessInches));
+
+			WriteCEProp(L"GridLineColor", FormatColor(pPlot->GridColor));
+			WriteCEProp(L"GridLineStyle", DashStyleToString(pPlot->GridLineStyle));
+			WriteCEProp(L"GridLineThicknessInches", FormatDouble(pPlot->GridLineThicknessInches));
+
+			WriteCEProp(L"TitleFontSizePoints", FormatInt(pPlot->TitleFontSizePoints));
+			WriteCEProp(L"AxisLabelFontSizePoints", FormatInt(pPlot->AxisLabelFontSizePoints));
+			WriteCEProp(L"TickLabelFontSizePoints", FormatInt(pPlot->TickLabelFontSizePoints));
+
+			WriteCEProp(L"LeftPaddingInches", FormatDouble(pPlot->LeftPaddingInches));
+			WriteCEProp(L"RightPaddingInches", FormatDouble(pPlot->RightPaddingInches));
+			WriteCEProp(L"TopPaddingInches", FormatDouble(pPlot->TopPaddingInches));
+			WriteCEProp(L"BottomPaddingInches", FormatDouble(pPlot->BottomPaddingInches));
+
+			WriteCEProp(L"TickLengthInches", FormatDouble(pPlot->TickLengthInches));
+			WriteCEProp(L"Layout", pPlot->Layout);
 
 			// -------------------------------------------------------------
 			// Render PNG for this plot and write filename
 			// -------------------------------------------------------------
 
-			// 1. Compute rectangles for this page
-			vector<CRect> arrRects = pPage->Rectangles;
+			// Convert logical → pixel rectangle (already rotated to landscape)
+			CRect rcPixels = ImageRectangle;
 
-			// 2. Find this plot's rectangle
-			CRect rcLogical = arrRects[plotIndex];
-
-			// 3. Convert logical → pixel rectangle (400 DPI)
-			CRect rcPixels = ConvertLogicalToPixels(rcLogical);
-
-			// 4. Render PNG bytes
+			// Render PNG bytes
 			std::vector<BYTE> pngBytes;
 			RenderPlotToPNG(pPlot, rcPixels, pngBytes);
 
@@ -609,6 +648,8 @@ BOOL CClimateExplorerDoc::OnSaveDocument(CString& csPath)
 	{
 		AfxMessageBox(L"Unknown file type.");
 	}
+
+	SetModifiedFlag(FALSE);
 
 	return value;
 } // OnSaveDocument
@@ -1647,10 +1688,261 @@ void CClimateExplorerDoc::ApplyPlotPropsToDocument(const PlotProps& temp)
 } // ApplyPlotPropsToDocument
 
 /////////////////////////////////////////////////////////////////////////////
+void CClimateExplorerDoc::ApplyPlotPropsToPlotter
+(
+	CGraphPlotter& plot, const PlotProps& props
+)
+{
+	// ---------------- QUERY PROPERTIES -------------------
+	plot.QueryType = props.QueryType;
+	plot.Pure = props.Pure;
+	plot.Scope = props.Scope;
+
+	plot.YearStart = props.YearStart;
+	plot.YearEnd = props.YearEnd;
+
+	plot.Subtype = props.Subtype;
+	plot.Threshold = props.Threshold;
+
+	plot.Units = props.Units;
+	plot.Output = props.Output;
+
+	plot.State = props.State;
+	plot.Location = props.Location;
+	plot.Station = props.Station;
+
+	plot.Latitude = props.Latitude;
+	plot.Longitude = props.Longitude;
+
+	// ---------------- APPEARANCE PROPERTIES --------------
+	plot.GraphTitle = props.GraphTitle;
+	plot.AxisLabelX = props.AxisLabelX;
+	plot.AxisLabelY = props.AxisLabelY;
+
+	plot.LineColor = props.LineColor;
+	plot.LineStyle = LineStyleEnum[props.LineStyle];
+	plot.LineThicknessInches = props.LineThicknessInches;
+
+	plot.TrendLine = props.TrendLine;
+	plot.TrendLineColor = props.TrendLineColor;
+	plot.TrendLineStyle = LineStyleEnum[props.TrendLineStyle];
+	plot.TrendLineThicknessInches = props.TrendLineThicknessInches;
+
+	plot.GridColor = props.GridColor;
+	plot.GridLineStyle = LineStyleEnum[props.GridLineStyle];
+	plot.GridLineThicknessInches = props.GridLineThicknessInches;
+
+	plot.TitleFontSizePoints = props.TitleFontSizePoints;
+	plot.AxisLabelFontSizePoints = props.AxisLabelFontSizePoints;
+	plot.TickLabelFontSizePoints = props.TickLabelFontSizePoints;
+
+	plot.LeftPaddingInches = props.LeftPaddingInches;
+	plot.RightPaddingInches = props.RightPaddingInches;
+	plot.TopPaddingInches = props.TopPaddingInches;
+	plot.BottomPaddingInches = props.BottomPaddingInches;
+
+	plot.TickLengthInches = props.TickLengthInches;
+
+	// Layout is stored twice in SaveCE — we honor the last one
+	plot.Layout = props.Layout;
+
+	// ---------------- CE-Specific -------------------------
+	// PNGBytes is assigned in LoadCE after ExtractFile()
+	// so nothing to do here.
+}
+
+/////////////////////////////////////////////////////////////////////////////
 BOOL CClimateExplorerDoc::LoadCE(const CString& csPath)
 {
-	AfxMessageBox(L"LoadCE() not implemented yet.");
-	return FALSE;
+	BOOL value = FALSE;
+
+	// -------------------------------------------------------------
+	// 1. Open CE ZIP file
+	// -------------------------------------------------------------
+	CZipReader zip;
+	if (!zip.Open(csPath))
+	{
+		AfxMessageBox(L"Failed to open CE file.");
+		return value;
+	}
+
+	// -------------------------------------------------------------
+	// 2. Extract ClimateExplorer.xml
+	// -------------------------------------------------------------
+	std::vector<uint8_t> xmlBytes;
+	if (!zip.ExtractFile(L"ClimateExplorer.xml", xmlBytes))
+	{
+		AfxMessageBox(L"CE file missing ClimateExplorer.xml.");
+		zip.Close();
+		return value;
+	}
+
+	// Create stream from XML bytes
+	CComPtr<IStream> pStream;
+	HRESULT hr = CreateStreamOnHGlobal(NULL, TRUE, &pStream);
+	if (FAILED(hr))
+	{
+		zip.Close();
+		return value;
+	}
+
+	ULONG written = 0;
+	pStream->Write(xmlBytes.data(), (ULONG)xmlBytes.size(), &written);
+
+	LARGE_INTEGER liZero = {};
+	pStream->Seek(liZero, STREAM_SEEK_SET, NULL);
+
+	// -------------------------------------------------------------
+	// 3. Create XmlLite reader
+	// -------------------------------------------------------------
+	CComPtr<IXmlReader> pReader;
+	hr = CreateXmlReader(__uuidof(IXmlReader), (void**)&pReader, nullptr);
+	if (FAILED(hr))
+	{
+		zip.Close();
+		return value;
+	}
+
+	hr = pReader->SetInput(pStream);
+	if (FAILED(hr))
+	{
+		zip.Close();
+		return value;
+	}
+
+	// -------------------------------------------------------------
+	// 4. Clear existing document
+	// -------------------------------------------------------------
+	m_arrPages.clear();
+	Pages = 0;
+
+	XmlNodeType eType;
+	CString csElement;
+
+	shared_ptr<CPage> pCurrentPage;
+
+	// -------------------------------------------------------------
+	// 5. XML reading loop
+	// -------------------------------------------------------------
+	while (pReader->Read(&eType) == S_OK)
+	{
+		if (eType != XmlNodeType_Element)
+			continue;
+
+		const WCHAR* pwszName = nullptr;
+		pReader->GetLocalName(&pwszName, nullptr);
+		csElement = pwszName;
+
+		// ---------------------------------------------------------
+		// Document-level properties
+		// ---------------------------------------------------------
+		if (IsDocProperty(csElement))
+		{
+			CString csValue = ReadValueAttribute(pReader);
+			AssignDocumentProperty(csElement, csValue);
+			continue;
+		}
+
+		// ---------------------------------------------------------
+		// Page element
+		// ---------------------------------------------------------
+		if (csElement == L"Page")
+		{
+			CString csNumber, csType, csLayout;
+
+			if (pReader->MoveToFirstAttribute() == S_OK)
+			{
+				do
+				{
+					const WCHAR* pwszAttr = nullptr;
+					const WCHAR* pwszVal = nullptr;
+					pReader->GetLocalName(&pwszAttr, nullptr);
+					pReader->GetValue(&pwszVal, nullptr);
+
+					if (wcscmp(pwszAttr, L"number") == 0)
+						csNumber = pwszVal;
+					else if (wcscmp(pwszAttr, L"type") == 0)
+						csType = pwszVal;
+					else if (wcscmp(pwszAttr, L"layout") == 0)
+						csLayout = pwszVal;
+
+				} while (pReader->MoveToNextAttribute() == S_OK);
+			}
+
+			UINT nPage = _wtoi(csNumber);
+
+			CPage::PAGE_TYPE eTypePage = CPage::pageGraph;
+			if (csType == L"Cover")  eTypePage = CPage::pageCover;
+			else if (csType == L"TOC") eTypePage = CPage::pageTOC;
+
+			// Construct page using your actual constructor
+			pCurrentPage = std::make_shared<CPage>(nPage, csLayout, this, eTypePage);
+
+			// Append to CSmartArray
+			m_arrPages.append(pCurrentPage);
+			Pages = (UINT)m_arrPages.Count;
+
+			continue;
+		}
+
+		// ---------------------------------------------------------
+		// Plot element
+		// ---------------------------------------------------------
+		if (csElement == L"Plot")
+		{
+			PlotProps temp;
+			CString csImageFilename;
+
+			// Read plot properties
+			while (pReader->Read(&eType) == S_OK)
+			{
+				if (eType == XmlNodeType_Element)
+				{
+					const WCHAR* pwszPlotName = nullptr;
+					pReader->GetLocalName(&pwszPlotName, nullptr);
+					CString csPlotName = pwszPlotName;
+
+					CString csValue = ReadValueAttribute(pReader);
+
+					if (csPlotName == L"Image")
+					{
+						csImageFilename = csValue;
+					}
+					else if (IsPlotProperty(csPlotName))
+					{
+						AssignPlotPropertyToTemp(temp, csPlotName, csValue);
+					}
+				}
+				else if (eType == XmlNodeType_EndElement)
+				{
+					const WCHAR* pwszEnd = nullptr;
+					pReader->GetLocalName(&pwszEnd, nullptr);
+					if (wcscmp(pwszEnd, L"Plot") == 0)
+						break;
+				}
+			}
+
+			// Create plotter
+			auto pPlot = std::make_shared<CGraphPlotter>();
+			ApplyPlotPropsToPlotter(*pPlot, temp);
+
+			// Load PNG bytes from ZIP
+			std::vector<uint8_t> pngBytes;
+			if (zip.ExtractFile(csImageFilename, pngBytes))
+			{
+				pPlot->BytesPNG = pngBytes; // your member for CE images
+			}
+
+			// Add plot to page using GraphTitle as key
+			CString csKey = pPlot->GraphTitle;
+			pCurrentPage->Plots.add(csKey, pPlot);
+
+			continue;
+		}
+	}
+
+	zip.Close();
+	return TRUE;
 } // LoadCE
 
 /////////////////////////////////////////////////////////////////////////////
@@ -1822,11 +2114,6 @@ BOOL CClimateExplorerDoc::LoadCEx(const CString& csFilename)
 		}
 	}
 
-	// -------------------------------------------------------------
-	// Adjust TOC once at the end
-	// -------------------------------------------------------------
-	AdjustForTOC();
-
 	return TRUE;
 
 } // LoadCEx
@@ -1863,12 +2150,29 @@ BOOL CClimateExplorerDoc::OnOpenDocument(LPCTSTR lpszPathName)
 		pProperties->UpdatePropertiesFromDocument(this);
 		pProperties->PropList->ResetOriginalValues();
 
+		SetPathName(lpszPathName, FALSE);
+
 		CClimateExplorerView* pView = ClimateExplorerView;
 		pView->Invalidate();
 	}
 
+	// -------------------------------------------------------------
+	// Adjust TOC
+	// -------------------------------------------------------------
+	AdjustForTOC();
+
+	// -------------------------------------------------------------
+	// Mark document clean
+	// -------------------------------------------------------------
+	SetModifiedFlag(FALSE);
+
+	// -------------------------------------------------------------
+	// Notify views (required for full main menu)
+	// -------------------------------------------------------------
+	UpdateAllViews(nullptr);
+
 	return value;
-}
+} // OnOpenDocument
 
 /////////////////////////////////////////////////////////////////////////////
 void CClimateExplorerDoc::OnCloseDocument()
@@ -2197,8 +2501,6 @@ void CClimateExplorerDoc::OnExecuteQuery()
 {
 	ExecuteQuery();
 
-	// adjust for possible TOC size increase
-	AdjustForTOC();
 } // OnExecuteQuery
 
 /////////////////////////////////////////////////////////////////////////////

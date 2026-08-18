@@ -193,6 +193,24 @@ void CGraphPlotter::SetDefaults(CClimateExplorerDoc* pDoc)
 /////////////////////////////////////////////////////////////////////////////
 std::unique_ptr<Bitmap> CGraphPlotter::RenderPlot(const CRect& rcPixels)
 {
+	// If we have a CE PNG, render from it instead of recomputing
+	if (!m_arrPNG.empty())
+	{
+		// Create IStream over m_arrPNG
+		CComPtr<IStream> pStream;
+		CreateStreamOnHGlobal(NULL, TRUE, &pStream);
+
+		ULONG written = 0;
+		pStream->Write(m_arrPNG.data(), (ULONG)m_arrPNG.size(), &written);
+
+		LARGE_INTEGER liZero = {};
+		pStream->Seek(liZero, STREAM_SEEK_SET, NULL);
+
+		// Load Bitmap from stream
+		std::unique_ptr<Bitmap> pBmp(new Bitmap(pStream, FALSE));
+		return pBmp;
+	}
+
 	// -------------------------------------------------------------
 	// Convert pixel rectangle to inches (based on 400 DPI)
 	// -------------------------------------------------------------
@@ -228,8 +246,9 @@ std::unique_ptr<Bitmap> CGraphPlotter::RenderPlot(const CRect& rcPixels)
 	// -------------------------------------------------------------
 	// Background
 	// -------------------------------------------------------------
-	SolidBrush brWhite(Color(255, 255, 255, 255));
-	g.FillRectangle(&brWhite, 0.0f, 0.0f, (REAL)widthInches, (REAL)heightInches);
+	//SolidBrush brWhite(Color(255, 255, 255, 255));
+	//g.FillRectangle(&brWhite, 0.0f, 0.0f, (REAL)widthInches, (REAL)heightInches);
+	g.Clear(Gdiplus::Color(0, 0, 0, 0));   // fully transparent background
 
 	// -------------------------------------------------------------
 	// Interior rectangle (in inches)

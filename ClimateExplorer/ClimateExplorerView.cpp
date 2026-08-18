@@ -1523,3 +1523,11 @@ void CClimateExplorerView::OnUpdateGoogleMap(CCmdUI* pCmdUI)
 } // OnUpdateGoogleMap
 
 /////////////////////////////////////////////////////////////////////////////
+void CClimateExplorerView::OnUpdate(CView* pSender, LPARAM lHint, CObject* pHint)
+{
+	CBaseView::OnUpdate(pSender, lHint, pHint);
+
+} // OnUpdate
+
+/////////////////////////////////////////////////////////////////////////////
+

@@ -45,6 +45,13 @@ static UINT indicators[] =
 };
 
 /////////////////////////////////////////////////////////////////////////////
+LRESULT CMainFrame::OnIdleUpdateCmdUI(WPARAM wParam, LPARAM lParam)
+{
+	// BREAKPOINT HERE
+	return CMDIFrameWndEx::OnIdleUpdateCmdUI(wParam, lParam);
+} // OnIdleUpdateCmdUI
+
+/////////////////////////////////////////////////////////////////////////////
 CMainFrame::CMainFrame() noexcept
 {
 	// TODO: add member initialization code here

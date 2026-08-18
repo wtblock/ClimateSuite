@@ -64,3 +64,11 @@ void CChildFrame::Dump(CDumpContext& dc) const
 #endif //_DEBUG
 
 // CChildFrame message handlers
+
+
+void CChildFrame::ActivateFrame(int nCmdShow)
+{
+	// TODO: Add your specialized code here and/or call the base class
+
+	CMDIChildWndEx::ActivateFrame(nCmdShow);
+}
