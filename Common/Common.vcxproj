@@ -162,6 +162,7 @@
     <ClInclude Include="ClimateTemperature.h" />
     <ClInclude Include="ClimateYear.h" />
     <ClInclude Include="Color.h" />
+    <ClInclude Include="ColorPlus.h" />
     <ClInclude Include="Date.h" />
     <ClInclude Include="framework.h" />
     <ClInclude Include="ImagePlus.h" />
@@ -190,6 +191,7 @@
     <ClCompile Include="ClimateTemperature.cpp" />
     <ClCompile Include="ClimateYear.cpp" />
     <ClCompile Include="Color.cpp" />
+    <ClCompile Include="ColorPlus.cpp" />
     <ClCompile Include="Common.cpp" />
     <ClCompile Include="ImagePlus.cpp" />
     <ClCompile Include="miniz.c">

@@ -93,6 +93,9 @@
     <ClInclude Include="ZipReader.h">
       <Filter>Header Files</Filter>
     </ClInclude>
+    <ClInclude Include="ColorPlus.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="Common.cpp">
@@ -159,6 +162,9 @@
       <Filter>Source Files</Filter>
     </ClCompile>
     <ClCompile Include="miniz.c">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="ColorPlus.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
   </ItemGroup>
