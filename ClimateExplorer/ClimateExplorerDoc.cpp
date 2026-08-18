@@ -11,7 +11,6 @@
 #include "MainFrm.h"
 #include <propkey.h>
 #include <set>
-#include "Color.h"
 #include "ZipWriter.h"
 #include "ZipReader.h"
 
@@ -125,7 +124,7 @@ void CClimateExplorerDoc::InitializeProperties()
 	// -------------------------------------------------------------
 	// Curve line appearance
 	// -------------------------------------------------------------
-	LineColor = CColor::darkred;
+	LineColor = theApp.ColorPlus->RGBByName[L"DarkRed"];
 	LineStyle = Gdiplus::DashStyleDot;
 	LineThicknessInches = 0.015; // ~6 px at 400 DPI
 
@@ -133,14 +132,14 @@ void CClimateExplorerDoc::InitializeProperties()
 	// Trend line appearance
 	// -------------------------------------------------------------
 	TrendLine = TRUE;
-	TrendLineColor = CColor::red;
+	TrendLineColor = theApp.ColorPlus->RGBByName[L"Red"];
 	TrendLineStyle = Gdiplus::DashStyleSolid;
 	TrendLineThicknessInches = 0.03; // ~12 px at 400 DPI
 
 	// -------------------------------------------------------------
 	// Grid appearance
 	// -------------------------------------------------------------
-	GridColor = CColor::silver;
+	GridColor = theApp.ColorPlus->RGBByName[L"Silver"];
 	GridLineStyle = Gdiplus::DashStyleDot;
 	GridLineThicknessInches = 0.020; // ~8 px at 400 DPI
 

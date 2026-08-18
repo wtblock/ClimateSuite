@@ -12,6 +12,7 @@
 #include "CommandLine.h"
 #include <memory>
 #include "ClimateDatabase.h"
+#include "ColorPlus.h"
 
 #pragma comment(lib, "gdiplus.lib")
 
@@ -76,6 +77,9 @@ protected:
 	// the climate database is a relational database of USHCN data
 	CClimateDatabase m_db;
 
+	// color cross reference
+	CColorPlus m_ColorPlus;
+
 	// document publisher
 	CString m_csPublisher;
 
@@ -108,6 +112,15 @@ public:
 	// the climate database is a relational database of USHCN data
 	__declspec(property(get = GetClimateDatabase))
 		CClimateDatabase* ClimateDatabase;
+
+	// color cross reference
+	CColorPlus* GetColorPlus()
+	{
+		return &m_ColorPlus;
+	}
+	// color cross reference
+	__declspec(property(get = GetColorPlus))
+		CColorPlus* ColorPlus;
 
 	// document publisher
 	CString GetPublisher()

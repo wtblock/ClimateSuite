@@ -14,16 +14,12 @@
 #include "ColorNameProperty.h"
 #include "ClimateDatabase.h"
 #include "ImagePlus.h"
-#include "Color.h"
 
 #ifdef _DEBUG
 #undef THIS_FILE
 static char THIS_FILE[] = __FILE__;
 #define new DEBUG_NEW
 #endif
-
-/////////////////////////////////////////////////////////////////////////////
-CColorPlus g_ColorPlus;
 
 /////////////////////////////////////////////////////////////////////////////
 // CResourceViewBar
@@ -490,8 +486,8 @@ LRESULT CPropertiesWnd::OnPropertyChange
 				m_pPropThreshold->Show();
 				m_pPropUnits->Show();
 
-				COLORREF rgbLine = CColor::darkred;
-				COLORREF rgbTrend = CColor::red;
+				COLORREF rgbLine = theApp.ColorPlus->RGBByName[L"DarkRed"];
+				COLORREF rgbTrend = theApp.ColorPlus->RGBByName[L"Red"];
 
 				pDoc->LineColor = rgbLine;
 				pDoc->TrendLineColor = rgbTrend;
@@ -510,7 +506,7 @@ LRESULT CPropertiesWnd::OnPropertyChange
 
 			if (csSubtype == L"Stations")
 			{
-				COLORREF rgbLine = CColor::darkgreen;
+				COLORREF rgbLine = theApp.ColorPlus->RGBByName[L"DarkGreen"];
 
 				pDoc->LineColor = rgbLine;
 				pDoc->LineStyle = Gdiplus::DashStyleDash;
@@ -532,8 +528,8 @@ LRESULT CPropertiesWnd::OnPropertyChange
 
 			if (csSubtype == L"Maximum")
 			{
-				COLORREF rgbLine = CColor::darkred;
-				COLORREF rgbTrend = CColor::red;
+				COLORREF rgbLine = theApp.ColorPlus->RGBByName[L"DarkRed"];
+				COLORREF rgbTrend = theApp.ColorPlus->RGBByName[L"Red"];
 
 				pDoc->LineColor = rgbLine;
 				pDoc->TrendLineColor = rgbTrend;
@@ -550,8 +546,8 @@ LRESULT CPropertiesWnd::OnPropertyChange
 			}
 			else if (csSubtype == L"Minimum")
 			{
-				COLORREF rgbLine = CColor::darkblue;
-				COLORREF rgbTrend = CColor::blue;
+				COLORREF rgbLine = theApp.ColorPlus->RGBByName[L"DarkBlue"];
+				COLORREF rgbTrend = theApp.ColorPlus->RGBByName[L"Blue"];
 
 				pDoc->LineColor = rgbLine;
 				pDoc->TrendLineColor = rgbTrend;
@@ -565,8 +561,8 @@ LRESULT CPropertiesWnd::OnPropertyChange
 			}
 			else if (csSubtype == L"Average")
 			{
-				COLORREF rgbLine = CColor::darkmagenta;
-				COLORREF rgbTrend = CColor::magenta;
+				COLORREF rgbLine = theApp.ColorPlus->RGBByName[L"DarkMagenta"];
+				COLORREF rgbTrend = theApp.ColorPlus->RGBByName[L"Magenta"];
 
 				pDoc->LineColor = rgbLine;
 				pDoc->TrendLineColor = rgbTrend;
@@ -643,7 +639,7 @@ LRESULT CPropertiesWnd::OnPropertyChange
 		else if (csName == L"Primary Line Color")
 		{
 			CString csName = CString(varIn);
-			pDoc->LineColor = g_ColorPlus.RGBByName[csName];
+			pDoc->LineColor = theApp.ColorPlus->RGBByName[csName];
 			m_wndPropList.EndEditItem();
 		}
 		else if (csName == L"Primary Line Style")
@@ -662,7 +658,7 @@ LRESULT CPropertiesWnd::OnPropertyChange
 		if (csName == L"Trend Line Color")
 		{
 			CString csName = CString(varIn);
-			pDoc->TrendLineColor = g_ColorPlus.RGBByName[csName];
+			pDoc->TrendLineColor = theApp.ColorPlus->RGBByName[csName];
 			m_wndPropList.EndEditItem();
 		}
 		else if (csName == L"Trend Line Style")
@@ -677,7 +673,7 @@ LRESULT CPropertiesWnd::OnPropertyChange
 		if (csName == L"Grid Line Color")
 		{
 			CString csName = CString(varIn);
-			pDoc->GridColor = g_ColorPlus.RGBByName[csName];
+			pDoc->GridColor = theApp.ColorPlus->RGBByName[csName];
 			m_wndPropList.EndEditItem();
 		}
 		else if (csName == L"Grid Line Style")

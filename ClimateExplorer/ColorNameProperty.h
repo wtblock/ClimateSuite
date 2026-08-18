@@ -5,8 +5,6 @@
 #include <afxpropertygridctrl.h>
 #include "ColorPlus.h"
 
-extern CColorPlus g_ColorPlus;
-
 class CColorNameProperty : public CMFCPropertyGridProperty
 {
 public:
@@ -14,7 +12,7 @@ public:
 		: CMFCPropertyGridProperty(name, COleVariant(value), NULL, 0)
 	{
 		// Populate dropdown options from CColorPlus
-		for (auto& csName : g_ColorPlus.AllColorNames)
+		for (auto& csName : theApp.ColorPlus->AllColorNames)
 		{
 			AddOption(csName);
 		}
@@ -26,7 +24,7 @@ public:
 	virtual void OnDrawValue(CDC* pDC, CRect rect) override
 	{
 		CString csName = (LPCTSTR)(_bstr_t)GetValue();
-		COLORREF rgb = g_ColorPlus.RGBByName[csName];
+		COLORREF rgb = theApp.ColorPlus->RGBByName[csName];
 
 		// Draw color swatch
 		CRect swatch = rect;
@@ -43,7 +41,7 @@ public:
 	void OnClickButton(CPoint /*point*/)
 	{
 		CString csName = (LPCTSTR)(_bstr_t)GetValue();
-		COLORREF initial = g_ColorPlus.RGBByName[csName];
+		COLORREF initial = theApp.ColorPlus->RGBByName[csName];
 
 		CColorDialog dlg(initial, CC_FULLOPEN);
 
@@ -52,7 +50,7 @@ public:
 			COLORREF rgb = dlg.GetColor();
 
 			// Convert to nearest named color
-			CString nearest = g_ColorPlus.NearestColorName[rgb];
+			CString nearest = theApp.ColorPlus->NearestColorName[rgb];
 
 			// Set the new value
 			SetValue(nearest);
