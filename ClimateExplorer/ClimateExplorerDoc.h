@@ -112,11 +112,11 @@ public:
 		double   LineThicknessInches;
 
 		// -------------------------------------------------------------
-		// Trend line appearance
+		// Running Average line appearance
 		// -------------------------------------------------------------
-		CString  TrendLineColor;
-		CString  TrendLineStyle;
-		double   TrendLineThicknessInches;
+		CString  RunningAvgColor;
+		CString  RunningAvgStyle;
+		double   RunningAvgThicknessInches;
 
 		// -------------------------------------------------------------
 		// Grid appearance
@@ -162,8 +162,8 @@ public:
 			, Longitude(0.0)
 			, LineColor(L"DarkRed")
 			, LineThicknessInches(0.0)
-			, TrendLineColor(L"Red")
-			, TrendLineThicknessInches(0.0)
+			, RunningAvgColor(L"Red")
+			, RunningAvgThicknessInches(0.0)
 			, GridColor(L"Silver")
 			, GridLineThicknessInches(0.0)
 			, TitleFontSizePoints(0)
@@ -361,11 +361,11 @@ protected:
 	double              m_fLineThicknessInches;
 
 	// -------------------------------------------------------------
-	// Trend line appearance
+	// Running Average line appearance
 	// -------------------------------------------------------------
-	CString             m_csTrendLineColor;
-	Gdiplus::DashStyle  m_dsTrendLineStyle;
-	double              m_fTrendLineThicknessInches;
+	CString             m_csRunningAvgColor;
+	Gdiplus::DashStyle  m_dsRunningAvgStyle;
+	double              m_fRunningAvgThicknessInches;
 
 	// -------------------------------------------------------------
 	// Grid appearance
@@ -1884,52 +1884,52 @@ public:
 		double LineThicknessInches;
 
 	// -------------------------------------------------------------
-	// TrendLineColor
+	// RunningAvgColor
 	// -------------------------------------------------------------
-	CString GetTrendLineColor()
+	CString GetRunningAvgColor()
 	{
-		return m_csTrendLineColor;
+		return m_csRunningAvgColor;
 	}
 
-	void SetTrendLineColor(CString value)
+	void SetRunningAvgColor(CString value)
 	{
-		m_csTrendLineColor = value;
+		m_csRunningAvgColor = value;
 	}
 
-	__declspec(property(get = GetTrendLineColor, put = SetTrendLineColor))
-		CString TrendLineColor;
-
-	// -------------------------------------------------------------
-	// TrendLineStyle
-	// -------------------------------------------------------------
-	Gdiplus::DashStyle GetTrendLineStyle()
-	{
-		return m_dsTrendLineStyle;
-	}
-
-	void SetTrendLineStyle(Gdiplus::DashStyle value)
-	{
-		m_dsTrendLineStyle = value;
-	}
-
-	__declspec(property(get = GetTrendLineStyle, put = SetTrendLineStyle))
-		Gdiplus::DashStyle TrendLineStyle;
+	__declspec(property(get = GetRunningAvgColor, put = SetRunningAvgColor))
+		CString RunningAvgColor;
 
 	// -------------------------------------------------------------
-	// TrendLineThicknessInches
+	// RunningAvgStyle
 	// -------------------------------------------------------------
-	double GetTrendLineThicknessInches()
+	Gdiplus::DashStyle GetRunningAvgStyle()
 	{
-		return m_fTrendLineThicknessInches;
+		return m_dsRunningAvgStyle;
 	}
 
-	void SetTrendLineThicknessInches(double value)
+	void SetRunningAvgStyle(Gdiplus::DashStyle value)
 	{
-		m_fTrendLineThicknessInches = value;
+		m_dsRunningAvgStyle = value;
 	}
 
-	__declspec(property(get = GetTrendLineThicknessInches, put = SetTrendLineThicknessInches))
-		double TrendLineThicknessInches;
+	__declspec(property(get = GetRunningAvgStyle, put = SetRunningAvgStyle))
+		Gdiplus::DashStyle RunningAvgStyle;
+
+	// -------------------------------------------------------------
+	// RunningAvgThicknessInches
+	// -------------------------------------------------------------
+	double GetRunningAvgThicknessInches()
+	{
+		return m_fRunningAvgThicknessInches;
+	}
+
+	void SetRunningAvgThicknessInches(double value)
+	{
+		m_fRunningAvgThicknessInches = value;
+	}
+
+	__declspec(property(get = GetRunningAvgThicknessInches, put = SetRunningAvgThicknessInches))
+		double RunningAvgThicknessInches;
 
 	// -------------------------------------------------------------
 	// GridColor
@@ -2325,9 +2325,9 @@ protected:
 		else if (name == L"LineStyle") pPlot->LineStyle = StringToDashStyle(value);
 		else if (name == L"LineThicknessInches") pPlot->LineThicknessInches = _ttof(value);
 
-		else if (name == L"TrendLineColor") pPlot->TrendLineColor = value;
-		else if (name == L"TrendLineStyle") pPlot->TrendLineStyle = StringToDashStyle(value);
-		else if (name == L"TrendLineThicknessInches") pPlot->TrendLineThicknessInches = _ttof(value);
+		else if (name == L"RunningAvgColor") pPlot->RunningAvgColor = value;
+		else if (name == L"RunningAvgStyle") pPlot->RunningAvgStyle = StringToDashStyle(value);
+		else if (name == L"RunningAvgThicknessInches") pPlot->RunningAvgThicknessInches = _ttof(value);
 
 		else if (name == L"GridColor") pPlot->GridColor = value;
 		else if (name == L"GridLineStyle") pPlot->GridLineStyle = StringToDashStyle(value);

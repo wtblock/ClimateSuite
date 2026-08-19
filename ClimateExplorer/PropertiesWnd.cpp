@@ -487,10 +487,10 @@ LRESULT CPropertiesWnd::OnPropertyChange
 				m_pPropUnits->Show();
 
 				pDoc->LineColor = L"DarkRed";
-				pDoc->TrendLineColor = L"Red";
+				pDoc->RunningAvgColor = L"Red";
 
 				m_pPropLineColor->SetValue(_variant_t(L"DarkRed"));
-				m_pPropTrendColor->SetValue(_variant_t(L"Red"));
+				m_pPropRunningAvgColor->SetValue(_variant_t(L"Red"));
 				m_pPropState->SetValue(_variant_t(pDoc->State));
 				m_pPropLocation->SetValue(_variant_t(pDoc->Location));
 			}
@@ -520,32 +520,32 @@ LRESULT CPropertiesWnd::OnPropertyChange
 			if (csSubtype == L"Maximum")
 			{
 				pDoc->LineColor = L"DarkRed";
-				pDoc->TrendLineColor = L"Red";
+				pDoc->RunningAvgColor = L"Red";
 
 				const COleVariant oLC = m_pPropLineColor->GetValue();
 				VARTYPE vt = oLC.vt;
 				m_pPropLineColor->SetValue(_variant_t(L"DarkRed"));
-				m_pPropTrendColor->SetValue(_variant_t(L"Red"));
+				m_pPropRunningAvgColor->SetValue(_variant_t(L"Red"));
 				m_pPropState->SetValue(_variant_t(pDoc->State));
 				m_pPropLocation->SetValue(_variant_t(pDoc->Location));
 			}
 			else if (csSubtype == L"Minimum")
 			{
 				pDoc->LineColor = L"DarkBlue";
-				pDoc->TrendLineColor = L"Blue";
+				pDoc->RunningAvgColor = L"Blue";
 
 				m_pPropLineColor->SetValue(_variant_t(L"DarkBlue"));
-				m_pPropTrendColor->SetValue(_variant_t(L"Blue"));
+				m_pPropRunningAvgColor->SetValue(_variant_t(L"Blue"));
 				m_pPropState->SetValue(_variant_t(pDoc->State));
 				m_pPropLocation->SetValue(_variant_t(pDoc->Location));
 			}
 			else if (csSubtype == L"Average")
 			{
 				pDoc->LineColor = L"DarkMagenta";
-				pDoc->TrendLineColor = L"Magenta";
+				pDoc->RunningAvgColor = L"Magenta";
 
 				m_pPropLineColor->SetValue(_variant_t(L"DarkMagenta"));
-				m_pPropTrendColor->SetValue(_variant_t(L"Magenta"));
+				m_pPropRunningAvgColor->SetValue(_variant_t(L"Magenta"));
 				m_pPropState->SetValue(_variant_t(pDoc->State));
 				m_pPropLocation->SetValue(_variant_t(pDoc->Location));
 			}
@@ -629,17 +629,17 @@ LRESULT CPropertiesWnd::OnPropertyChange
 		if (csName == L"Running Average Color")
 		{
 			CString csName = CString(varIn);
-			pDoc->TrendLineColor = csName;
+			pDoc->RunningAvgColor = csName;
 			m_wndPropList.EndEditItem();
 		}
 		else if (csName == L"Running Average Style")
 		{
 			CString value = CString(varIn);
-			pDoc->TrendLineStyle = pDoc->LineStyleEnum[value];
+			pDoc->RunningAvgStyle = pDoc->LineStyleEnum[value];
 		}
 		else if (csName == L"Running Average Thickness (in)")
 		{
-			pDoc->TrendLineThicknessInches = double(varIn);
+			pDoc->RunningAvgThicknessInches = double(varIn);
 		}
 		if (csName == L"Grid Line Color")
 		{
@@ -871,18 +871,18 @@ void CPropertiesWnd::UpdatePropertiesFromDocument(CClimateExplorerDoc* pDoc)
 			}
 			else if (csName == L"Running Average Color")
 			{
-				CString value = pDoc->TrendLineColor;
+				CString value = pDoc->RunningAvgColor;
 				pProp->SetValue(_variant_t(value));
 			}
 			else if (csName == L"Running Average Style")
 			{
-				Gdiplus::DashStyle eStyle = pDoc->TrendLineStyle;
+				Gdiplus::DashStyle eStyle = pDoc->RunningAvgStyle;
 				CString value = pDoc->LineStyleText[eStyle];
 				pProp->SetValue(value);
 			}
 			else if (csName == L"Running Average Thickness (in)")
 			{
-				double value = pDoc->TrendLineThicknessInches;
+				double value = pDoc->RunningAvgThicknessInches;
 				pProp->SetValue(_variant_t(value));
 			}
 			else if (csName == L"Grid Line Color")
@@ -1751,14 +1751,14 @@ void CPropertiesWnd::InitPropList()
 		);
 
 	// -------------------------------------------------------------
-	// Trend line properties
+	// Running Average line properties
 	// -------------------------------------------------------------
-	m_pPropTrendColor =
+	m_pPropRunningAvgColor =
 		new CColorNameProperty(L"Running Average Color", L"Red");
 
-	m_pPropTrendColor->SetDescription(L"Color of the running average line being plotted.");
+	m_pPropRunningAvgColor->SetDescription(L"Color of the running average line being plotted.");
 
-	m_pPropTrendStyle =
+	m_pPropRunningAvgStyle =
 		new CMFCPropertyGridProperty
 		(
 			L"Running Average Style",
@@ -1766,14 +1766,14 @@ void CPropertiesWnd::InitPropList()
 			L"Pick the line style for the running average line being plotted."
 		);
 
-	m_pPropTrendStyle->AddOption(L"Solid");
-	m_pPropTrendStyle->AddOption(L"Dash");
-	m_pPropTrendStyle->AddOption(L"Dot");
-	m_pPropTrendStyle->AddOption(L"DashDot");
-	m_pPropTrendStyle->AddOption(L"DashDotDot");
-	m_pPropTrendStyle->AllowEdit(FALSE);
+	m_pPropRunningAvgStyle->AddOption(L"Solid");
+	m_pPropRunningAvgStyle->AddOption(L"Dash");
+	m_pPropRunningAvgStyle->AddOption(L"Dot");
+	m_pPropRunningAvgStyle->AddOption(L"DashDot");
+	m_pPropRunningAvgStyle->AddOption(L"DashDotDot");
+	m_pPropRunningAvgStyle->AllowEdit(FALSE);
 
-	m_pPropTrendWeight =
+	m_pPropRunningAvgWeight =
 		new CMFCPropertyGridProperty
 		(
 			L"Running Average Thickness (in)",
@@ -1885,9 +1885,9 @@ void CPropertiesWnd::InitPropList()
 	pGraphGroup->AddSubItem(m_pPropLineStyle);
 	pGraphGroup->AddSubItem(m_pPropLineWeight);
 
-	pGraphGroup->AddSubItem(m_pPropTrendColor);
-	pGraphGroup->AddSubItem(m_pPropTrendStyle);
-	pGraphGroup->AddSubItem(m_pPropTrendWeight);
+	pGraphGroup->AddSubItem(m_pPropRunningAvgColor);
+	pGraphGroup->AddSubItem(m_pPropRunningAvgStyle);
+	pGraphGroup->AddSubItem(m_pPropRunningAvgWeight);
 
 	pGraphGroup->AddSubItem(m_pPropGridColor);
 	pGraphGroup->AddSubItem(m_pPropGridStyle);

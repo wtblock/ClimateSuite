@@ -129,11 +129,11 @@ void CGraphPlotter::SetDefaults(CClimateExplorerDoc* pDoc)
 	LineThicknessInches = pDoc->LineThicknessInches;
 
 	// -------------------------------------------------------------
-	// Trend line appearance
+	// Running Average line appearance
 	// -------------------------------------------------------------
-	TrendLineColor = pDoc->TrendLineColor;
-	TrendLineStyle = pDoc->TrendLineStyle;
-	TrendLineThicknessInches = pDoc->TrendLineThicknessInches;
+	RunningAvgColor = pDoc->RunningAvgColor;
+	RunningAvgStyle = pDoc->RunningAvgStyle;
+	RunningAvgThicknessInches = pDoc->RunningAvgThicknessInches;
 
 	// -------------------------------------------------------------
 	// Grid appearance
@@ -184,7 +184,7 @@ void CGraphPlotter::SetDefaults(CClimateExplorerDoc* pDoc)
 //   • DrawAxisNumbers
 //   • DrawAxisLabels
 //   • DrawCurve
-//   • DrawTrendLine (optional)
+//   • DrawRunningAvg (optional)
 //   • DrawTitle
 //
 // All geometry is inch-based. All text uses point-based font sizes.
@@ -333,7 +333,7 @@ std::unique_ptr<Bitmap> CGraphPlotter::RenderPlot(const CRect& rcPixels)
 	// -------------------------------------------------------------
 	// Draw trend line
 	// -------------------------------------------------------------
-	DrawTrendLine(g, left, top, right, bottom, xTickMin, xTickMax, yTickMin, yTickMax);
+	DrawRunningAvg(g, left, top, right, bottom, xTickMin, xTickMax, yTickMin, yTickMax);
 
 	return pBmp;
 } // RenderPlot
@@ -1057,13 +1057,13 @@ void CGraphPlotter::DrawCurve
 //
 // NOTES:
 //
-//   • Uses TrendLineColor, TrendLineStyle, TrendLineThicknessInches.
+//   • Uses RunningAvgColor, RunningAvgStyle, RunningAvgThicknessInches.
 //   • Computes a trailing 10‑year average (i.e., years i‑9 through i).
 //   • Uses tick ranges for proper Excel‑style scaling.
 //   • All measurements are in inches.
 //
 /////////////////////////////////////////////////////////////////////////////
-void CGraphPlotter::DrawTrendLine
+void CGraphPlotter::DrawRunningAvg
 (
 	Graphics& g,
 	double leftInches,
@@ -1092,12 +1092,12 @@ void CGraphPlotter::DrawTrendLine
 	(
 		Color
 		(
-			theApp.ColorPlus->ARGBByName[TrendLineColor]
+			theApp.ColorPlus->ARGBByName[RunningAvgColor]
 		),
-		(REAL)TrendLineThicknessInches
+		(REAL)RunningAvgThicknessInches
 	);
 
-	penAvg.SetDashStyle(TrendLineStyle);
+	penAvg.SetDashStyle(RunningAvgStyle);
 
 	const size_t count = min(Years.size(), Values.size());
 	const double widthInches = rightInches - leftInches;
@@ -1159,7 +1159,7 @@ void CGraphPlotter::DrawTrendLine
 			Pen penTrend
 			(
 				Gdiplus::Color(Gdiplus::Color::Orange),
-				(REAL)TrendLineThicknessInches
+				(REAL)RunningAvgThicknessInches
 			);
 
 			penTrend.SetDashStyle(Gdiplus::DashStyleDashDotDot);
@@ -1194,7 +1194,7 @@ void CGraphPlotter::DrawTrendLine
 			Pen penTrend
 			(
 				Gdiplus::Color(Gdiplus::Color::DarkCyan),
-				(REAL)TrendLineThicknessInches
+				(REAL)RunningAvgThicknessInches
 			);
 
 			penTrend.SetDashStyle(Gdiplus::DashStyleSolid);
@@ -1228,7 +1228,7 @@ void CGraphPlotter::DrawTrendLine
 			Pen penTrend
 			(
 				Gdiplus::Color(Gdiplus::Color::DarkGreen),
-				(REAL)TrendLineThicknessInches
+				(REAL)RunningAvgThicknessInches
 			);
 
 			penTrend.SetDashStyle(Gdiplus::DashStyleSolid);
@@ -1239,7 +1239,7 @@ void CGraphPlotter::DrawTrendLine
 			g.DrawLines(&penTrend, ptsTrend.data(), 2);
 		}
 	}
-} // DrawTrendLine
+} // DrawRunningAvg
 
 /////////////////////////////////////////////////////////////////////////////
 // DrawTitle
@@ -1327,7 +1327,7 @@ void CGraphPlotter::DrawTitle
 		(
 			Color
 			(
-				theApp.ColorPlus->ARGBByName[TrendLineColor]
+				theApp.ColorPlus->ARGBByName[RunningAvgColor]
 			)
 		);
 

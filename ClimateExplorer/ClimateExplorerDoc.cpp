@@ -129,11 +129,11 @@ void CClimateExplorerDoc::InitializeProperties()
 	LineThicknessInches = 0.015; // ~6 px at 400 DPI
 
 	// -------------------------------------------------------------
-	// Trend line appearance
+	// Running Average line appearance
 	// -------------------------------------------------------------
-	TrendLineColor = L"Red";
-	TrendLineStyle = Gdiplus::DashStyleSolid;
-	TrendLineThicknessInches = 0.03; // ~12 px at 400 DPI
+	RunningAvgColor = L"Red";
+	RunningAvgStyle = Gdiplus::DashStyleSolid;
+	RunningAvgThicknessInches = 0.03; // ~12 px at 400 DPI
 
 	// -------------------------------------------------------------
 	// Grid appearance
@@ -345,9 +345,9 @@ BOOL CClimateExplorerDoc::SaveCEx(CString& csPath)
 			WriteProp(L"LineStyle", DashStyleToString(pPlot->LineStyle), L"string");
 			WriteProp(L"LineThicknessInches", FormatDouble(pPlot->LineThicknessInches), L"double");
 
-			WriteProp(L"TrendLineColor", pPlot->TrendLineColor, L"string");
-			WriteProp(L"TrendLineStyle", DashStyleToString(pPlot->TrendLineStyle), L"string");
-			WriteProp(L"TrendLineThicknessInches", FormatDouble(pPlot->TrendLineThicknessInches), L"double");
+			WriteProp(L"RunningAvgColor", pPlot->RunningAvgColor, L"string");
+			WriteProp(L"RunningAvgStyle", DashStyleToString(pPlot->RunningAvgStyle), L"string");
+			WriteProp(L"RunningAvgThicknessInches", FormatDouble(pPlot->RunningAvgThicknessInches), L"double");
 
 			WriteProp(L"GridLineColor", pPlot->GridColor, L"string");
 			WriteProp(L"GridLineStyle", DashStyleToString(pPlot->GridLineStyle), L"string");
@@ -510,9 +510,9 @@ BOOL CClimateExplorerDoc::SaveCE(const CString& csPath)
 			WriteCEProp(L"LineStyle", DashStyleToString(pPlot->LineStyle));
 			WriteCEProp(L"LineThicknessInches", FormatDouble(pPlot->LineThicknessInches));
 
-			WriteCEProp(L"TrendLineColor", pPlot->TrendLineColor);
-			WriteCEProp(L"TrendLineStyle", DashStyleToString(pPlot->TrendLineStyle));
-			WriteCEProp(L"TrendLineThicknessInches", FormatDouble(pPlot->TrendLineThicknessInches));
+			WriteCEProp(L"RunningAvgColor", pPlot->RunningAvgColor);
+			WriteCEProp(L"RunningAvgStyle", DashStyleToString(pPlot->RunningAvgStyle));
+			WriteCEProp(L"RunningAvgThicknessInches", FormatDouble(pPlot->RunningAvgThicknessInches));
 
 			WriteCEProp(L"GridLineColor", pPlot->GridColor);
 			WriteCEProp(L"GridLineStyle", DashStyleToString(pPlot->GridLineStyle));
@@ -1360,11 +1360,11 @@ bool CClimateExplorerDoc::IsPlotProperty(const CString& csName)
 	if (csName == L"LineThicknessInches") return true;
 
 	// -------------------------------------------------------------
-	// Trend line appearance
+	// Running Average line appearance
 	// -------------------------------------------------------------
-	if (csName == L"TrendLineColor") return true;
-	if (csName == L"TrendLineStyle") return true;
-	if (csName == L"TrendLineThicknessInches") return true;
+	if (csName == L"RunningAvgColor") return true;
+	if (csName == L"RunningAvgStyle") return true;
+	if (csName == L"RunningAvgThicknessInches") return true;
 
 	// -------------------------------------------------------------
 	// Grid appearance
@@ -1512,19 +1512,19 @@ void CClimateExplorerDoc::AssignPlotPropertyToTemp
 	}
 
 	// -------------------------------------------------------------
-	// Trend line appearance
+	// Running Average line appearance
 	// -------------------------------------------------------------
-	else if (csName == L"TrendLineColor")
+	else if (csName == L"RunningAvgColor")
 	{
-		temp.TrendLineColor = csValue;
+		temp.RunningAvgColor = csValue;
 	}
-	else if (csName == L"TrendLineStyle")
+	else if (csName == L"RunningAvgStyle")
 	{
-		temp.TrendLineStyle = csValue;
+		temp.RunningAvgStyle = csValue;
 	}
-	else if (csName == L"TrendLineThicknessInches")
+	else if (csName == L"RunningAvgThicknessInches")
 	{
-		temp.TrendLineThicknessInches = _tstof(csValue);
+		temp.RunningAvgThicknessInches = _tstof(csValue);
 	}
 
 	// -------------------------------------------------------------
@@ -1638,11 +1638,11 @@ void CClimateExplorerDoc::ApplyPlotPropsToDocument(const PlotProps& temp)
 	LineThicknessInches = temp.LineThicknessInches;
 
 	// -------------------------------------------------------------
-	// Trend line appearance
+	// Running Average line appearance
 	// -------------------------------------------------------------
-	TrendLineColor = temp.TrendLineColor;
-	TrendLineStyle = LineStyleEnum[temp.TrendLineStyle];
-	TrendLineThicknessInches = temp.TrendLineThicknessInches;
+	RunningAvgColor = temp.RunningAvgColor;
+	RunningAvgStyle = LineStyleEnum[temp.RunningAvgStyle];
+	RunningAvgThicknessInches = temp.RunningAvgThicknessInches;
 
 	// -------------------------------------------------------------
 	// Grid appearance
@@ -1714,9 +1714,9 @@ void CClimateExplorerDoc::ApplyPlotPropsToPlotter
 	plot.LineStyle = LineStyleEnum[props.LineStyle];
 	plot.LineThicknessInches = props.LineThicknessInches;
 
-	plot.TrendLineColor = props.TrendLineColor;
-	plot.TrendLineStyle = LineStyleEnum[props.TrendLineStyle];
-	plot.TrendLineThicknessInches = props.TrendLineThicknessInches;
+	plot.RunningAvgColor = props.RunningAvgColor;
+	plot.RunningAvgStyle = LineStyleEnum[props.RunningAvgStyle];
+	plot.RunningAvgThicknessInches = props.RunningAvgThicknessInches;
 
 	plot.GridColor = props.GridColor;
 	plot.GridLineStyle = LineStyleEnum[props.GridLineStyle];
