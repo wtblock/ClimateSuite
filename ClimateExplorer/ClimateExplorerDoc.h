@@ -114,7 +114,6 @@ public:
 		// -------------------------------------------------------------
 		// Trend line appearance
 		// -------------------------------------------------------------
-		BOOL     TrendLine;
 		CString  TrendLineColor;
 		CString  TrendLineStyle;
 		double   TrendLineThicknessInches;
@@ -163,7 +162,6 @@ public:
 			, Longitude(0.0)
 			, LineColor(L"DarkRed")
 			, LineThicknessInches(0.0)
-			, TrendLine(FALSE)
 			, TrendLineColor(L"Red")
 			, TrendLineThicknessInches(0.0)
 			, GridColor(L"Silver")
@@ -365,7 +363,6 @@ protected:
 	// -------------------------------------------------------------
 	// Trend line appearance
 	// -------------------------------------------------------------
-	BOOL                m_bTrendLine;
 	CString             m_csTrendLineColor;
 	Gdiplus::DashStyle  m_dsTrendLineStyle;
 	double              m_fTrendLineThicknessInches;
@@ -1887,22 +1884,6 @@ public:
 		double LineThicknessInches;
 
 	// -------------------------------------------------------------
-	// TrendLine
-	// -------------------------------------------------------------
-	BOOL GetTrendLine()
-	{
-		return m_bTrendLine;
-	}
-
-	void SetTrendLine(BOOL value)
-	{
-		m_bTrendLine = value;
-	}
-
-	__declspec(property(get = GetTrendLine, put = SetTrendLine))
-		BOOL TrendLine;
-
-	// -------------------------------------------------------------
 	// TrendLineColor
 	// -------------------------------------------------------------
 	CString GetTrendLineColor()
@@ -2091,13 +2072,8 @@ public:
 	{
 		double dTitle = TitleFontSizePoints;
 		dTitle /= 72; // points to inches
-		BOOL bTrend = TrendLine;
 
-		double value = dTitle * 2;
-		if (bTrend)
-		{
-			value += dTitle;
-		}
+		double value = dTitle * 3;
 		TopPaddingInches = value;
 		return m_fTopPaddingInches;
 	}
@@ -2349,7 +2325,6 @@ protected:
 		else if (name == L"LineStyle") pPlot->LineStyle = StringToDashStyle(value);
 		else if (name == L"LineThicknessInches") pPlot->LineThicknessInches = _ttof(value);
 
-		else if (name == L"TrendLine") pPlot->TrendLine = (value == L"true");
 		else if (name == L"TrendLineColor") pPlot->TrendLineColor = value;
 		else if (name == L"TrendLineStyle") pPlot->TrendLineStyle = StringToDashStyle(value);
 		else if (name == L"TrendLineThicknessInches") pPlot->TrendLineThicknessInches = _ttof(value);

@@ -131,7 +131,6 @@ void CGraphPlotter::SetDefaults(CClimateExplorerDoc* pDoc)
 	// -------------------------------------------------------------
 	// Trend line appearance
 	// -------------------------------------------------------------
-	TrendLine = pDoc->TrendLine;
 	TrendLineColor = pDoc->TrendLineColor;
 	TrendLineStyle = pDoc->TrendLineStyle;
 	TrendLineThicknessInches = pDoc->TrendLineThicknessInches;
@@ -1040,7 +1039,7 @@ void CGraphPlotter::DrawCurve
 } // DrawCurve
 
 /////////////////////////////////////////////////////////////////////////////
-// DrawTrendLine
+// DrawRunningAvg
 //
 // Renders an optional 10‑year running‑average curve using inch‑based
 // geometry. The running average is computed from the real data set by
@@ -1059,7 +1058,6 @@ void CGraphPlotter::DrawCurve
 // NOTES:
 //
 //   • Uses TrendLineColor, TrendLineStyle, TrendLineThicknessInches.
-//   • TrendLine must be TRUE for rendering to occur.
 //   • Computes a trailing 10‑year average (i.e., years i‑9 through i).
 //   • Uses tick ranges for proper Excel‑style scaling.
 //   • All measurements are in inches.
@@ -1078,7 +1076,8 @@ void CGraphPlotter::DrawTrendLine
 	double yTickMax
 )
 {
-	if (TrendLine == FALSE)
+	CString csSubtype = Subtype;
+	if (csSubtype == L"Stations")
 	{
 		return;
 	}
@@ -1274,7 +1273,6 @@ void CGraphPlotter::DrawTitle
 )
 {
 	const REAL fontSize = (REAL)TitleFontSizePoints;
-	const BOOL bTrendLine = TrendLine;
 
 	Gdiplus::Font font
 	(
@@ -1322,9 +1320,8 @@ void CGraphPlotter::DrawTitle
 		&br
 	);
 
-	// modify the title to indicate the trend line's presense and color
+	// modify the title to indicate the running avg line's presense and color
 	// on a second line
-	if (TrendLine)
 	{
 		SolidBrush br
 		(

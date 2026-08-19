@@ -114,7 +114,6 @@ protected:
 	CMFCPropertyGridProperty* m_pPropLineStyle       = nullptr;
 	CMFCPropertyGridProperty* m_pPropLineWeight      = nullptr;
 												     
-	CMFCPropertyGridProperty* m_pPropTrendLine       = nullptr;
 	CMFCPropertyGridProperty* m_pPropTrendColor      = nullptr;
 	CMFCPropertyGridProperty* m_pPropTrendStyle      = nullptr;
 	CMFCPropertyGridProperty* m_pPropTrendWeight     = nullptr;

@@ -57,7 +57,6 @@ protected:
 	// -------------------------------------------------------------
 	// Trend line appearance
 	// -------------------------------------------------------------
-	BOOL                m_bTrendLine;
 	CString             m_csTrendLineColor;
 	Gdiplus::DashStyle  m_dsTrendLineStyle;
 	double              m_fTrendLineThicknessInches;
@@ -461,22 +460,6 @@ public:
 
 	__declspec(property(get = GetLineThicknessInches, put = SetLineThicknessInches))
 		double LineThicknessInches;
-
-	// -------------------------------------------------------------
-	// TrendLine
-	// -------------------------------------------------------------
-	BOOL GetTrendLine()
-	{
-		return m_bTrendLine;
-	}
-
-	void SetTrendLine(BOOL value)
-	{
-		m_bTrendLine = value;
-	}
-
-	__declspec(property(get = GetTrendLine, put = SetTrendLine))
-		BOOL TrendLine;
 
 	// -------------------------------------------------------------
 	// TrendLineColor

@@ -131,7 +131,6 @@ void CClimateExplorerDoc::InitializeProperties()
 	// -------------------------------------------------------------
 	// Trend line appearance
 	// -------------------------------------------------------------
-	TrendLine = TRUE;
 	TrendLineColor = L"Red";
 	TrendLineStyle = Gdiplus::DashStyleSolid;
 	TrendLineThicknessInches = 0.03; // ~12 px at 400 DPI
@@ -346,7 +345,6 @@ BOOL CClimateExplorerDoc::SaveCEx(CString& csPath)
 			WriteProp(L"LineStyle", DashStyleToString(pPlot->LineStyle), L"string");
 			WriteProp(L"LineThicknessInches", FormatDouble(pPlot->LineThicknessInches), L"double");
 
-			WriteProp(L"TrendLine", pPlot->TrendLine ? L"true" : L"false", L"bool");
 			WriteProp(L"TrendLineColor", pPlot->TrendLineColor, L"string");
 			WriteProp(L"TrendLineStyle", DashStyleToString(pPlot->TrendLineStyle), L"string");
 			WriteProp(L"TrendLineThicknessInches", FormatDouble(pPlot->TrendLineThicknessInches), L"double");
@@ -512,7 +510,6 @@ BOOL CClimateExplorerDoc::SaveCE(const CString& csPath)
 			WriteCEProp(L"LineStyle", DashStyleToString(pPlot->LineStyle));
 			WriteCEProp(L"LineThicknessInches", FormatDouble(pPlot->LineThicknessInches));
 
-			WriteCEProp(L"TrendLine", pPlot->TrendLine ? L"true" : L"false");
 			WriteCEProp(L"TrendLineColor", pPlot->TrendLineColor);
 			WriteCEProp(L"TrendLineStyle", DashStyleToString(pPlot->TrendLineStyle));
 			WriteCEProp(L"TrendLineThicknessInches", FormatDouble(pPlot->TrendLineThicknessInches));
@@ -934,6 +931,7 @@ BOOL CClimateExplorerDoc::OnNewDocument()
 		CPropertiesWnd* pProps = pFrame->PropertiesPane;
 		pProps->UpdatePropertiesFromDocument(this);
 		pProps->PopulateStatesForScope(Scope);
+		AdjustForTOC();
 	}
 	return TRUE;
 }
@@ -1364,7 +1362,6 @@ bool CClimateExplorerDoc::IsPlotProperty(const CString& csName)
 	// -------------------------------------------------------------
 	// Trend line appearance
 	// -------------------------------------------------------------
-	if (csName == L"TrendLine") return true;
 	if (csName == L"TrendLineColor") return true;
 	if (csName == L"TrendLineStyle") return true;
 	if (csName == L"TrendLineThicknessInches") return true;
@@ -1517,10 +1514,6 @@ void CClimateExplorerDoc::AssignPlotPropertyToTemp
 	// -------------------------------------------------------------
 	// Trend line appearance
 	// -------------------------------------------------------------
-	else if (csName == L"TrendLine")
-	{
-		temp.TrendLine = (csValue == L"true");
-	}
 	else if (csName == L"TrendLineColor")
 	{
 		temp.TrendLineColor = csValue;
@@ -1647,7 +1640,6 @@ void CClimateExplorerDoc::ApplyPlotPropsToDocument(const PlotProps& temp)
 	// -------------------------------------------------------------
 	// Trend line appearance
 	// -------------------------------------------------------------
-	TrendLine = temp.TrendLine;
 	TrendLineColor = temp.TrendLineColor;
 	TrendLineStyle = LineStyleEnum[temp.TrendLineStyle];
 	TrendLineThicknessInches = temp.TrendLineThicknessInches;
@@ -1722,7 +1714,6 @@ void CClimateExplorerDoc::ApplyPlotPropsToPlotter
 	plot.LineStyle = LineStyleEnum[props.LineStyle];
 	plot.LineThicknessInches = props.LineThicknessInches;
 
-	plot.TrendLine = props.TrendLine;
 	plot.TrendLineColor = props.TrendLineColor;
 	plot.TrendLineStyle = LineStyleEnum[props.TrendLineStyle];
 	plot.TrendLineThicknessInches = props.TrendLineThicknessInches;
@@ -2499,6 +2490,7 @@ void CClimateExplorerDoc::ExecuteQuery(bool bProgress/* = true*/)
 void CClimateExplorerDoc::OnExecuteQuery()
 {
 	ExecuteQuery();
+	AdjustForTOC();
 
 } // OnExecuteQuery
 

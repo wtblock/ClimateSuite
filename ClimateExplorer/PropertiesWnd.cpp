@@ -488,9 +488,7 @@ LRESULT CPropertiesWnd::OnPropertyChange
 
 				pDoc->LineColor = L"DarkRed";
 				pDoc->TrendLineColor = L"Red";
-				pDoc->TrendLine = TRUE;
 
-				m_pPropTrendLine->SetValue(_variant_t(true));
 				m_pPropLineColor->SetValue(_variant_t(L"DarkRed"));
 				m_pPropTrendColor->SetValue(_variant_t(L"Red"));
 				m_pPropState->SetValue(_variant_t(pDoc->State));
@@ -505,9 +503,7 @@ LRESULT CPropertiesWnd::OnPropertyChange
 			{
 				pDoc->LineColor = L"DarkGreen";
 				pDoc->LineStyle = Gdiplus::DashStyleDash;
-				pDoc->TrendLine = FALSE;
 
-				m_pPropTrendLine->SetValue(_variant_t(false));
 				m_pPropLineColor->SetValue(_variant_t(L"DarkGreen"));
 				m_pPropLineStyle->SetValue(L"Dash");
 				m_pPropUnits->Show(FALSE);
@@ -525,9 +521,6 @@ LRESULT CPropertiesWnd::OnPropertyChange
 			{
 				pDoc->LineColor = L"DarkRed";
 				pDoc->TrendLineColor = L"Red";
-				pDoc->TrendLine = TRUE;
-
-				m_pPropTrendLine->SetValue(_variant_t(true));
 
 				const COleVariant oLC = m_pPropLineColor->GetValue();
 				VARTYPE vt = oLC.vt;
@@ -540,9 +533,7 @@ LRESULT CPropertiesWnd::OnPropertyChange
 			{
 				pDoc->LineColor = L"DarkBlue";
 				pDoc->TrendLineColor = L"Blue";
-				pDoc->TrendLine = TRUE;
 
-				m_pPropTrendLine->SetValue(_variant_t(true));
 				m_pPropLineColor->SetValue(_variant_t(L"DarkBlue"));
 				m_pPropTrendColor->SetValue(_variant_t(L"Blue"));
 				m_pPropState->SetValue(_variant_t(pDoc->State));
@@ -552,9 +543,7 @@ LRESULT CPropertiesWnd::OnPropertyChange
 			{
 				pDoc->LineColor = L"DarkMagenta";
 				pDoc->TrendLineColor = L"Magenta";
-				pDoc->TrendLine = TRUE;
 
-				m_pPropTrendLine->SetValue(_variant_t(true));
 				m_pPropLineColor->SetValue(_variant_t(L"DarkMagenta"));
 				m_pPropTrendColor->SetValue(_variant_t(L"Magenta"));
 				m_pPropState->SetValue(_variant_t(pDoc->State));
@@ -637,22 +626,18 @@ LRESULT CPropertiesWnd::OnPropertyChange
 		{
 			pDoc->LineThicknessInches = double(varIn);
 		}
-		else if (csName == L"Enable Trend Line")
-		{
-			pDoc->TrendLine = BOOL(varIn);
-		}
-		if (csName == L"Trend Line Color")
+		if (csName == L"Running Average Color")
 		{
 			CString csName = CString(varIn);
 			pDoc->TrendLineColor = csName;
 			m_wndPropList.EndEditItem();
 		}
-		else if (csName == L"Trend Line Style")
+		else if (csName == L"Running Average Style")
 		{
 			CString value = CString(varIn);
 			pDoc->TrendLineStyle = pDoc->LineStyleEnum[value];
 		}
-		else if (csName == L"Trend Line Thickness (in)")
+		else if (csName == L"Running Average Thickness (in)")
 		{
 			pDoc->TrendLineThicknessInches = double(varIn);
 		}
@@ -884,18 +869,18 @@ void CPropertiesWnd::UpdatePropertiesFromDocument(CClimateExplorerDoc* pDoc)
 				double value = pDoc->LineThicknessInches;
 				pProp->SetValue(_variant_t(value));
 			}
-			else if (csName == L"Trend Line Color")
+			else if (csName == L"Running Average Color")
 			{
 				CString value = pDoc->TrendLineColor;
 				pProp->SetValue(_variant_t(value));
 			}
-			else if (csName == L"Trend Line Style")
+			else if (csName == L"Running Average Style")
 			{
 				Gdiplus::DashStyle eStyle = pDoc->TrendLineStyle;
 				CString value = pDoc->LineStyleText[eStyle];
 				pProp->SetValue(value);
 			}
-			else if (csName == L"Trend Line Thickness (in)")
+			else if (csName == L"Running Average Thickness (in)")
 			{
 				double value = pDoc->TrendLineThicknessInches;
 				pProp->SetValue(_variant_t(value));
@@ -1768,25 +1753,17 @@ void CPropertiesWnd::InitPropList()
 	// -------------------------------------------------------------
 	// Trend line properties
 	// -------------------------------------------------------------
-	m_pPropTrendLine =
-		new CMFCPropertyGridProperty
-		(
-			L"Enable Trend Line",
-			(_variant_t)true,
-			L"Enable or disable the trend line which is a 10 year moving average."
-		);
-
 	m_pPropTrendColor =
-		new CColorNameProperty(L"Trend Line Color", L"Red");
+		new CColorNameProperty(L"Running Average Color", L"Red");
 
-	m_pPropTrendColor->SetDescription(L"Line Color of the trend line being plotted.");
+	m_pPropTrendColor->SetDescription(L"Color of the running average line being plotted.");
 
 	m_pPropTrendStyle =
 		new CMFCPropertyGridProperty
 		(
-			L"Trend Line Style",
+			L"Running Average Style",
 			(_variant_t)L"Solid",
-			L"Pick the line style for the trend line being plotted."
+			L"Pick the line style for the running average line being plotted."
 		);
 
 	m_pPropTrendStyle->AddOption(L"Solid");
@@ -1799,7 +1776,7 @@ void CPropertiesWnd::InitPropList()
 	m_pPropTrendWeight =
 		new CMFCPropertyGridProperty
 		(
-			L"Trend Line Thickness (in)",
+			L"Running Average Thickness (in)",
 			(_variant_t)0.03,
 			L"The line weight in inches of the trend line being plotted."
 		);
@@ -1908,7 +1885,6 @@ void CPropertiesWnd::InitPropList()
 	pGraphGroup->AddSubItem(m_pPropLineStyle);
 	pGraphGroup->AddSubItem(m_pPropLineWeight);
 
-	pGraphGroup->AddSubItem(m_pPropTrendLine);
 	pGraphGroup->AddSubItem(m_pPropTrendColor);
 	pGraphGroup->AddSubItem(m_pPropTrendStyle);
 	pGraphGroup->AddSubItem(m_pPropTrendWeight);
