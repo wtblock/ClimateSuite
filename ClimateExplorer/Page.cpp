@@ -40,14 +40,10 @@ bool CPage::AddAnImage(shared_ptr<CGraphPlotter> pPlot)
 	{
 		return value;
 	}
-	if (m_arrPlots.Exists[csImage])
-	{
-		return value;
-	}
-
 	value = true;
 
-	m_arrPlots.add(csImage, pPlot);
+	// replaces an image if it exists
+	m_arrPlots.add(csImage, pPlot, true);
 
 	return value;
 } // AddAnImage

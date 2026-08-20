@@ -132,10 +132,19 @@ public:
 	// Adds a new entry to the map. Returns false if the key already exists.
 	// Caller supplies the shared_ptr<TYPE>.
 	/////////////////////////////////////////////////////////////////////////////
-	bool add(KEY key, shared_ptr<TYPE> value)
+	bool add(KEY key, shared_ptr<TYPE> value, bool bReplace = false)
 	{
 		if (exists(key))
-			return false;
+		{
+			if (bReplace)
+			{
+				remove(key);
+			}
+			else
+			{
+				return false;
+			}
+		}
 
 		m_mapItems.insert(PAIR_KEY_PTR(key, value));
 		return true;
@@ -147,9 +156,9 @@ public:
 	// Convenience overload: constructs a shared_ptr<TYPE> automatically
 	// using std::make_shared<TYPE>(value).
 	/////////////////////////////////////////////////////////////////////////////
-	bool add(KEY key, const TYPE& value)
+	bool add(KEY key, const TYPE& value, bool bReplace = false)
 	{
-		return add(key, std::make_shared<TYPE>(value));
+		return add(key, std::make_shared<TYPE>(value), bReplace);
 	}
 
 	/////////////////////////////////////////////////////////////////////////////

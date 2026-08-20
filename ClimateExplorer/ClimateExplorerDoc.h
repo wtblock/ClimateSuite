@@ -151,6 +151,27 @@ public:
 		CString Layout;
 
 		// -------------------------------------------------------------
+		// Trending properties
+		// -------------------------------------------------------------
+		bool     TrendOneEnable;
+		CString  TrendOneColor;
+		CString  TrendOneStyle;
+		double   TrendOneThickness;
+		long     TrendOneYear;
+
+		bool     TrendTwoEnable;
+		CString  TrendTwoColor;
+		CString  TrendTwoStyle;
+		double   TrendTwoThickness;
+		long     TrendTwoYear;
+
+		bool     TrendThreeEnable;
+		CString  TrendThreeColor;
+		CString  TrendThreeStyle;
+		double   TrendThreeThickness;
+		long     TrendThreeYear;
+
+		// -------------------------------------------------------------
 		// Constructor initializes defaults
 		// -------------------------------------------------------------
 		PlotProps()
@@ -161,10 +182,13 @@ public:
 			, Latitude(0.0)
 			, Longitude(0.0)
 			, LineColor(L"DarkRed")
+			, LineStyle(L"Solid")
 			, LineThicknessInches(0.0)
 			, RunningAvgColor(L"Red")
+			, RunningAvgStyle(L"Solid")
 			, RunningAvgThicknessInches(0.0)
 			, GridColor(L"Silver")
+			, GridLineStyle(L"Dot")
 			, GridLineThicknessInches(0.0)
 			, TitleFontSizePoints(0)
 			, AxisLabelFontSizePoints(0)
@@ -174,6 +198,21 @@ public:
 			, TopPaddingInches(0.0)
 			, BottomPaddingInches(0.0)
 			, TickLengthInches(0.0)
+			, TrendOneEnable(true)
+			, TrendOneColor(L"Gold")
+			, TrendOneStyle(L"DashDotDot")
+			, TrendOneThickness(0.02)
+			, TrendOneYear(1900)
+			, TrendTwoEnable(true)
+			, TrendTwoColor(L"Orange")
+			, TrendTwoStyle(L"DashDotDot")
+			, TrendTwoThickness(0.02)
+			, TrendTwoYear(1950)
+			, TrendThreeEnable(true)
+			, TrendThreeColor(L"Olive")
+			, TrendThreeStyle(L"DashDotDot")
+			, TrendThreeThickness(0.02)
+			, TrendThreeYear(2000)
 		{
 		}
 	};
@@ -393,6 +432,27 @@ protected:
 	// Tick mark length (inches)
 	// -------------------------------------------------------------
 	double           m_fTickLengthInches;
+
+	// -------------------------------------------------------------
+	// Trending properties
+	// -------------------------------------------------------------
+	bool				m_bTrendOneEnable;
+	CString				m_csTrendOneColor;
+	Gdiplus::DashStyle	m_dsTrendOneStyle;
+	double				m_dTrendOneThickness;
+	long				m_lTrendOneYear;
+
+	bool				m_bTrendTwoEnable;
+	CString				m_csTrendTwoColor;
+	Gdiplus::DashStyle	m_dsTrendTwoStyle;
+	double				m_dTrendTwoThickness;
+	long				m_lTrendTwoYear;
+
+	bool				m_bTrendThreeEnable;
+	CString				m_csTrendThreeColor;
+	Gdiplus::DashStyle	m_dsTrendThreeStyle;
+	double				m_dTrendThreeThickness;
+	long				m_lTrendThreeYear;
 
 	// collection of years to be plotted
 	std::vector<double> m_arrYears;
@@ -2118,6 +2178,237 @@ public:
 	__declspec(property(get = GetTickLengthInches, put = SetTickLengthInches))
 		double TickLengthInches;
 
+	// -------------------------------------------------------------
+	// Trend curve properties
+	// -------------------------------------------------------------
+	
+	// Trend One Enable
+	bool GetTrendOneEnable()
+	{
+		return m_bTrendOneEnable;
+	}
+	// Trend One Enable
+	void SetTrendOneEnable(bool value)
+	{
+		m_bTrendOneEnable = value;
+	}
+	// Trend One Enable
+	__declspec(property(get = GetTrendOneEnable, put = SetTrendOneEnable))
+		bool TrendOneEnable;
+
+	// Trend One Color
+	CString GetTrendOneColor()
+	{
+		return m_csTrendOneColor;
+	}
+
+	// Trend One Color
+	void SetTrendOneColor(CString value)
+	{
+		m_csTrendOneColor = value;
+	}
+
+	// Trend One Color
+	__declspec(property(get = GetTrendOneColor, put = SetTrendOneColor))
+		CString TrendOneColor;
+
+	// Trend One Style
+	Gdiplus::DashStyle GetTrendOneStyle()
+	{
+		return m_dsTrendOneStyle;
+	}
+
+	// Trend One Style
+	void SetTrendOneStyle(Gdiplus::DashStyle value)
+	{
+		m_dsTrendOneStyle = value;
+	}
+
+	// Trend One Style
+	__declspec(property(get = GetTrendOneStyle, put = SetTrendOneStyle))
+		Gdiplus::DashStyle TrendOneStyle;
+
+	// Trend One Thickness
+	double GetTrendOneThickness()
+	{
+		return m_dTrendOneThickness;
+	}
+
+	// Trend One Thickness
+	void SetTrendOneThickness(double value)
+	{
+		m_dTrendOneThickness = value;
+	}
+
+	// Trend One Thickness
+	__declspec(property(get = GetTrendOneThickness, put = SetTrendOneThickness))
+		double TrendOneThickness;
+
+	// Trend One Year
+	long GetTrendOneYear()
+	{
+		return m_lTrendOneYear;
+	}
+	// Trend One Year
+	void SetTrendOneYear(long value)
+	{
+		m_lTrendOneYear = value;
+	}
+	// Trend One Year
+	__declspec(property(get = GetTrendOneYear, put = SetTrendOneYear))
+		long TrendOneYear;
+
+	// Trend Two Enable
+	bool GetTrendTwoEnable()
+	{
+		return m_bTrendTwoEnable;
+	}
+	// Trend Two Enable
+	void SetTrendTwoEnable(bool value)
+	{
+		m_bTrendTwoEnable = value;
+	}
+	// Trend Two Enable
+	__declspec(property(get = GetTrendTwoEnable, put = SetTrendTwoEnable))
+		bool TrendTwoEnable;
+
+	// Trend Two Color
+	CString GetTrendTwoColor()
+	{
+		return m_csTrendTwoColor;
+	}
+
+	// Trend Two Color
+	void SetTrendTwoColor(CString value)
+	{
+		m_csTrendTwoColor = value;
+	}
+
+	// Trend Two Color
+	__declspec(property(get = GetTrendTwoColor, put = SetTrendTwoColor))
+		CString TrendTwoColor;
+
+	// Trend Two Style
+	Gdiplus::DashStyle GetTrendTwoStyle()
+	{
+		return m_dsTrendTwoStyle;
+	}
+
+	// Trend Two Style
+	void SetTrendTwoStyle(Gdiplus::DashStyle value)
+	{
+		m_dsTrendTwoStyle = value;
+	}
+
+	// Trend Two Style
+	__declspec(property(get = GetTrendTwoStyle, put = SetTrendTwoStyle))
+		Gdiplus::DashStyle TrendTwoStyle;
+
+	// Trend Two Thickness
+	double GetTrendTwoThickness()
+	{
+		return m_dTrendTwoThickness;
+	}
+
+	// Trend Two Thickness
+	void SetTrendTwoThickness(double value)
+	{
+		m_dTrendTwoThickness = value;
+	}
+
+	// Trend Two Thickness
+	__declspec(property(get = GetTrendTwoThickness, put = SetTrendTwoThickness))
+		double TrendTwoThickness;
+
+	// Trend Two Year
+	long GetTrendTwoYear()
+	{
+		return m_lTrendTwoYear;
+	}
+	// Trend Two Year
+	void SetTrendTwoYear(long value)
+	{
+		m_lTrendTwoYear = value;
+	}
+	// Trend Two Year
+	__declspec(property(get = GetTrendTwoYear, put = SetTrendTwoYear))
+		long TrendTwoYear;
+
+	// Trend Three Enable
+	bool GetTrendThreeEnable()
+	{
+		return m_bTrendThreeEnable;
+	}
+	// Trend Three Enable
+	void SetTrendThreeEnable(bool value)
+	{
+		m_bTrendThreeEnable = value;
+	}
+	// Trend Three Enable
+	__declspec(property(get = GetTrendThreeEnable, put = SetTrendThreeEnable))
+		bool TrendThreeEnable;
+
+	// Trend Three Color
+	CString GetTrendThreeColor()
+	{
+		return m_csTrendThreeColor;
+	}
+
+	// Trend Three Color
+	void SetTrendThreeColor(CString value)
+	{
+		m_csTrendThreeColor = value;
+	}
+
+	// Trend Three Color
+	__declspec(property(get = GetTrendThreeColor, put = SetTrendThreeColor))
+		CString TrendThreeColor;
+
+	// Trend Three Style
+	Gdiplus::DashStyle GetTrendThreeStyle()
+	{
+		return m_dsTrendThreeStyle;
+	}
+
+	// Trend Three Style
+	void SetTrendThreeStyle(Gdiplus::DashStyle value)
+	{
+		m_dsTrendThreeStyle = value;
+	}
+
+	// Trend Three Style
+	__declspec(property(get = GetTrendThreeStyle, put = SetTrendThreeStyle))
+		Gdiplus::DashStyle TrendThreeStyle;
+
+	// Trend Three Thickness
+	double GetTrendThreeThickness()
+	{
+		return m_dTrendThreeThickness;
+	}
+
+	// Trend Three Thickness
+	void SetTrendThreeThickness(double value)
+	{
+		m_dTrendThreeThickness = value;
+	}
+
+	// Trend Three Thickness
+	__declspec(property(get = GetTrendThreeThickness, put = SetTrendThreeThickness))
+		double TrendThreeThickness;
+
+	// Trend Three Year
+	long GetTrendThreeYear()
+	{
+		return m_lTrendThreeYear;
+	}
+	// Trend Three Year
+	void SetTrendThreeYear(long value)
+	{
+		m_lTrendThreeYear = value;
+	}
+	// Trend Three Year
+	__declspec(property(get = GetTrendThreeYear, put = SetTrendThreeYear))
+		long TrendThreeYear;
 
 // protected methods
 protected:

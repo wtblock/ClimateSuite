@@ -162,6 +162,27 @@ void CClimateExplorerDoc::InitializeProperties()
 	// -------------------------------------------------------------
 	TickLengthInches = 0.030; // 12 px
 
+	// -------------------------------------------------------------
+	// Trend Curve appearance
+	// -------------------------------------------------------------
+	TrendOneEnable = true;
+	TrendOneColor = L"Gold";
+	TrendOneStyle = Gdiplus::DashStyleDashDotDot;
+	TrendOneThickness = 0.03;
+	TrendOneYear = 1900;
+
+	TrendTwoEnable = true;
+	TrendTwoColor = L"Orange";
+	TrendTwoStyle = Gdiplus::DashStyleDashDotDot;
+	TrendTwoThickness = 0.03;
+	TrendTwoYear = 1950;
+
+	TrendThreeEnable = true;
+	TrendThreeColor = L"Olive";
+	TrendThreeStyle = Gdiplus::DashStyleDashDotDot;
+	TrendThreeThickness = 0.03;
+	TrendThreeYear = 2000;
+
 	Clear();
 
 } // InitializeProperties
@@ -365,6 +386,24 @@ BOOL CClimateExplorerDoc::SaveCEx(CString& csPath)
 			WriteProp(L"TickLengthInches", FormatDouble(pPlot->TickLengthInches), L"double");
 			WriteProp(L"Layout", pPlot->Layout, L"string");
 
+			WriteProp(L"TrendOneEnable", pPlot->TrendOneEnable ? L"true" : L"false", L"bool");
+			WriteProp(L"TrendOneColor", pPlot->TrendOneColor, L"string");
+			WriteProp(L"TrendOneStyle", DashStyleToString(pPlot->TrendOneStyle), L"string");
+			WriteProp(L"TrendOneThickness", FormatDouble(pPlot->TrendOneThickness), L"double");
+			WriteProp(L"TrendOneYear", FormatInt(pPlot->TrendOneYear), L"int");
+
+			WriteProp(L"TrendTwoEnable", pPlot->TrendTwoEnable ? L"true" : L"false", L"bool");
+			WriteProp(L"TrendTwoColor", pPlot->TrendTwoColor, L"string");
+			WriteProp(L"TrendTwoStyle", DashStyleToString(pPlot->TrendTwoStyle), L"string");
+			WriteProp(L"TrendTwoThickness", FormatDouble(pPlot->TrendTwoThickness), L"double");
+			WriteProp(L"TrendTwoYear", FormatInt(pPlot->TrendTwoYear), L"int");
+
+			WriteProp(L"TrendThreeEnable", pPlot->TrendThreeEnable ? L"true" : L"false", L"bool");
+			WriteProp(L"TrendThreeColor", pPlot->TrendThreeColor, L"string");
+			WriteProp(L"TrendThreeStyle", DashStyleToString(pPlot->TrendThreeStyle), L"string");
+			WriteProp(L"TrendThreeThickness", FormatDouble(pPlot->TrendThreeThickness), L"double");
+			WriteProp(L"TrendThreeYear", FormatInt(pPlot->TrendThreeYear), L"int");
+
 			pWriter->WriteEndElement(); // </Plot>
 		}
 
@@ -529,6 +568,24 @@ BOOL CClimateExplorerDoc::SaveCE(const CString& csPath)
 
 			WriteCEProp(L"TickLengthInches", FormatDouble(pPlot->TickLengthInches));
 			WriteCEProp(L"Layout", pPlot->Layout);
+
+			WriteCEProp(L"TrendOneEnable", pPlot->TrendOneEnable ? L"true" : L"false");
+			WriteCEProp(L"TrendOneColor", pPlot->TrendOneColor);
+			WriteCEProp(L"TrendOneStyle", DashStyleToString(pPlot->TrendOneStyle));
+			WriteCEProp(L"TrendOneThickness", FormatDouble(pPlot->TrendOneThickness));
+			WriteCEProp(L"TrendOneYear", FormatInt(pPlot->TrendOneYear));
+
+			WriteCEProp(L"TrendTwoEnable", pPlot->TrendTwoEnable ? L"true" : L"false");
+			WriteCEProp(L"TrendTwoColor", pPlot->TrendTwoColor);
+			WriteCEProp(L"TrendTwoStyle", DashStyleToString(pPlot->TrendTwoStyle));
+			WriteCEProp(L"TrendTwoThickness", FormatDouble(pPlot->TrendTwoThickness));
+			WriteCEProp(L"TrendTwoYear", FormatInt(pPlot->TrendTwoYear));
+
+			WriteCEProp(L"TrendThreeEnable", pPlot->TrendThreeEnable ? L"true" : L"false");
+			WriteCEProp(L"TrendThreeColor", pPlot->TrendThreeColor);
+			WriteCEProp(L"TrendThreeStyle", DashStyleToString(pPlot->TrendThreeStyle));
+			WriteCEProp(L"TrendThreeThickness", FormatDouble(pPlot->TrendThreeThickness));
+			WriteCEProp(L"TrendThreeYear", FormatInt(pPlot->TrendThreeYear));
 
 			// -------------------------------------------------------------
 			// Render PNG for this plot and write filename
@@ -1595,9 +1652,80 @@ void CClimateExplorerDoc::AssignPlotPropertyToTemp
 		temp.Layout = csValue;
 	}
 
+	// -------------------------------------------------------------
+	// Trend One line appearance
+	// -------------------------------------------------------------
+	else if (csName == L"TrendOneEnable")
+	{
+		temp.TrendOneEnable = (csValue == L"true");
+	}
+	else if (csName == L"TrendOneColor")
+	{
+		temp.TrendOneColor = csValue;
+	}
+	else if (csName == L"TrendOneStyle")
+	{
+		temp.TrendOneStyle = csValue;
+	}
+	else if (csName == L"TrendOneThickness")
+	{
+		temp.TrendOneThickness = _tstof(csValue);
+	}
+	else if (csName == L"TrendOneYear")
+	{
+		temp.TrendOneYear = _tstol(csValue);
+	}
+
+	// -------------------------------------------------------------
+	// Trend Two line appearance
+	// -------------------------------------------------------------
+	else if (csName == L"TrendTwoEnable")
+	{
+		temp.TrendTwoEnable = (csValue == L"true");
+	}
+	else if (csName == L"TrendTwoColor")
+	{
+		temp.TrendTwoColor = csValue;
+	}
+	else if (csName == L"TrendTwoStyle")
+	{
+		temp.TrendTwoStyle = csValue;
+	}
+	else if (csName == L"TrendTwoThickness")
+	{
+		temp.TrendTwoThickness = _tstof(csValue);
+	}
+	else if (csName == L"TrendTwoYear")
+	{
+		temp.TrendTwoYear = _tstol(csValue);
+	}
+
+	// -------------------------------------------------------------
+	// Trend Three line appearance
+	// -------------------------------------------------------------
+	else if (csName == L"TrendThreeEnable")
+	{
+		temp.TrendThreeEnable = (csValue == L"true");
+	}
+	else if (csName == L"TrendThreeColor")
+	{
+		temp.TrendThreeColor = csValue;
+	}
+	else if (csName == L"TrendThreeStyle")
+	{
+		temp.TrendThreeStyle = csValue;
+	}
+	else if (csName == L"TrendThreeThickness")
+	{
+		temp.TrendThreeThickness = _tstof(csValue);
+	}
+	else if (csName == L"TrendThreeYear")
+	{
+		temp.TrendThreeYear = _tstol(csValue);
+	}
+
 } // AssignPlotPropertyToTemp
 
-/////////////////////////////////////////////////////////////////////////////
 /////////////////////////////////////////////////////////////////////////////
 // ApplyPlotPropsToDocument
 //
@@ -1676,6 +1804,24 @@ void CClimateExplorerDoc::ApplyPlotPropsToDocument(const PlotProps& temp)
 	// -------------------------------------------------------------
 	Layout = temp.Layout;
 
+	TrendOneEnable = temp.TrendOneEnable;
+	TrendOneColor = temp.TrendOneColor;
+	TrendOneStyle = LineStyleEnum[temp.TrendOneStyle];
+	TrendOneThickness = temp.TrendOneThickness;
+	TrendOneYear = temp.TrendOneYear;
+
+	TrendTwoEnable = temp.TrendTwoEnable;
+	TrendTwoColor = temp.TrendTwoColor;
+	TrendTwoStyle = LineStyleEnum[temp.TrendTwoStyle];
+	TrendTwoThickness = temp.TrendTwoThickness;
+	TrendTwoYear = temp.TrendTwoYear;
+
+	TrendThreeEnable = temp.TrendThreeEnable;
+	TrendThreeColor = temp.TrendThreeColor;
+	TrendThreeStyle = LineStyleEnum[temp.TrendThreeStyle];
+	TrendThreeThickness = temp.TrendThreeThickness;
+	TrendThreeYear = temp.TrendThreeYear;
+
 } // ApplyPlotPropsToDocument
 
 /////////////////////////////////////////////////////////////////////////////
@@ -1735,6 +1881,27 @@ void CClimateExplorerDoc::ApplyPlotPropsToPlotter
 
 	// Layout is stored twice in SaveCE — we honor the last one
 	plot.Layout = props.Layout;
+
+	// -------------------------------------------------------------
+	// Trending properties
+	// -------------------------------------------------------------
+	plot.TrendOneEnable = props.TrendOneEnable;
+	plot.TrendOneColor = props.TrendOneColor;
+	plot.TrendOneStyle = LineStyleEnum[props.TrendOneStyle];
+	plot.TrendOneThickness = props.TrendOneThickness;
+	plot.TrendOneYear = props.TrendOneYear;
+
+	plot.TrendTwoEnable = props.TrendTwoEnable;
+	plot.TrendTwoColor = props.TrendTwoColor;
+	plot.TrendTwoStyle = LineStyleEnum[props.TrendTwoStyle];
+	plot.TrendTwoThickness = props.TrendTwoThickness;
+	plot.TrendTwoYear = props.TrendTwoYear;
+
+	plot.TrendThreeEnable = props.TrendThreeEnable;
+	plot.TrendThreeColor = props.TrendThreeColor;
+	plot.TrendThreeStyle = LineStyleEnum[props.TrendThreeStyle];
+	plot.TrendThreeThickness = props.TrendThreeThickness;
+	plot.TrendThreeYear = props.TrendThreeYear;
 
 	// ---------------- CE-Specific -------------------------
 	// PNGBytes is assigned in LoadCE after ExtractFile()

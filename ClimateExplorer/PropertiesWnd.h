@@ -88,6 +88,8 @@ protected:
 	CPropertyGridCtrl m_wndPropList;
 	int m_nComboHeight;
 
+	vector<CString> m_arrLineStyles;
+
 	CMFCPropertyGridProperty* m_pTableOfContents     = nullptr;
 
 	CMFCPropertyGridProperty* m_pPropQueryType       = nullptr;
@@ -199,6 +201,20 @@ public:
 
 // protected methods
 protected:
+	void PopulateLineStyles(CMFCPropertyGridProperty* pProp)
+	{
+		for (auto& csStyle : m_arrLineStyles)
+		{
+			pProp->AddOption(csStyle);
+		}
+		m_pPropLineStyle->AllowEdit(FALSE);
+	}
+	void InitTitlePageProperties();
+	void InitExportPageProperties();
+	void InitQueryProperties();
+	void InitRenderProperties();
+	void InitGraphProperties();
+	void InitTrendProperties();
 	void InitPropList();
 	void SetPropListFont();
 

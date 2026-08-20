@@ -86,7 +86,28 @@ protected:
 	// -------------------------------------------------------------
 	// Tick mark length (inches)
 	// -------------------------------------------------------------
-	double             m_fTickLengthInches;
+	double              m_fTickLengthInches;
+
+	// -------------------------------------------------------------
+	// Trending properties
+	// -------------------------------------------------------------
+	bool				m_bTrendOneEnable;
+	CString				m_csTrendOneColor;
+	Gdiplus::DashStyle	m_dsTrendOneStyle;
+	double				m_dTrendOneThickness;
+	long				m_lTrendOneYear;
+
+	bool				m_bTrendTwoEnable;
+	CString				m_csTrendTwoColor;
+	Gdiplus::DashStyle	m_dsTrendTwoStyle;
+	double				m_dTrendTwoThickness;
+	long				m_lTrendTwoYear;
+
+	bool				m_bTrendThreeEnable;
+	CString				m_csTrendThreeColor;
+	Gdiplus::DashStyle	m_dsTrendThreeStyle;
+	double				m_dTrendThreeThickness;
+	long				m_lTrendThreeYear;
 
 	// Layout (Full, Half, or Quarter page)
 	CString m_csLayout;
@@ -234,6 +255,20 @@ public:
 	// Output (Plot, Table, or Map+Plot
 	__declspec(property(get = GetOutput, put = SetOutput))
 		CString Output;
+
+	// Layout (Full, Half, or Quarter page)
+	CString GetLayout()
+	{
+		return m_csLayout;
+	}
+	// Layout (Full, Half, or Quarter page)
+	void SetLayout(CString value)
+	{
+		m_csLayout = value;
+	}
+	// Layout (Full, Half, or Quarter page)
+	__declspec(property(get = GetLayout, put = SetLayout))
+		CString Layout;
 
 	// the SQL created by the above
 	CString GetSQL()
@@ -686,25 +721,243 @@ public:
 		double TickLengthInches;
 
 	// -------------------------------------------------------------
-	// Layout (Full, Half, or Quarter page)
+	// Trend curve properties
 	// -------------------------------------------------------------
-	CString GetLayout()
+	
+	// Trend One Enable
+	bool GetTrendOneEnable()
 	{
-		return m_csLayout;
+		return m_bTrendOneEnable;
 	}
-	// Layout (Full, Half, or Quarter page)
-	void SetLayout(CString value)
+	// Trend One Enable
+	void SetTrendOneEnable(bool value)
 	{
-		m_csLayout = value;
+		m_bTrendOneEnable = value;
 	}
-	// Layout (Full, Half, or Quarter page)
-	__declspec(property(get = GetLayout, put = SetLayout))
-		CString Layout;
+	// Trend One Enable
+	__declspec(property(get = GetTrendOneEnable, put = SetTrendOneEnable))
+		bool TrendOneEnable;
 
-	// -------------------------------------------------------------
-	// RenderPlot
-	// -------------------------------------------------------------
-	std::unique_ptr<Gdiplus::Bitmap> RenderPlot(const CRect& rcPixels);
+	// Trend One Color
+	CString GetTrendOneColor()
+	{
+		return m_csTrendOneColor;
+	}
+
+	// Trend One Color
+	void SetTrendOneColor(CString value)
+	{
+		m_csTrendOneColor = value;
+	}
+
+	// Trend One Color
+	__declspec(property(get = GetTrendOneColor, put = SetTrendOneColor))
+		CString TrendOneColor;
+
+	// Trend One Style
+	Gdiplus::DashStyle GetTrendOneStyle()
+	{
+		return m_dsTrendOneStyle;
+	}
+
+	// Trend One Style
+	void SetTrendOneStyle(Gdiplus::DashStyle value)
+	{
+		m_dsTrendOneStyle = value;
+	}
+
+	// Trend One Style
+	__declspec(property(get = GetTrendOneStyle, put = SetTrendOneStyle))
+		Gdiplus::DashStyle TrendOneStyle;
+
+	// Trend One Thickness
+	double GetTrendOneThickness()
+	{
+		return m_dTrendOneThickness;
+	}
+
+	// Trend One Thickness
+	void SetTrendOneThickness(double value)
+	{
+		m_dTrendOneThickness = value;
+	}
+
+	// Trend One Thickness
+	__declspec(property(get = GetTrendOneThickness, put = SetTrendOneThickness))
+		double TrendOneThickness;
+
+	// Trend One Year
+	long GetTrendOneYear()
+	{
+		return m_lTrendOneYear;
+	}
+
+	// Trend One Year
+	void SetTrendOneYear(long value)
+	{
+		m_lTrendOneYear = value;
+	}
+
+	// Trend One Year
+	__declspec(property(get = GetTrendOneYear, put = SetTrendOneYear))
+		long TrendOneYear;
+
+	// Trend Two Enable
+	bool GetTrendTwoEnable()
+	{
+		return m_bTrendTwoEnable;
+	}
+	// Trend Two Enable
+	void SetTrendTwoEnable(bool value)
+	{
+		m_bTrendTwoEnable = value;
+	}
+	// Trend Two Enable
+	__declspec(property(get = GetTrendTwoEnable, put = SetTrendTwoEnable))
+		bool TrendTwoEnable;
+
+	// Trend Two Color
+	CString GetTrendTwoColor()
+	{
+		return m_csTrendTwoColor;
+	}
+
+	// Trend Two Color
+	void SetTrendTwoColor(CString value)
+	{
+		m_csTrendTwoColor = value;
+	}
+
+	// Trend Two Color
+	__declspec(property(get = GetTrendTwoColor, put = SetTrendTwoColor))
+		CString TrendTwoColor;
+
+	// Trend Two Style
+	Gdiplus::DashStyle GetTrendTwoStyle()
+	{
+		return m_dsTrendTwoStyle;
+	}
+
+	// Trend Two Style
+	void SetTrendTwoStyle(Gdiplus::DashStyle value)
+	{
+		m_dsTrendTwoStyle = value;
+	}
+
+	// Trend Two Style
+	__declspec(property(get = GetTrendTwoStyle, put = SetTrendTwoStyle))
+		Gdiplus::DashStyle TrendTwoStyle;
+
+	// Trend Two Thickness
+	double GetTrendTwoThickness()
+	{
+		return m_dTrendTwoThickness;
+	}
+
+	// Trend Two Thickness
+	void SetTrendTwoThickness(double value)
+	{
+		m_dTrendTwoThickness = value;
+	}
+
+	// Trend Two Thickness
+	__declspec(property(get = GetTrendTwoThickness, put = SetTrendTwoThickness))
+		double TrendTwoThickness;
+
+	// Trend Two Year
+	long GetTrendTwoYear()
+	{
+		return m_lTrendTwoYear;
+	}
+
+	// Trend Two Year
+	void SetTrendTwoYear(long value)
+	{
+		m_lTrendTwoYear = value;
+	}
+
+	// Trend Two Year
+	__declspec(property(get = GetTrendTwoYear, put = SetTrendTwoYear))
+		long TrendTwoYear;
+
+	// Trend Three Enable
+	bool GetTrendThreeEnable()
+	{
+		return m_bTrendThreeEnable;
+	}
+	// Trend Three Enable
+	void SetTrendThreeEnable(bool value)
+	{
+		m_bTrendThreeEnable = value;
+	}
+	// Trend Three Enable
+	__declspec(property(get = GetTrendThreeEnable, put = SetTrendThreeEnable))
+		bool TrendThreeEnable;
+
+	// Trend Three Color
+	CString GetTrendThreeColor()
+	{
+		return m_csTrendThreeColor;
+	}
+
+	// Trend Three Color
+	void SetTrendThreeColor(CString value)
+	{
+		m_csTrendThreeColor = value;
+	}
+
+	// Trend Three Color
+	__declspec(property(get = GetTrendThreeColor, put = SetTrendThreeColor))
+		CString TrendThreeColor;
+
+	// Trend Three Style
+	Gdiplus::DashStyle GetTrendThreeStyle()
+	{
+		return m_dsTrendThreeStyle;
+	}
+
+	// Trend Three Style
+	void SetTrendThreeStyle(Gdiplus::DashStyle value)
+	{
+		m_dsTrendThreeStyle = value;
+	}
+
+	// Trend Three Style
+	__declspec(property(get = GetTrendThreeStyle, put = SetTrendThreeStyle))
+		Gdiplus::DashStyle TrendThreeStyle;
+
+	// Trend Three Thickness
+	double GetTrendThreeThickness()
+	{
+		return m_dTrendThreeThickness;
+	}
+
+	// Trend Three Thickness
+	void SetTrendThreeThickness(double value)
+	{
+		m_dTrendThreeThickness = value;
+	}
+
+	// Trend Three Thickness
+	__declspec(property(get = GetTrendThreeThickness, put = SetTrendThreeThickness))
+		double TrendThreeThickness;
+
+	// Trend Three Year
+	long GetTrendThreeYear()
+	{
+		return m_lTrendThreeYear;
+	}
+
+	// Trend Three Year
+	void SetTrendThreeYear(long value)
+	{
+		m_lTrendThreeYear = value;
+	}
+
+	// Trend Three Year
+	__declspec(property(get = GetTrendThreeYear, put = SetTrendThreeYear))
+		long TrendThreeYear;
+
 
 // protected methods
 protected:
@@ -794,6 +1047,14 @@ protected:
 		double yTickMax
 	);
 
+	// return the slope and intercept of the given data points
+	// and the starting index
+	std::vector<PointF> OrdinaryLeastSquares
+	(
+		std::vector<PointF>& pts,
+		size_t nStart
+	);
+
 	// -------------------------------------------------------------
 	// DrawRunningAvg
 	// -------------------------------------------------------------
@@ -827,6 +1088,8 @@ protected:
 
 // public methods
 public:
+	std::unique_ptr<Bitmap> RenderPlot(const CRect& rcPixels);
+
 	std::shared_ptr<Bitmap> CreatePlot(const CRect& rcPixels);
 
 // protected overrides

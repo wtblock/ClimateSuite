@@ -27,6 +27,15 @@ CPropertiesWnd::CPropertiesWnd() noexcept
 {
 	m_nComboHeight = 0;
 	m_pTableOfContents = nullptr;
+	CString csStyles = L"Solid,Dash,Dot,DashDot,DashDotDot";
+	
+	int nStart = 0;
+	CString csToken = csStyles.Tokenize(L",", nStart);
+	while (!csToken.IsEmpty())
+	{
+		m_arrLineStyles.push_back(csToken);
+		csToken = csStyles.Tokenize(L",", nStart);
+	}
 }
 
 /////////////////////////////////////////////////////////////////////////////
@@ -685,6 +694,78 @@ LRESULT CPropertiesWnd::OnPropertyChange
 			pDoc->BottomPaddingInches = double(varIn);
 		}
 	}
+	else if (csGroup == L"Trending Properties")
+	{
+		if (csName == L"Trend One Enable")
+		{
+			pDoc->TrendOneEnable = bool(varIn);
+		}
+		else if (csName == L"Trend One Color")
+		{
+			CString csName = CString(varIn);
+			pDoc->TrendOneColor = csName;
+			m_wndPropList.EndEditItem();
+		}
+		else if (csName == L"Trend One Style")
+		{
+			CString value = CString(varIn);
+			pDoc->TrendOneStyle = pDoc->LineStyleEnum[value];
+		}
+		else if (csName == L"Trend One Thickness (in)")
+		{
+			pDoc->TrendOneThickness = double(varIn);
+		}
+		else if (csName == L"Trend One Year")
+		{
+			pDoc->TrendOneYear = long(varIn);
+		}
+		if (csName == L"Trend Two Enable")
+		{
+			pDoc->TrendTwoEnable = bool(varIn);
+		}
+		else if (csName == L"Trend Two Color")
+		{
+			CString csName = CString(varIn);
+			pDoc->TrendTwoColor = csName;
+			m_wndPropList.EndEditItem();
+		}
+		else if (csName == L"Trend Two Style")
+		{
+			CString value = CString(varIn);
+			pDoc->TrendTwoStyle = pDoc->LineStyleEnum[value];
+		}
+		else if (csName == L"Trend Two Thickness (in)")
+		{
+			pDoc->TrendTwoThickness = double(varIn);
+		}
+		else if (csName == L"Trend Two Year")
+		{
+			pDoc->TrendTwoYear = long(varIn);
+		}
+		if (csName == L"Trend Three Enable")
+		{
+			pDoc->TrendThreeEnable = bool(varIn);
+		}
+		else if (csName == L"Trend Three Color")
+		{
+			CString csName = CString(varIn);
+			pDoc->TrendThreeColor = csName;
+			m_wndPropList.EndEditItem();
+		}
+		else if (csName == L"Trend Three Style")
+		{
+			CString value = CString(varIn);
+			pDoc->TrendThreeStyle = pDoc->LineStyleEnum[value];
+		}
+		else if (csName == L"Trend Three Thickness (in)")
+		{
+			pDoc->TrendThreeThickness = double(varIn);
+		}
+		else if (csName == L"Trend Three Year")
+		{
+			pDoc->TrendThreeYear = long(varIn);
+		}
+	}
 
 	pProp->SetOriginalValue(varIn);
 
@@ -936,6 +1017,84 @@ void CPropertiesWnd::UpdatePropertiesFromDocument(CClimateExplorerDoc* pDoc)
 				double value = pDoc->BottomPaddingInches;
 				pProp->SetValue(_variant_t(value));
 			}
+			else if (csName == L"Trend One Enable")
+			{
+				bool value = pDoc->TrendOneEnable;
+				pProp->SetValue(_variant_t(value));
+			}
+			else if (csName == L"Trend One Color")
+			{
+				CString value = pDoc->TrendOneColor;
+				pProp->SetValue(_variant_t(value));
+			}
+			else if (csName == L"Trend One Style")
+			{
+				Gdiplus::DashStyle eStyle = pDoc->TrendOneStyle;
+				CString value = pDoc->LineStyleText[eStyle];
+				pProp->SetValue(value);
+			}
+			else if (csName == L"Trend One Thickness (in)")
+			{
+				double value = pDoc->TrendOneThickness;
+				pProp->SetValue(_variant_t(value));
+			}
+			else if (csName == L"Trend One Year")
+			{
+				long value = pDoc->TrendOneYear;
+				pProp->SetValue(_variant_t(value));
+			}
+			else if (csName == L"Trend Two Enable")
+			{
+				bool value = pDoc->TrendTwoEnable;
+				pProp->SetValue(_variant_t(value));
+			}
+			else if (csName == L"Trend Two Color")
+			{
+				CString value = pDoc->TrendTwoColor;
+				pProp->SetValue(_variant_t(value));
+			}
+			else if (csName == L"Trend Two Style")
+			{
+				Gdiplus::DashStyle eStyle = pDoc->TrendTwoStyle;
+				CString value = pDoc->LineStyleText[eStyle];
+				pProp->SetValue(value);
+			}
+			else if (csName == L"Trend Two Thickness (in)")
+			{
+				double value = pDoc->TrendTwoThickness;
+				pProp->SetValue(_variant_t(value));
+			}
+			else if (csName == L"Trend Two Year")
+			{
+				long value = pDoc->TrendTwoYear;
+				pProp->SetValue(_variant_t(value));
+			}
+			else if (csName == L"Trend Three Enable")
+			{
+				bool value = pDoc->TrendThreeEnable;
+				pProp->SetValue(_variant_t(value));
+			}
+			else if (csName == L"Trend Three Color")
+			{
+				CString value = pDoc->TrendThreeColor;
+				pProp->SetValue(_variant_t(value));
+			}
+			else if (csName == L"Trend Three Style")
+			{
+				Gdiplus::DashStyle eStyle = pDoc->TrendThreeStyle;
+				CString value = pDoc->LineStyleText[eStyle];
+				pProp->SetValue(value);
+			}
+			else if (csName == L"Trend Three Thickness (in)")
+			{
+				double value = pDoc->TrendThreeThickness;
+				pProp->SetValue(_variant_t(value));
+			}
+			else if (csName == L"Trend Three Year")
+			{
+				long value = pDoc->TrendThreeYear;
+				pProp->SetValue(_variant_t(value));
+			}
 		}
 	}
 
@@ -1114,32 +1273,17 @@ void CPropertiesWnd::OnUpdateGoTo(CCmdUI* pCmdUI)
 } // OnUpdateGoTo
 
 /////////////////////////////////////////////////////////////////////////////
-void CPropertiesWnd::InitPropList()
+void CPropertiesWnd::InitTitlePageProperties()
 {
-	SetPropListFont();
-	CClimateExplorerApp* pApp = (CClimateExplorerApp*)AfxGetApp();
 	CString csDescription;
 	CString csCopyright;
 	CString csPublisher;
 	CString csSubtitle;
-	if (pApp)
-	{
-		csSubtitle = pApp->DatabaseVersion;
-		csDescription = pApp->DatabaseCredits;
-		csCopyright = pApp->Copyright;
-		csPublisher = pApp->Publisher;
-	}
 
-	m_wndPropList.RemoveAll();
-	m_wndPropList.EnableHeaderCtrl(FALSE);
-	m_wndPropList.EnableDescriptionArea();
-	m_wndPropList.SetVSDotNetLook();
-	m_wndPropList.MarkModifiedProperties();
-	m_wndPropList.Host = this;
-
-	// ===============================================
-	// Title Page Properties 
-	// ===============================================
+	csSubtitle = theApp.DatabaseVersion;
+	csDescription = theApp.DatabaseCredits;
+	csCopyright = theApp.Copyright;
+	csPublisher = theApp.Publisher;
 
 	CMFCPropertyGridProperty* pTitleGroup =
 		new CMFCPropertyGridProperty(L"Title Page Properties");
@@ -1210,10 +1354,11 @@ void CPropertiesWnd::InitPropList()
 
 	m_wndPropList.AddProperty(pTitleGroup);
 
-	// ===============================================
-	// Export Properties 
-	// ===============================================
+} // InitTitlePageProperties
 
+/////////////////////////////////////////////////////////////////////////////
+void CPropertiesWnd::InitExportPageProperties()
+{
 	CMFCPropertyGridProperty* pExportGroup =
 		new CMFCPropertyGridProperty(L"Export Properties");
 	pExportGroup->SetDescription
@@ -1267,10 +1412,11 @@ void CPropertiesWnd::InitPropList()
 
 	m_wndPropList.AddProperty(pExportGroup);
 
-	// ===============================================
-	// Query Properties 
-	// ===============================================
+} // InitExportPageProperties
 
+/////////////////////////////////////////////////////////////////////////////
+void CPropertiesWnd::InitQueryProperties()
+{
 	CMFCPropertyGridProperty* pQueryGroup =
 		new CMFCPropertyGridProperty(L"Query Properties");
 
@@ -1280,7 +1426,7 @@ void CPropertiesWnd::InitPropList()
 	);
 
 	// ---------------------------------------------------------------
-	// 1. Type of Query
+	// Type of Query
 	// ---------------------------------------------------------------
 	CMFCPropertyGridProperty* pPropQueryType =
 		new CMFCPropertyGridProperty
@@ -1311,7 +1457,7 @@ void CPropertiesWnd::InitPropList()
 	m_wndPropList.AddProperty(pQueryGroup);
 
 	// ---------------------------------------------------------------
-	// 2. Natural Language Query (dropdown + editable text)
+	// Natural Language Query (dropdown + editable text)
 	// ---------------------------------------------------------------
 	CMFCPropertyGridProperty* pPropNaturalLanguage =
 		new CMFCPropertyGridProperty
@@ -1343,7 +1489,7 @@ void CPropertiesWnd::InitPropList()
 	pQueryGroup->AddSubItem(pPropNaturalLanguage);
 
 	// ---------------------------------------------------------------
-	// 3. SQL (multiline editor)
+	// SQL (multiline editor)
 	// ---------------------------------------------------------------
 	CMFCPropertyGridProperty* pPropSQL =
 		new CPropertyGridMultilineText
@@ -1362,7 +1508,7 @@ void CPropertiesWnd::InitPropList()
 	pQueryGroup->AddSubItem(pPropSQL);
 
 	// ---------------------------------------------------------------
-	// 4B. Pure (boolean)
+	// Pure (boolean)
 	// ---------------------------------------------------------------
 	CMFCPropertyGridProperty* pPropPure =
 		new CMFCPropertyGridProperty
@@ -1379,7 +1525,7 @@ void CPropertiesWnd::InitPropList()
 	pQueryGroup->AddSubItem(pPropPure);
 
 	// ---------------------------------------------------------------
-	// 4D. Scope (National, State, or Location)
+	// Scope (National, State, or Location)
 	// ---------------------------------------------------------------
 	CMFCPropertyGridProperty* pPropScope =
 		new CMFCPropertyGridProperty
@@ -1407,7 +1553,7 @@ void CPropertiesWnd::InitPropList()
 	pQueryGroup->AddSubItem(pPropScope);
 
 	// ---------------------------------------------------------------
-	// 4E. State (dropdown, initially empty)
+	// State (dropdown, initially empty)
 	// ---------------------------------------------------------------
 	m_pPropState =
 		new CMFCPropertyGridProperty
@@ -1422,7 +1568,7 @@ void CPropertiesWnd::InitPropList()
 	// states will be generated
 	m_pPropState->AddOption(L"All");
 
-	CClimateDatabase* pDB = pApp->ClimateDatabase;
+	CClimateDatabase* pDB = theApp.ClimateDatabase;
 	vector<CString> arrStates = pDB->States;
 	for (auto& csState : arrStates)
 	{
@@ -1437,7 +1583,7 @@ void CPropertiesWnd::InitPropList()
 	pQueryGroup->AddSubItem(m_pPropState);
 
 	// ---------------------------------------------------------------
-	// 4F. Location (dropdown, initially empty)
+	// Location (dropdown, initially empty)
 	// ---------------------------------------------------------------
 	m_pPropLocation =
 		new CMFCPropertyGridProperty
@@ -1458,7 +1604,7 @@ void CPropertiesWnd::InitPropList()
 	pQueryGroup->AddSubItem(m_pPropLocation);
 
 	// ---------------------------------------------------------------
-	// 4G. Starting Year (integer)
+	// Starting Year (integer)
 	// ---------------------------------------------------------------
 	CMFCPropertyGridProperty* pPropStartYear =
 		new CMFCPropertyGridProperty
@@ -1479,7 +1625,7 @@ void CPropertiesWnd::InitPropList()
 	pQueryGroup->AddSubItem(pPropStartYear);
 
 	// ---------------------------------------------------------------
-	// 4H. Ending Year (integer)
+	// Ending Year (integer)
 	// ---------------------------------------------------------------
 	CMFCPropertyGridProperty* pPropEndYear =
 		new CMFCPropertyGridProperty
@@ -1500,7 +1646,7 @@ void CPropertiesWnd::InitPropList()
 	pQueryGroup->AddSubItem(pPropEndYear);
 
 	// ---------------------------------------------------------------
-	// 4I. Subtype (Maximum, Minimum, Average, Threshold, or Stations)
+	// Subtype (Maximum, Minimum, Average, Threshold, or Stations)
 	// ---------------------------------------------------------------
 	CMFCPropertyGridProperty* pPropType =
 		new CMFCPropertyGridProperty
@@ -1532,7 +1678,7 @@ void CPropertiesWnd::InitPropList()
 	pQueryGroup->AddSubItem(pPropType);
 
 	// ---------------------------------------------------------------
-	// 4J. Threshold (dropdown)
+	// Threshold (dropdown)
 	// ---------------------------------------------------------------
 	CMFCPropertyGridProperty* pPropThreshold =
 		new CMFCPropertyGridProperty
@@ -1559,11 +1705,11 @@ void CPropertiesWnd::InitPropList()
 	// Add to group
 	pQueryGroup->AddSubItem(pPropThreshold);
 
+} // InitQueryProperties
 
-	// ===============================================
-	// Render Properties 
-	// ===============================================
-
+/////////////////////////////////////////////////////////////////////////////
+void CPropertiesWnd::InitRenderProperties()
+{
 	CMFCPropertyGridProperty* pRenderGroup =
 		new CMFCPropertyGridProperty(L"Render Properties");
 
@@ -1575,7 +1721,7 @@ void CPropertiesWnd::InitPropList()
 	m_wndPropList.AddProperty(pRenderGroup);
 
 	// ---------------------------------------------------------------
-	// 5A. Units (degF, degC, raw)
+	// Units (degF, degC, raw)
 	// ---------------------------------------------------------------
 	CMFCPropertyGridProperty* pPropUnits =
 		new CMFCPropertyGridProperty
@@ -1603,7 +1749,7 @@ void CPropertiesWnd::InitPropList()
 	pRenderGroup->AddSubItem(pPropUnits);
 
 	// ---------------------------------------------------------------
-	// 5B. Output (Plot, Table, Map + Plot)
+	// Output (Plot, Table, Map + Plot)
 	// ---------------------------------------------------------------
 	CMFCPropertyGridProperty* pPropOutput =
 		new CMFCPropertyGridProperty
@@ -1628,7 +1774,7 @@ void CPropertiesWnd::InitPropList()
 	pRenderGroup->AddSubItem(pPropOutput);
 
 	// ---------------------------------------------------------------
-	// 5C. Layout (Full, Half, Quarter)
+	// Layout (Full, Half, Quarter)
 	// ---------------------------------------------------------------
 	CMFCPropertyGridProperty* pPropLayout =
 		new CMFCPropertyGridProperty
@@ -1656,7 +1802,7 @@ void CPropertiesWnd::InitPropList()
 	pRenderGroup->AddSubItem(pPropLayout);
 
 	// ---------------------------------------------------------------
-	// 5D. Placement (append, insert, or replace)
+	// Placement (append, insert, or replace)
 	// ---------------------------------------------------------------
 	CMFCPropertyGridProperty* pPropPlacement =
 		new CMFCPropertyGridProperty
@@ -1680,10 +1826,11 @@ void CPropertiesWnd::InitPropList()
 	// Add to group
 	pRenderGroup->AddSubItem(pPropPlacement);
 
-	// ===============================================
-	// Graphing Properties
-	// ===============================================
+} // InitRenderProperties
 
+/////////////////////////////////////////////////////////////////////////////
+void CPropertiesWnd::InitGraphProperties()
+{
 	CMFCPropertyGridProperty* pGraphGroup =
 		new CMFCPropertyGridProperty(L"Graph Properties");
 
@@ -1735,12 +1882,7 @@ void CPropertiesWnd::InitPropList()
 			L"Pick the line style for the primary value being plotted."
 		);
 
-	m_pPropLineStyle->AddOption(L"Solid");
-	m_pPropLineStyle->AddOption(L"Dash");
-	m_pPropLineStyle->AddOption(L"Dot");
-	m_pPropLineStyle->AddOption(L"DashDot");
-	m_pPropLineStyle->AddOption(L"DashDotDot");
-	m_pPropLineStyle->AllowEdit(FALSE);
+	PopulateLineStyles(m_pPropLineStyle);
 
 	m_pPropLineWeight =
 		new CMFCPropertyGridProperty
@@ -1766,12 +1908,7 @@ void CPropertiesWnd::InitPropList()
 			L"Pick the line style for the running average line being plotted."
 		);
 
-	m_pPropRunningAvgStyle->AddOption(L"Solid");
-	m_pPropRunningAvgStyle->AddOption(L"Dash");
-	m_pPropRunningAvgStyle->AddOption(L"Dot");
-	m_pPropRunningAvgStyle->AddOption(L"DashDot");
-	m_pPropRunningAvgStyle->AddOption(L"DashDotDot");
-	m_pPropRunningAvgStyle->AllowEdit(FALSE);
+	PopulateLineStyles(m_pPropRunningAvgStyle);
 
 	m_pPropRunningAvgWeight =
 		new CMFCPropertyGridProperty
@@ -1797,12 +1934,7 @@ void CPropertiesWnd::InitPropList()
 			L"Pick the line style for the reference grid."
 		);
 
-	m_pPropGridStyle->AddOption(L"Solid");
-	m_pPropGridStyle->AddOption(L"Dash");
-	m_pPropGridStyle->AddOption(L"Dot");
-	m_pPropGridStyle->AddOption(L"DashDot");
-	m_pPropGridStyle->AddOption(L"DashDotDot");
-	m_pPropGridStyle->AllowEdit(FALSE);
+	PopulateLineStyles(m_pPropGridStyle);
 
 	m_pPropGridWeight =
 		new CMFCPropertyGridProperty
@@ -1835,7 +1967,7 @@ void CPropertiesWnd::InitPropList()
 		new CMFCPropertyGridProperty
 		(
 			L"Tick Label Font Size (pt)",
-			(_variant_t)long(9), 
+			(_variant_t)long(9),
 			L"Font size in points of the tick label text."
 		);
 
@@ -1906,6 +2038,221 @@ void CPropertiesWnd::InitPropList()
 	// Add group to property list
 	// -------------------------------------------------------------
 	m_wndPropList.AddProperty(pGraphGroup);
+} // InitGraphProperties
+
+/////////////////////////////////////////////////////////////////////////////
+void CPropertiesWnd::InitTrendProperties()
+{
+	CMFCPropertyGridProperty* pTrendGroup =
+		new CMFCPropertyGridProperty(L"Trending Properties");
+
+	pTrendGroup->SetDescription
+	(
+		L"Properties of the trending curves (T1, T2, and T3) being plotted."
+	);
+
+	// -------------------------------------------------------------
+	// Trend One Curve properties
+	// -------------------------------------------------------------
+	CMFCPropertyGridProperty* pPropEnableT1 =
+		new CMFCPropertyGridProperty
+		(
+			L"Trend One Enable",
+			(_variant_t)true,
+			L"Enable the display of the Trend One curve."
+		);
+
+
+	CMFCPropertyGridProperty* pPropColorT1 =
+		new CColorNameProperty(L"Trend One Color", L"Gold");
+
+	pPropColorT1->SetDescription(L"Line color of the Trend One curve.");
+
+	CMFCPropertyGridProperty* pPropStyleT1 =
+		new CMFCPropertyGridProperty
+		(
+			L"Trend One Style",
+			(_variant_t)L"DashDotDot",
+			L"The line style for the Trend One curve."
+		);
+
+	PopulateLineStyles(pPropStyleT1);
+
+	CMFCPropertyGridProperty* pPropWeightT1 =
+		new CMFCPropertyGridProperty
+		(
+			L"Trend One Thickness (in)",
+			(_variant_t)0.03,
+			L"The line weight in inches of the Trend One curve."
+		);
+
+	CMFCPropertyGridProperty* pPropYearT1 =
+		new CMFCPropertyGridProperty
+		(
+			L"Trend One Year",
+			(_variant_t)(long)1900,
+			L"The year Trend One curve begins."
+		);
+
+	pPropYearT1->EnableSpinControl(TRUE, 1853, 3000);
+
+	// add the properties to the group
+	pTrendGroup->AddSubItem(pPropEnableT1);
+	pTrendGroup->AddSubItem(pPropColorT1);
+	pTrendGroup->AddSubItem(pPropStyleT1);
+	pTrendGroup->AddSubItem(pPropWeightT1);
+	pTrendGroup->AddSubItem(pPropYearT1);
+
+	// -------------------------------------------------------------
+	// Trend Two Curve properties
+	// -------------------------------------------------------------
+	CMFCPropertyGridProperty* pPropEnableT2 =
+		new CMFCPropertyGridProperty
+		(
+			L"Trend Two Enable",
+			(_variant_t)true,
+			L"Enable the display of the Trend Two curve."
+		);
+
+	CMFCPropertyGridProperty* pPropColorT2 =
+		new CColorNameProperty(L"Trend Two Color", L"Orange");
+
+	pPropColorT2->SetDescription(L"Line color of the Trend Two curve.");
+
+	CMFCPropertyGridProperty* pPropStyleT2 =
+		new CMFCPropertyGridProperty
+		(
+			L"Trend Two Style",
+			(_variant_t)L"DashDotDot",
+			L"The line style for the Trend Two curve."
+		);
+
+	PopulateLineStyles(pPropStyleT2);
+
+	CMFCPropertyGridProperty* pPropWeightT2 =
+		new CMFCPropertyGridProperty
+		(
+			L"Trend Two Thickness (in)",
+			(_variant_t)0.03,
+			L"The line weight in inches of the Trend Two curve."
+		);
+
+	CMFCPropertyGridProperty* pPropYearT2 =
+		new CMFCPropertyGridProperty
+		(
+			L"Trend Two Year",
+			(_variant_t)(long)1950,
+			L"The year Trend Two curve begins."
+		);
+
+	pPropYearT2->EnableSpinControl(TRUE, 1853, 3000);
+
+	// add the properties to the group
+	pTrendGroup->AddSubItem(pPropEnableT2);
+	pTrendGroup->AddSubItem(pPropColorT2);
+	pTrendGroup->AddSubItem(pPropStyleT2);
+	pTrendGroup->AddSubItem(pPropWeightT2);
+	pTrendGroup->AddSubItem(pPropYearT2);
+
+	// -------------------------------------------------------------
+	// Trend Three Curve properties
+	// -------------------------------------------------------------
+	CMFCPropertyGridProperty* pPropEnableT3 =
+		new CMFCPropertyGridProperty
+		(
+			L"Trend Three Enable",
+			(_variant_t)true,
+			L"Enable the display of the Trend Three curve."
+		);
+
+
+	CMFCPropertyGridProperty* pPropColorT3 =
+		new CColorNameProperty(L"Trend Three Color", L"Olive");
+
+	pPropColorT3->SetDescription(L"Line color of the Trend Three curve.");
+
+	CMFCPropertyGridProperty* pPropStyleT3 =
+		new CMFCPropertyGridProperty
+		(
+			L"Trend Three Style",
+			(_variant_t)L"DashDotDot",
+			L"The line style for the Trend Three curve."
+		);
+
+	PopulateLineStyles(pPropStyleT3);
+
+	CMFCPropertyGridProperty* pPropWeightT3 =
+		new CMFCPropertyGridProperty
+		(
+			L"Trend Three Thickness (in)",
+			(_variant_t)0.03,
+			L"The line weight in inches of the Trend Three curve."
+		);
+
+	CMFCPropertyGridProperty* pPropYearT3 =
+		new CMFCPropertyGridProperty
+		(
+			L"Trend Three Year",
+			(_variant_t)(long)2000,
+			L"The year Trend Three curve begins."
+		);
+
+	pPropYearT3->EnableSpinControl(TRUE, 1853, 3000);
+
+	// add the properties to the group
+	pTrendGroup->AddSubItem(pPropEnableT3);
+	pTrendGroup->AddSubItem(pPropColorT3);
+	pTrendGroup->AddSubItem(pPropStyleT3);
+	pTrendGroup->AddSubItem(pPropWeightT3);
+	pTrendGroup->AddSubItem(pPropYearT3);
+
+	// -------------------------------------------------------------
+	// Add group to property list
+	// -------------------------------------------------------------
+	m_wndPropList.AddProperty(pTrendGroup);
+} // InitTrendProperties
+
+/////////////////////////////////////////////////////////////////////////////
+void CPropertiesWnd::InitPropList()
+{
+	m_wndPropList.RemoveAll();
+	m_wndPropList.EnableHeaderCtrl(FALSE);
+	m_wndPropList.EnableDescriptionArea();
+	m_wndPropList.SetVSDotNetLook();
+	m_wndPropList.MarkModifiedProperties();
+	m_wndPropList.Host = this;
+
+	SetPropListFont();
+
+	// ===============================================
+	// Title Page Properties 
+	// ===============================================
+	InitTitlePageProperties();
+
+	// ===============================================
+	// Export Properties 
+	// ===============================================
+	InitExportPageProperties();
+
+	// ===============================================
+	// Query Properties 
+	// ===============================================
+	InitQueryProperties();
+
+	// ===============================================
+	// Render Properties 
+	// ===============================================
+	InitRenderProperties();
+
+	// ===============================================
+	// Graphing Properties
+	// ===============================================
+	InitGraphProperties();
+
+	// ===============================================
+	// Trending Properties
+	// ===============================================
+	InitTrendProperties();
 
 } // InitPropList
 
@@ -1959,7 +2306,7 @@ void CPropertiesWnd::UpdateTableOfContents(CClimateExplorerDoc* pDoc)
 		m_pTableOfContents = new CMFCPropertyGridProperty(_T("Table of Contents"));
 		m_pTableOfContents->SetDescription
 		(
-			L"A list of albums with their corresponding page numbers."
+			L"A list of pages with their corresponding page numbers."
 		);
 		m_wndPropList.AddProperty(m_pTableOfContents);
 	}

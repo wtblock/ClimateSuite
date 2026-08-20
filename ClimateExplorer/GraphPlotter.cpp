@@ -167,6 +167,27 @@ void CGraphPlotter::SetDefaults(CClimateExplorerDoc* pDoc)
 	// -------------------------------------------------------------
 	Layout = pDoc->Layout;
 
+	// -------------------------------------------------------------
+	// Trend Curve appearance
+	// -------------------------------------------------------------
+	TrendOneEnable = pDoc->TrendOneEnable;
+	TrendOneColor = pDoc->TrendOneColor;
+	TrendOneStyle = pDoc->TrendOneStyle;
+	TrendOneThickness = pDoc->TrendOneThickness;
+	TrendOneYear = pDoc->TrendOneYear;
+
+	TrendTwoEnable = pDoc->TrendTwoEnable;
+	TrendTwoColor = pDoc->TrendTwoColor;
+	TrendTwoStyle = pDoc->TrendTwoStyle;
+	TrendTwoThickness = pDoc->TrendTwoThickness;
+	TrendTwoYear = pDoc->TrendTwoYear;
+
+	TrendThreeEnable = pDoc->TrendThreeEnable;
+	TrendThreeColor = pDoc->TrendThreeColor;
+	TrendThreeStyle = pDoc->TrendThreeStyle;
+	TrendThreeThickness = pDoc->TrendThreeThickness;
+	TrendThreeYear = pDoc->TrendThreeYear;
+
 } // SetDefaults
 
 /////////////////////////////////////////////////////////////////////////////
@@ -1039,6 +1060,47 @@ void CGraphPlotter::DrawCurve
 } // DrawCurve
 
 /////////////////////////////////////////////////////////////////////////////
+std::vector<PointF> CGraphPlotter::OrdinaryLeastSquares
+(
+	std::vector<PointF>& pts,
+	size_t nStart
+)
+{
+	if (nStart >= pts.size() - 1)
+		return {};   // no points to regress
+
+	double sumX = 0.0, sumY = 0.0, sumXY = 0.0, sumXX = 0.0;
+
+	size_t N = pts.size() - nStart;   // FIXED
+
+	for (size_t i = nStart; i < pts.size(); ++i)
+	{
+		double x = pts[i].X;
+		double y = pts[i].Y;
+
+		sumX += x;
+		sumY += y;
+		sumXY += x * y;
+		sumXX += x * x;
+	}
+
+	double denom = (N * sumXX - sumX * sumX);   // FIXED N
+	if (denom == 0.0)
+		return {};
+
+	double m = (N * sumXY - sumX * sumY) / denom;
+	double b = (sumY - m * sumX) / N;
+
+	double x1 = pts[nStart].X;
+	double y1 = m * x1 + b;
+
+	double x2 = pts.back().X;
+	double y2 = m * x2 + b;
+
+	return { PointF((REAL)x1, (REAL)y1), PointF((REAL)x2, (REAL)y2) };
+} // OrdinaryLeastSquares
+
+/////////////////////////////////////////////////////////////////////////////
 // DrawRunningAvg
 //
 // Renders an optional 10‑year running‑average curve using inch‑based
@@ -1112,6 +1174,14 @@ void CGraphPlotter::DrawRunningAvg
 	std::vector<PointF> pts;
 	pts.reserve(count - 9);
 
+	long lYearOne = TrendOneYear;
+	long lYearTwo = TrendTwoYear;
+	long lYearThree = TrendThreeYear;
+
+	size_t nYearOne = 0;
+	size_t nYearTwo = 0;
+	size_t nYearThree = 0;
+
 	// -------------------------------------------------------------
 	// Compute 10-year running average
 	// -------------------------------------------------------------
@@ -1124,6 +1194,29 @@ void CGraphPlotter::DrawRunningAvg
 
 		const double avg = sum / 10.0;
 		const double year = Years[i];
+
+		long lYear = long(year);
+		if (nYearOne == 0)
+		{
+			if (lYear >= lYearOne)
+			{
+				nYearOne = pts.size();
+			}
+		}
+		if (nYearTwo == 0)
+		{
+			if (lYear >= lYearTwo)
+			{
+				nYearTwo = pts.size();
+			}
+		}
+		if (nYearThree == 0)
+		{
+			if (lYear >= lYearThree)
+			{
+				nYearThree = pts.size();
+			}
+		}
 
 		const double tx = (year - xTickMin) / xRange;
 		const double ty = (avg - yTickMin) / yRange;
@@ -1144,98 +1237,54 @@ void CGraphPlotter::DrawRunningAvg
 
 		g.DrawLines(&penAvg, pts.data(), nCount);
 
+		// draw trend one curve
+		if (TrendOneEnable && nYearOne != 0)
 		{
-			double dSumY = 0;
-			for (auto& pt : pts)
-			{
-				dSumY += pt.Y;
-			}
-
-			double dTrendY = dSumY / nCount;
-			PointF pt1(pts[0]);
-			PointF pt2(pts.back());
-			pt2.Y = dTrendY;
-
+			CString csColor = TrendOneColor;
 			Pen penTrend
 			(
-				Gdiplus::Color(Gdiplus::Color::Orange),
-				(REAL)RunningAvgThicknessInches
+				Gdiplus::Color(theApp.ColorPlus->ARGBByName[csColor]),
+				(REAL)TrendOneThickness
 			);
 
-			penTrend.SetDashStyle(Gdiplus::DashStyleDashDotDot);
+			penTrend.SetDashStyle(TrendOneStyle);
 
-			vector<PointF> ptsTrend;
-			ptsTrend.push_back(pt1);
-			ptsTrend.push_back(pt2);
+			vector<PointF> ptsTrend = OrdinaryLeastSquares(pts, nYearOne);
+
 			g.DrawLines(&penTrend, ptsTrend.data(), 2);
 		}
 
-		if ( nCount > 50)
+		// draw trend two curve
+		if ( TrendTwoEnable && nYearTwo != 0)
 		{
-			double dSumY = 0;
-
-			int nPt = 0;
-			int nCnt = 0;
-			for (auto& pt : pts)
-			{
-				if (nPt++ < 50)
-				{
-					continue;
-				}
-				dSumY += pt.Y;
-				nCnt++;
-			}
-
-			double dTrendY = dSumY / nCnt;
-			PointF pt1(pts[50]);
-			PointF pt2(pts.back());
-			pt2.Y = dTrendY;
-
+			CString csColor = TrendTwoColor;
 			Pen penTrend
 			(
-				Gdiplus::Color(Gdiplus::Color::DarkCyan),
-				(REAL)RunningAvgThicknessInches
+				Gdiplus::Color(theApp.ColorPlus->ARGBByName[csColor]),
+				(REAL)TrendTwoThickness
 			);
 
-			penTrend.SetDashStyle(Gdiplus::DashStyleSolid);
+			penTrend.SetDashStyle(TrendTwoStyle);
 
-			vector<PointF> ptsTrend;
-			ptsTrend.push_back(pt1);
-			ptsTrend.push_back(pt2);
+			vector<PointF> ptsTrend = OrdinaryLeastSquares(pts, nYearTwo);
+
 			g.DrawLines(&penTrend, ptsTrend.data(), 2);
 		}
-		if ( nCount > 100)
+
+		// draw trend three curve
+		if ( TrendThreeEnable && nCount > nYearThree)
 		{
-			double dSumY = 0;
-
-			int nPt = 0;
-			int nCnt = 0;
-			for (auto& pt : pts)
-			{
-				if (nPt++ < 100)
-				{
-					continue;
-				}
-				dSumY += pt.Y;
-				nCnt++;
-			}
-
-			double dTrendY = dSumY / nCnt;
-			PointF pt1(pts[100]);
-			PointF pt2(pts.back());
-			pt2.Y = dTrendY;
-
+			CString csColor = TrendThreeColor;
 			Pen penTrend
 			(
-				Gdiplus::Color(Gdiplus::Color::DarkGreen),
-				(REAL)RunningAvgThicknessInches
+				Gdiplus::Color(theApp.ColorPlus->ARGBByName[csColor]),
+				(REAL)TrendThreeThickness
 			);
 
-			penTrend.SetDashStyle(Gdiplus::DashStyleSolid);
+			penTrend.SetDashStyle(TrendThreeStyle);
 
-			vector<PointF> ptsTrend;
-			ptsTrend.push_back(pt1);
-			ptsTrend.push_back(pt2);
+			vector<PointF> ptsTrend = OrdinaryLeastSquares(pts, nYearThree);
+
 			g.DrawLines(&penTrend, ptsTrend.data(), 2);
 		}
 	}
