@@ -1809,7 +1809,12 @@ void CPropertiesWnd::InitRenderProperties()
 		(
 			L"Placement",
 			(_variant_t)L"Append",
-			L"Select the placement of the output in the document."
+			L"Select the placement of new query execution:\n"
+			L"  • Append  — append to the end of the document.\n"
+			L"  • Insert  — insert before a SINGLE selection.\n"
+			L"  • Replace — replace a sINGLE selection.\n"
+			L"NOTE: Execute button is disabled for Insert\n"
+			L" and Replace if a single item is not selected."
 		);
 
 	// Add dropdown options

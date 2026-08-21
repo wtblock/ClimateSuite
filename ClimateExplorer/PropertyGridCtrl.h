@@ -179,10 +179,7 @@ public:
 
 // public constructor/destructor
 public:
-	CPropertyGridCtrl()
-	{
-		m_pHost = nullptr;
-	}
+	CPropertyGridCtrl();
 	~CPropertyGridCtrl()
 	{
 	}

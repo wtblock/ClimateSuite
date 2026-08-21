@@ -530,9 +530,6 @@ void CClimateExplorerView::DrawImage
 		pBitmap->RotateFlip(Rotate270FlipNone);
 	}
 
-	// save the entry state
-	const int nDC = pDC->SaveDC();
-
 	// Get original image dimensions
 	int imgWidth = pBitmap->GetWidth();
 	int imgHeight = pBitmap->GetHeight();
@@ -572,6 +569,7 @@ void CClimateExplorerView::DrawImage
 	// Only draw if this image is selected
 	if (bSelected)
 	{
+		/*
 		// Create a memory DC and a 32-bit DIB section for alpha blending
 		CDC dcMem;
 		dcMem.CreateCompatibleDC(pDC);
@@ -628,8 +626,15 @@ void CClimateExplorerView::DrawImage
 		{
 			DeleteObject(hBmp);
 		}
+		*/
+		int nDC = pDC->SaveDC();
+		CPen pen(PS_DOT, 100, RGB(255, 128, 0));
+		pDC->SelectObject(&pen);
+		pDC->SelectObject(GetStockObject(NULL_BRUSH));
+		pDC->RoundRect(rectDest, CPoint(100, 100));
+		pDC->RestoreDC(nDC);
 	}
-
+	
 } // DrawImage
 
 /////////////////////////////////////////////////////////////////////////////
@@ -773,8 +778,21 @@ void CClimateExplorerView::render
 	CBaseView::render(pDC, dLeftOfView, dTopOfView, dRightOfView, dBottomOfView);
 	CClimateExplorerDoc* pDoc = GetDocument();
 
+	CString csPlacement = pDoc->Placement;
+	const bool bSelected = pDoc->Selection;
 	const UINT nPages = pDoc->Pages;
 	UINT nSavedPage = pDoc->Page;
+
+	pair < pair<int, int>, pair<int, int> > pairSel = pDoc->SelectedPairs;
+	pair<int, int> pairFirst = pairSel.first;
+	if (bSelected && csPlacement == L"Replace")
+	{
+		nSavedPage = pairFirst.first;
+	}
+	else if (bSelected && csPlacement == L"Insert")
+	{
+		nSavedPage = pairFirst.first;
+	}
 	const double dPageHeight = pDoc->HeightOfPage;
 	double dTopOfPage = 0;
 

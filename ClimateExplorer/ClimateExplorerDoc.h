@@ -697,6 +697,20 @@ public:
 	__declspec(property(get = GetSelection))
 		bool Selection;
 
+	// is there a single item selected
+	bool GetSingleSelection()
+	{
+		bool value = false;
+		pair<int, int> pairStart = SelectedPairs.first;
+		pair<int, int> pairEnd = SelectedPairs.second;
+		bool bSelection = Selection;
+		value = bSelection && pairStart == pairEnd;
+		return value;
+	}
+	// is there a single item selected
+	__declspec(property(get = GetSingleSelection))
+		bool SingleSelection;
+
 	// the selection definition
 	pair < pair<int, int>, pair<int, int> >& GetSelectedPairs()
 	{
@@ -861,6 +875,11 @@ public:
 			pairStart.second = nImage;
 			pairEnd.first = nPage;
 			pairEnd.second = nImage;
+			shared_ptr<CGraphPlotter> pPlot = SelectedPlot[pairStart];
+			if (pPlot != nullptr)
+			{
+				CopyPlotPropertiesToDocument(pPlot.get());
+			}
 		}
 	}
 	// select an image on a given page number
@@ -2656,8 +2675,6 @@ protected:
 
 	void ExecuteQuery(bool bProgres = true);
 
-	void ExecutePlotQuery(shared_ptr<CGraphPlotter>& pPlot);
-
 	BOOL SaveCE(const CString& csPath);
 	BOOL SaveCEx(CString& csPath);
 
@@ -2670,6 +2687,7 @@ protected:
 		const CString& csValue
 	);
 
+	void CopyPlotPropertiesToDocument(CGraphPlotter* pPlot);
 	void ApplyPlotPropsToDocument(const PlotProps& temp);
 	void ApplyPlotPropsToPlotter(CGraphPlotter& plot, const PlotProps& props);
 
@@ -2684,6 +2702,10 @@ protected:
 		const CRect& rcPixels,
 		std::vector<BYTE>& outBytes
 	);
+
+	// plots are shifted toward the end of the document on position
+	// starting at the selection
+	void ShiftPlotsDown();
 
 // public methods
 public:
@@ -2764,13 +2786,6 @@ public:
 	// if 'bReplace' is TRUE will change file name if successful (SaveAs)
 	// if 'bReplace' is FALSE will not change path name (SaveCopyAs)
 	virtual BOOL DoSave(CString& csPath, BOOL bReplace = TRUE);
-	// open a data file
-	virtual bool Open
-	(
-		LPCTSTR szFilename, // name of data file to open
-		bool bRead = true, // do an initial read after open
-		LPCTSTR pcszFileID = _T("F1")
-	);
 	virtual BOOL OnOpenDocument(LPCTSTR lpszPathName);
 	virtual void OnCloseDocument();
 

@@ -1060,6 +1060,32 @@ void CGraphPlotter::DrawCurve
 } // DrawCurve
 
 /////////////////////////////////////////////////////////////////////////////
+// OrdinaryLeastSquares
+//
+// Computes a straight‑line trend segment using ordinary least‑squares
+// regression applied directly to the graphical points in pts. The method
+// operates entirely in screen‑space (inch‑based coordinates) and returns
+// two PointF objects representing the endpoints of the best‑fit line
+// spanning the selected region.
+//
+// Regression is performed over pts[nStart] through pts.back(), where
+// nStart is the index corresponding to the first year included in the
+// trend calculation. The routine minimizes the sum of squared vertical
+// deviations and produces a line suitable for immediate rendering.
+//
+// PARAMETERS:
+//
+//   pts        Vector of mapped PointF objects (UnitInch coordinates)
+//   nStart     Index of first point included in the regression
+//
+// NOTES:
+//
+//   • Uses ordinary least‑squares regression in screen space.
+//   • Returns exactly two points: the fitted line’s start and end.
+//   • Caller is responsible for drawing the returned segment.
+//   • nStart must reference a valid point within pts.
+//
+/////////////////////////////////////////////////////////////////////////////
 std::vector<PointF> CGraphPlotter::OrdinaryLeastSquares
 (
 	std::vector<PointF>& pts,

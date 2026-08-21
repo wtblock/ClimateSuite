@@ -13,6 +13,14 @@ BEGIN_MESSAGE_MAP( CPropertyGridCtrl, CMFCPropertyGridCtrl )
 END_MESSAGE_MAP()
 
 /////////////////////////////////////////////////////////////////////////////
+CPropertyGridCtrl::CPropertyGridCtrl()
+{
+	m_pHost = nullptr;
+	m_nDescrRows = 7;
+
+} // CPropertyGridCtrl
+
+/////////////////////////////////////////////////////////////////////////////
 CPropertiesWnd* CPropertyGridCtrl::GetHost()
 {
 	return m_pHost;

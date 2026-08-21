@@ -113,6 +113,7 @@ void CClimateExplorerDoc::InitializeProperties()
 	Units = L"degF";
 	Output = L"Plot";
 	Layout = L"Half";
+	Placement = L"Append";
 
 	// -------------------------------------------------------------
 	// Plot Text
@@ -730,162 +731,6 @@ BOOL CClimateExplorerDoc::PromptForFileName(CString& strFilePath)
 
 	return FALSE; // User canceled
 } // PromptForFileName
-
-/////////////////////////////////////////////////////////////////////////////
-// open a data file
-bool CClimateExplorerDoc::Open(LPCTSTR szFilename, bool bRead, LPCTSTR pcszFileID)
-{
-	IStream* pFileStream = nullptr;
-	HRESULT hr = SHCreateStreamOnFileW(szFilename, STGM_READ, &pFileStream);
-	if (FAILED(hr))
-	{
-		AfxMessageBox(L"Failed to open file.");
-		return false;
-	}
-
-	CString csData = CHelper::GetDataName(szFilename);
-
-	IXmlReader* pReader = nullptr;
-	hr = CreateXmlReader(__uuidof(IXmlReader),
-		reinterpret_cast<void**>(&pReader), nullptr);
-	if (FAILED(hr))
-	{
-		AfxMessageBox(L"Failed to create XML reader.");
-		pFileStream->Release();
-		return false;
-	}
-
-	pReader->SetInput(pFileStream);
-
-	XmlNodeType nodeType;
-	CString currentElement;
-
-	shared_ptr<CPage>         currentPage;
-	shared_ptr<CGraphPlotter> currentPlot;
-
-	m_arrPages.clear();
-
-	// prepare the progress dialog
-	theApp.OnIdle(0);
-	CMainFrame* pFrame = (CMainFrame*)AfxGetMainWnd();
-
-	// launch the progress dialog
-	CThumbnailDialog dlg;
-	dlg.Parent = pFrame;
-	dlg.CreateDlg();
-	dlg.ShowWindow(SW_SHOW);
-	CString csDialogTitle;
-	csDialogTitle.Format(L"Opening document %s", csData);
-
-	dlg.SetWindowText(csDialogTitle);
-	dlg.Objects = L"Pages";
-
-	dlg.TotalImages = (int)0;
-	bool bAbort = false;
-
-	while (S_OK == pReader->Read(&nodeType))
-	{
-		// let the user cancel out
-		if (dlg.Cancel)
-		{
-			bAbort = true;
-			break;
-		}
-
-		if (nodeType == XmlNodeType_Element)
-		{
-			const WCHAR* pwszLocalName = nullptr;
-			pReader->GetLocalName(&pwszLocalName, nullptr);
-			currentElement = pwszLocalName;
-			if (currentElement == L"PageCount")
-			{
-				CString val = ReadValueAttribute(pReader);
-				dlg.TotalImages = _tstol(val);
-			}
-
-			// document-level properties
-			if (IsDocProperty(currentElement))
-			{
-				CString val = ReadValueAttribute(pReader);
-				AssignDocumentProperty(currentElement, val);
-			}
-			// page start
-			else if (currentElement == L"Page")
-			{
-				CString csNumber = ReadAttribute(pReader, L"number");
-				CString csType = ReadAttribute(pReader, L"type");
-				CString csLayout = ReadAttribute(pReader, L"layout");
-
-				UINT nPage = _tstol(csNumber);
-
-				// update the progress dialog's status
-				dlg.CurrentImage = nPage;
-
-
-				CPage::PAGE_TYPE eType =
-					csType == L"Cover" ? CPage::pageCover :
-					csType == L"TOC" ? CPage::pageTOC :
-					CPage::pageGraph;
-
-				currentPage = make_shared<CPage>(nPage, csLayout, this, eType);
-				m_arrPages.append(currentPage);
-			}
-			// plot start
-			else if (currentElement == L"Plot")
-			{
-				currentPlot = make_shared<CGraphPlotter>(this);
-			}
-			// plot property
-			else if (IsPlotProperty(currentElement))
-			{
-				CString val = ReadValueAttribute(pReader);
-				AssignPlotProperty(currentPlot, currentElement, val);
-			}
-		}
-		else if (nodeType == XmlNodeType_EndElement)
-		{
-			const WCHAR* pwszLocalName = nullptr;
-			pReader->GetLocalName(&pwszLocalName, nullptr);
-			CString endElement = pwszLocalName;
-
-			if (endElement == L"Plot")
-			{
-				// rebuild plot data from SQL
-				ExecutePlotQuery(currentPlot);
-
-				// use plot title as key
-				CString csKey = currentPlot->GraphTitle;
-				if (csKey.IsEmpty())
-					csKey = L"Untitled Plot";
-
-				// ensure uniqueness if needed
-				int suffix = 1;
-				CString csOrigKey = csKey;
-				while (currentPage->Plots.Exists[csKey])
-				{
-					csKey.Format(L"%s (%d)", csOrigKey.GetString(), suffix++);
-				}
-
-				currentPage->Plots.add(csKey, currentPlot);
-			}
-		}
-
-		// wait one milliseconds while letting normal 
-		// window messaging to run
-		pFrame->Wait(1);
-	}
-
-	// done with the progress dialog
-	dlg.DestroyWindow();
-
-	pReader->Release();
-	pFileStream->Release();
-
-	// adjust for possible TOC size increase
-	AdjustForTOC();
-
-	return true;
-} // Open
 
 /////////////////////////////////////////////////////////////////////////////
 // Save the document data to a file
@@ -1727,6 +1572,99 @@ void CClimateExplorerDoc::AssignPlotPropertyToTemp
 } // AssignPlotPropertyToTemp
 
 /////////////////////////////////////////////////////////////////////////////
+void CClimateExplorerDoc::CopyPlotPropertiesToDocument(CGraphPlotter* pPlot)
+{
+	// -------------------------------------------------------------
+	// Query properties
+	// -------------------------------------------------------------
+	QueryType = pPlot->QueryType;
+	Pure = pPlot->Pure;
+	Scope = pPlot->Scope;
+	YearStart = pPlot->YearStart;
+	YearEnd = pPlot->YearEnd;
+	Subtype = pPlot->Subtype;
+	Threshold = pPlot->Threshold;
+	Units = pPlot->Units;
+	Output = pPlot->Output;
+	State = pPlot->State;
+	Location = pPlot->Location;
+
+	// -------------------------------------------------------------
+	// Appearance: Titles and labels
+	// -------------------------------------------------------------
+	GraphTitle = pPlot->GraphTitle;
+	AxisLabelX = pPlot->AxisLabelX;
+	AxisLabelY = pPlot->AxisLabelY;
+
+	// -------------------------------------------------------------
+	// Curve line appearance
+	// -------------------------------------------------------------
+	LineColor = pPlot->LineColor;
+	LineStyle = pPlot->LineStyle;
+	LineThicknessInches = pPlot->LineThicknessInches;
+
+	// -------------------------------------------------------------
+	// Running Average line appearance
+	// -------------------------------------------------------------
+	RunningAvgColor = pPlot->RunningAvgColor;
+	RunningAvgStyle = pPlot->RunningAvgStyle;
+	RunningAvgThicknessInches = pPlot->RunningAvgThicknessInches;
+
+	// -------------------------------------------------------------
+	// Grid appearance
+	// -------------------------------------------------------------
+	GridColor = pPlot->GridColor;
+	GridLineStyle = pPlot->GridLineStyle;
+	GridLineThicknessInches = pPlot->GridLineThicknessInches;
+
+	// -------------------------------------------------------------
+	// Font sizes
+	// -------------------------------------------------------------
+	TitleFontSizePoints = pPlot->TitleFontSizePoints;
+	AxisLabelFontSizePoints = pPlot->AxisLabelFontSizePoints;
+	TickLabelFontSizePoints = pPlot->TickLabelFontSizePoints;
+
+	// -------------------------------------------------------------
+	// Padding
+	// -------------------------------------------------------------
+	RightPaddingInches = pPlot->RightPaddingInches;
+	BottomPaddingInches = pPlot->BottomPaddingInches;
+
+	// -------------------------------------------------------------
+	// Tick length
+	// -------------------------------------------------------------
+	TickLengthInches = pPlot->TickLengthInches;
+
+	// -------------------------------------------------------------
+	// Layout
+	// -------------------------------------------------------------
+	Layout = pPlot->Layout;
+
+	TrendOneEnable = pPlot->TrendOneEnable;
+	TrendOneColor = pPlot->TrendOneColor;
+	TrendOneStyle = pPlot->TrendOneStyle;
+	TrendOneThickness = pPlot->TrendOneThickness;
+	TrendOneYear = pPlot->TrendOneYear;
+
+	TrendTwoEnable = pPlot->TrendTwoEnable;
+	TrendTwoColor = pPlot->TrendTwoColor;
+	TrendTwoStyle =pPlot->TrendTwoStyle;
+	TrendTwoThickness = pPlot->TrendTwoThickness;
+	TrendTwoYear = pPlot->TrendTwoYear;
+
+	TrendThreeEnable = pPlot->TrendThreeEnable;
+	TrendThreeColor = pPlot->TrendThreeColor;
+	TrendThreeStyle = pPlot->TrendThreeStyle;
+	TrendThreeThickness = pPlot->TrendThreeThickness;
+	TrendThreeYear = pPlot->TrendThreeYear;
+
+	CMainFrame* pFrame = (CMainFrame*)AfxGetMainWnd();
+	CPropertiesWnd* pProperties = pFrame->PropertiesPane;
+	pProperties->UpdatePropertiesFromDocument(this);
+
+} // CopyPlotPropertiesToDocument
+
+/////////////////////////////////////////////////////////////////////////////
 // ApplyPlotPropsToDocument
 //
 // Copies all fields from the temporary PlotProps structure into the
@@ -2354,57 +2292,6 @@ void CClimateExplorerDoc::OnCloseDocument()
 } // OnCloseDocument
 
 /////////////////////////////////////////////////////////////////////////////
-void CClimateExplorerDoc::ExecutePlotQuery(shared_ptr<CGraphPlotter>& pPlot)
-{
-	if (!pPlot) return;
-
-	// -------------------------------------------------------------
-	// 1. Clear previous results
-	// -------------------------------------------------------------
-	pPlot->Years.clear();
-	pPlot->Values.clear();
-
-	// -------------------------------------------------------------
-	// 2. Execute SQL
-	// -------------------------------------------------------------
-	CSmartArray<CSmartArray<CString>> arrRawRows;
-	CString csSQL = pPlot->SQL;
-
-	ClimateDatabase->ExecuteTable(csSQL, arrRawRows);
-
-	CMainFrame* pFrame = (CMainFrame*)AfxGetMainWnd();
-	if (pFrame != nullptr && pFrame->OutputPane != nullptr)
-	{
-		pFrame->OutputPane->SQLText = csSQL;
-	}
-
-	// -------------------------------------------------------------
-	// 3. Branch based on Subtype
-	// -------------------------------------------------------------
-	CString csSubtype = pPlot->Subtype;
-
-	if (csSubtype == L"Maximum" ||
-		csSubtype == L"Minimum" ||
-		csSubtype == L"Average")
-	{
-		ConvertTemperatureRows(arrRawRows, pPlot->Years, pPlot->Values);
-		return;
-	}
-
-	if (csSubtype == L"Threshold")
-	{
-		ConvertThresholdRows(arrRawRows, pPlot->Years, pPlot->Values);
-		return;
-	}
-
-	if (csSubtype == L"Stations")
-	{
-		ConvertStationRows(arrRawRows, pPlot->Years, pPlot->Values);
-		return;
-	}
-} // ExecutePlotQuery
-
-/////////////////////////////////////////////////////////////////////////////
 void CClimateExplorerDoc::ExecuteQuery(bool bProgress/* = true*/)
 {
 	CClimateExplorerView* pView = ClimateExplorerView;
@@ -2413,13 +2300,24 @@ void CClimateExplorerDoc::ExecuteQuery(bool bProgress/* = true*/)
 		return;
 	}
 
+	// selection if any
+	pair < pair<int, int>, pair<int, int> > pairSel = SelectedPairs;
+	pair<int, int> pairFirst = pairSel.first;
+
+	CString csPlacement = Placement;
+	const bool bSingleSelection = SingleSelection;
+
+	// opening a document sets bProgress to false and under those
+	// conditions, we always want to append
+	if (bProgress == false)
+	{
+		csPlacement = L"Append";
+		Placement = csPlacement;
+	}
+
 	pView->Station = L"";
 	pView->Latitude = 0.0f;
 	pView->Longitude = 0.0f;
-
-	// remove selection
-	SelectLimit[-1] = -1;
-
 
 	CClimateDatabase* pDB =
 		((CClimateExplorerApp*)AfxGetApp())->ClimateDatabase;
@@ -2561,46 +2459,9 @@ void CClimateExplorerDoc::ExecuteQuery(bool bProgress/* = true*/)
 		// 4. Execute the query to generate output
 		ExecutePickerQuery();
 
-		int nPages = Pages;
-
-		// page index is zero based
-		int nPage = nPages - 1;
-		shared_ptr<CPage> pPage = m_arrPages.get(nPage);
-		if (pPage->PageIsFull)
-		{
-			pPage = shared_ptr<CPage>
-				(new CPage(nPages + 1, Layout, this, CPage::pageGraph));
-			m_arrPages.append(pPage);
-			Pages = (UINT)m_arrPages.Count;
-		}
-
-		nPages = Pages;
-		Page = pPage->Page;
-		double dTop = dPageHeight * (nPages - 1);
-		pView->TopOfView = dTop;
-		pView->SetupScrollBars();
-		pView->Invalidate();
-
-		CRect rect = MarginRectangle;
-		pPage->Rect = rect;
-
 		CString csTitle, csState, csCity, csStation;
 		float fLatitude = 0, fLongitude = 0;
-		if (csScope == L"National")
-		{
-			csTitle.Format
-			(
-				L"%s, %s, %d, %d", csScope, csSubtype, lYearStart, lYearEnd
-			);
-		}
-		else if (csScope == L"State")
-		{
-			csTitle.Format
-			(
-				L"%s, %s, %s, %d, %d", csScope, csSubtype, State, lYearStart, lYearEnd
-			);
-		}
-		else if (csScope == L"Location")
+		if (csScope == L"Location")
 		{
 			csState = State;
 			csCity = Location;
@@ -2614,11 +2475,6 @@ void CClimateExplorerDoc::ExecuteQuery(bool bProgress/* = true*/)
 				fLatitude = pStation->Latitude;
 				fLongitude = pStation->Longitude;
 			}
-
-			csTitle.Format
-			(
-				L"%s, %s, %s, %s, %d, %d", csScope, csSubtype, csState, csCity, lYearStart, lYearEnd
-			);
 		}
 
 		// -------------------------------------------------------------
@@ -2626,9 +2482,59 @@ void CClimateExplorerDoc::ExecuteQuery(bool bProgress/* = true*/)
 		// -------------------------------------------------------------
 		shared_ptr<CGraphPlotter> pPlot =
 			shared_ptr<CGraphPlotter>(new CGraphPlotter(this, Years, Values));
+
+		csTitle = pPlot->GraphTitle;
 		pPlot->Station = csStation;
 		pPlot->Latitude = fLatitude;
 		pPlot->Longitude = fLongitude;
+
+		int nPages = Pages;
+		
+		// page index is zero based
+		int nPage = nPages - 1;
+
+		// replace a matching selection if it exists
+		if (csPlacement == L"Replace" && bSingleSelection == true)
+		{
+			nPage = pairFirst.first - 1;
+		}
+		else if (csPlacement == L"Insert" && bSingleSelection == true)
+		{
+			nPage = pairFirst.first - 1;
+			ShiftPlotsDown();
+		}
+
+		shared_ptr<CPage> pPage = m_arrPages.get(nPage);
+
+		// critical: reorganzes rectangle and margins
+		pPage->Page = nPage + 1;
+
+		// a title cannot be duplicated on a page, so if it exists
+		// on the page, replace it by first removing the existing
+		// plot on the page
+		if (pPage->Plots.Exists[csTitle])
+		{
+			pPage->Plots.remove(csTitle);
+		}
+
+		if (pPage->PageIsFull)
+		{
+			pPage = shared_ptr<CPage>
+				(new CPage(nPages + 1, Layout, this, CPage::pageGraph));
+			m_arrPages.append(pPage);
+			Pages = (UINT)m_arrPages.Count;
+			nPages = Pages;
+			nPage = nPages - 1;
+		}
+
+		Page = pPage->Page;
+		double dTop = dPageHeight * nPage;
+		pView->TopOfView = dTop;
+		pView->SetupScrollBars();
+		pView->Invalidate();
+
+		CRect rect = MarginRectangle;
+		pPage->Rect = rect;
 
 		pPage->AddAnImage(pPlot);
 
@@ -2664,7 +2570,20 @@ void CClimateExplorerDoc::OnExecuteQuery()
 /////////////////////////////////////////////////////////////////////////////
 void CClimateExplorerDoc::OnUpdateExecuteQuery(CCmdUI* pCmdUI)
 {
-	// TODO: Add your command update UI handler code here
+	pCmdUI->Enable(FALSE);
+	const bool bSingleSelection = SingleSelection;
+	CString csPlacement = Placement;
+	if (csPlacement == L"Append")
+	{
+		pCmdUI->Enable();
+	}
+	else // inserting or replacing require a single selection
+	{
+		if (bSingleSelection)
+		{
+			pCmdUI->Enable();
+		}
+	}
 
 } // OnUpdateExecuteQuery
 
@@ -2728,9 +2647,22 @@ void CClimateExplorerDoc::AdjustForTOC()
 	Pages = uiPages;
 
 	// adjust the current page and the view
+	UINT nPage = uiPages;
+	CString csPlacement = Placement;
+	pair < pair<int, int>, pair<int, int> > pairSel = SelectedPairs;
+	pair<int, int> pairFirst = pairSel.first;
+	if (Selection && csPlacement == L"Replace")
+	{
+		nPage = (UINT)pairFirst.first;
+	}
+	else if (Selection && csPlacement == L"Insert")
+	{
+		nPage = (UINT)pairFirst.first;
+	}
+
 	Page = uiPages;
 	double dPageHeight = HeightOfPage;
-	double dTop = dPageHeight * (uiPages - 1);
+	double dTop = dPageHeight * (nPage - 1);
 
 	CClimateExplorerView* pView = ClimateExplorerView;
 	if (pView == nullptr)
@@ -3700,6 +3632,8 @@ void CClimateExplorerDoc::OnEditDelete()
 	if (uiPage >= uiPages)
 	{
 		uiPage = uiPages - 1;
+
+		// critical: reorganzes rectangle and margins
 		Page = uiPage;
 	}
 
@@ -3804,5 +3738,67 @@ bool CClimateExplorerDoc::RenderPlotToPNG
 
 	return true;
 } // RenderPlotToPNG
+
+/////////////////////////////////////////////////////////////////////////////
+// plots are shifted toward the end of the document on position
+// starting at the selection
+void CClimateExplorerDoc::ShiftPlotsDown()
+{
+	if (!Selection)
+	{
+		return;
+	}
+
+	pair < pair<int, int>, pair<int, int> > pairSel = SelectedPairs;
+	pair<int, int> pairFirst = pairSel.first;
+
+	// zero based index of the page
+	int nFirstPage = pairFirst.first - 1;
+	int nFirstPlot = pairFirst.second;
+
+	int nPages = m_arrPages.Count;
+	int nLastPage = nPages - 1;
+	shared_ptr<CPage> pFirstPage = m_arrPages.get(nFirstPage);
+	shared_ptr<CPage> pLastPage = m_arrPages.get(nLastPage);
+
+	// if the last page is full, we need to add a page for the current
+	// last page plot to move down
+	if (pLastPage->PageIsFull)
+	{
+		nLastPage++;
+		CString csLayout = pLastPage->Layout;
+		CPage::PAGE_TYPE eType = pLastPage->PageType;
+		pLastPage =
+			shared_ptr<CPage>(new CPage(nLastPage + 1, csLayout, this, eType));
+		m_arrPages.append(pLastPage);
+		nPages = m_arrPages.Count;
+		Pages = nPages;
+	}
+
+	for (int nPage = nLastPage - 1; nPage >= nFirstPage; nPage--)
+	{
+		shared_ptr<CPage> pPageSrc = m_arrPages.get(nPage);
+
+		shared_ptr<CPage> pPageDst = m_arrPages.get(nPage + 1);
+
+		// the source plot to be shifted down
+		CString csKey = pPageSrc->Plots.LastKey;
+		shared_ptr<CGraphPlotter> pPlot = pPageSrc->Plots.find(csKey);
+
+		// add the plot to the destionation page
+		pPageDst->Plots.add(csKey, pPlot);
+
+		// remove the plot from the source page
+		pPageSrc->Plots.remove(csKey);
+
+		// critical: reorganzes rectangle and margins
+		pPageDst->Page = nPage + 2;
+	}
+
+	CMainFrame* pFrame = (CMainFrame*)AfxGetMainWnd();
+	CPropertiesWnd* pProperties = pFrame->PropertiesPane;
+	pProperties->UpdateTableOfContents();
+
+} // ShiftPlotsDown
 
 /////////////////////////////////////////////////////////////////////////////

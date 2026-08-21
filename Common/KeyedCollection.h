@@ -177,6 +177,50 @@ public:
 	__declspec(property(get = GetItems))
 		MAP_KEY_PTR Items;
 
+	/////////////////////////////////////////////////////////////////////////////
+	inline shared_ptr<TYPE> GetFirstValue()
+	{
+		if (m_mapItems.empty())
+			return nullptr;
+
+		return m_mapItems.begin()->second;
+	}
+	__declspec(property(get = GetFirstValue))
+		shared_ptr<TYPE> FirstValue;
+
+	/////////////////////////////////////////////////////////////////////////////
+	inline shared_ptr<TYPE> GetLastValue()
+	{
+		if (m_mapItems.empty())
+			return nullptr;
+
+		return prev(m_mapItems.end())->second;
+	}
+	__declspec(property(get = GetLastValue))
+		shared_ptr<TYPE> LastValue;
+
+	/////////////////////////////////////////////////////////////////////////////
+	inline KEY GetFirstKey()
+	{
+		if (m_mapItems.empty())
+			return nullptr;
+
+		return m_mapItems.begin()->first;
+	}
+	__declspec(property(get = GetFirstKey))
+		KEY FirstKey;
+
+	/////////////////////////////////////////////////////////////////////////////
+	inline KEY GetLastKey()
+	{
+		if (m_mapItems.empty())
+			return nullptr;
+
+		return std::prev(m_mapItems.end())->first;
+	}
+	__declspec(property(get = GetLastKey))
+		KEY LastKey;
+
 public:
 	/////////////////////////////////////////////////////////////////////////////
 	// GetDeletedItems
