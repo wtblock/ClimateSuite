@@ -99,8 +99,6 @@ void CClimateExplorerDoc::InitializeProperties()
 		Description = pApp->DatabaseCredits;
 	}
 
-	QueryType = L"Picker";
-	NaturalLanguage = L"None";
 	Pure = true;
 	Scope = L"National";
 	State = L"None";
@@ -215,6 +213,145 @@ CString CClimateExplorerDoc::GenerateMapLink(double dLat, double dLong, bool bBi
 
 	return value;
 } // GenerateMapLink
+
+/////////////////////////////////////////////////////////////////////////////
+void CClimateExplorerDoc::AssignPlotProperty
+(
+	shared_ptr<CGraphPlotter>& pPlot,
+	const CString& name,
+	const CString& value
+)
+{
+	if (!pPlot) return;
+
+	else if (name == L"Pure") pPlot->Pure = (value == L"true");
+	else if (name == L"Scope") pPlot->Scope = value;
+	else if (name == L"YearStart") pPlot->YearStart = _ttoi(value);
+	else if (name == L"YearEnd") pPlot->YearEnd = _ttoi(value);
+	else if (name == L"Subtype") pPlot->Subtype = value;
+	else if (name == L"Threshold") pPlot->Threshold = _ttoi(value);
+	else if (name == L"Units") pPlot->Units = value;
+	else if (name == L"Output") pPlot->Output = value;
+
+	else if (name == L"State") pPlot->State = value;
+	else if (name == L"Location") pPlot->Location = value;
+	else if (name == L"Station") pPlot->Station = value;
+
+	else if (name == L"Latitude") pPlot->Latitude = (float)_ttof(value);
+	else if (name == L"Longitude") pPlot->Longitude = (float)_ttof(value);
+
+	else if (name == L"GraphTitle") pPlot->GraphTitle = value;
+	else if (name == L"AxisLabelX") pPlot->AxisLabelX = value;
+	else if (name == L"AxisLabelY") pPlot->AxisLabelY = value;
+
+	else if (name == L"LineColor") pPlot->LineColor = value;
+	else if (name == L"LineStyle") pPlot->LineStyle = StringToDashStyle(value);
+	else if (name == L"LineThicknessInches") pPlot->LineThicknessInches = _ttof(value);
+
+	else if (name == L"RunningAvgColor") pPlot->RunningAvgColor = value;
+	else if (name == L"RunningAvgStyle") pPlot->RunningAvgStyle = StringToDashStyle(value);
+	else if (name == L"RunningAvgThicknessInches") pPlot->RunningAvgThicknessInches = _ttof(value);
+
+	else if (name == L"GridColor") pPlot->GridColor = value;
+	else if (name == L"GridLineStyle") pPlot->GridLineStyle = StringToDashStyle(value);
+	else if (name == L"GridLineThicknessInches") pPlot->GridLineThicknessInches = _ttof(value);
+
+	else if (name == L"TitleFontSizePoints") pPlot->TitleFontSizePoints = _ttoi(value);
+	else if (name == L"AxisLabelFontSizePoints") pPlot->AxisLabelFontSizePoints = _ttoi(value);
+	else if (name == L"TickLabelFontSizePoints") pPlot->TickLabelFontSizePoints = _ttoi(value);
+
+	else if (name == L"LeftPaddingInches") pPlot->LeftPaddingInches = _ttof(value);
+	else if (name == L"RightPaddingInches") pPlot->RightPaddingInches = _ttof(value);
+	else if (name == L"TopPaddingInches") pPlot->TopPaddingInches = _ttof(value);
+	else if (name == L"BottomPaddingInches") pPlot->BottomPaddingInches = _ttof(value);
+
+	else if (name == L"TickLengthInches") pPlot->TickLengthInches = _ttof(value);
+	else if (name == L"Layout") pPlot->Layout = value;
+
+} // AssignPlotProperty
+
+
+/////////////////////////////////////////////////////////////////////////////
+// The title of the graph
+CString CClimateExplorerDoc::GetGraphTitle()
+{
+	CString value;
+
+	long lYearStart = YearStart;
+	long lYearEnd = YearEnd;
+	CString csRange;
+	csRange.Format(L"from %d to %d", lYearStart, lYearEnd);
+	CString csScope = Scope;
+	CString csState = State;
+	CString csLocation = Location;
+	csLocation.TrimRight();
+	CString csSubtype = Subtype;
+	CString csAt;
+	if (csScope != L"National")
+	{
+		if (csScope == L"State")
+		{
+			csAt = csState;
+		}
+		else if (csScope == L"Location")
+		{
+			csAt.Format
+			(
+				L"%s, %s",
+				csLocation.GetString(), csState.GetString()
+			);
+		}
+	}
+	if (csSubtype == L"Stations")
+	{
+		value.Format(L"USHCN Yearly Station Count %s", csRange.GetString());
+	}
+	else if (csSubtype == L"Threshold")
+	{
+		int nLimit = Threshold;
+		CString csUnits = Units;
+		if (csScope == L"National")
+		{
+			value.Format
+			(
+				L"Percent of USHCN Readings Above %d %s %s",
+				nLimit, csUnits.GetString(), csRange.GetString()
+			);
+		}
+		else
+		{
+			value.Format
+			(
+				L"Percent of USHCN Readings Above %d %s for %s %s",
+				nLimit, csUnits.GetString(), csAt.GetString(), csRange.GetString()
+			);
+		}
+	}
+	else
+	{
+		if (csScope == L"National")
+		{
+			value.Format
+			(
+				L"USHCN %s Temperatures Nationally %s",
+				csSubtype.GetString(), csRange.GetString()
+			);
+		}
+		else
+		{
+			value.Format
+			(
+				L"USHCN %s Temperatures for %s %s",
+				csSubtype.GetString(), csAt.GetString(), csRange.GetString()
+			);
+		}
+	}
+
+	GraphTitle = value;
+
+	return value;
+
+} // GetGraphTitle
 
 /////////////////////////////////////////////////////////////////////////////
 BOOL CClimateExplorerDoc::SaveCEx(CString& csPath)
@@ -336,7 +473,6 @@ BOOL CClimateExplorerDoc::SaveCEx(CString& csPath)
 			pWriter->WriteStartElement(nullptr, L"Plot", nullptr);
 
 			// ---------------- QUERY PROPERTIES -------------------
-			WriteProp(L"QueryType", pPlot->QueryType, L"string");
 			WriteProp(L"Pure", pPlot->Pure ? L"true" : L"false", L"bool");
 			WriteProp(L"Scope", pPlot->Scope, L"string");
 
@@ -355,8 +491,6 @@ BOOL CClimateExplorerDoc::SaveCEx(CString& csPath)
 
 			WriteProp(L"Latitude", FormatDouble(pPlot->Latitude), L"double");
 			WriteProp(L"Longitude", FormatDouble(pPlot->Longitude), L"double");
-
-			WriteProp(L"SQL", pPlot->SQL, L"string");
 
 			// ---------------- APPEARANCE PROPERTIES --------------
 			WriteProp(L"GraphTitle", pPlot->GraphTitle, L"string");
@@ -519,7 +653,6 @@ BOOL CClimateExplorerDoc::SaveCE(const CString& csPath)
 			pWriter->WriteStartElement(nullptr, L"Plot", nullptr);
 
 			// ---------------- QUERY PROPERTIES -------------------
-			WriteCEProp(L"QueryType", pPlot->QueryType);
 			WriteCEProp(L"Pure", pPlot->Pure ? L"true" : L"false");
 			WriteCEProp(L"Scope", pPlot->Scope);
 
@@ -538,8 +671,6 @@ BOOL CClimateExplorerDoc::SaveCE(const CString& csPath)
 
 			WriteCEProp(L"Latitude", FormatDouble(pPlot->Latitude));
 			WriteCEProp(L"Longitude", FormatDouble(pPlot->Longitude));
-
-			WriteCEProp(L"SQL", pPlot->SQL);
 
 			// ---------------- APPEARANCE PROPERTIES --------------
 			WriteCEProp(L"GraphTitle", pPlot->GraphTitle);
@@ -1037,11 +1168,7 @@ void CClimateExplorerDoc::AssignDocumentProperty
 	// -------------------------------------------------------------
 	// Query properties
 	// -------------------------------------------------------------
-	if (csName == L"QueryType")
-	{
-		QueryType = csValue;
-	}
-	else if (csName == L"Pure")
+	if (csName == L"Pure")
 	{
 		Pure = (csValue == L"true");
 	}
@@ -1167,7 +1294,6 @@ bool CClimateExplorerDoc::IsDocProperty(const CString& csName)
 	// -------------------------------------------------------------
 	// Query properties
 	// -------------------------------------------------------------
-	if (csName == L"QueryType") return true;
 	if (csName == L"Pure") return true;
 	if (csName == L"Scope") return true;
 	if (csName == L"YearStart") return true;
@@ -1231,7 +1357,6 @@ bool CClimateExplorerDoc::IsPlotProperty(const CString& csName)
 	// -------------------------------------------------------------
 	// Query properties
 	// -------------------------------------------------------------
-	if (csName == L"QueryType") return true;
 	if (csName == L"Pure") return true;
 	if (csName == L"Scope") return true;
 	if (csName == L"YearStart") return true;
@@ -1245,7 +1370,6 @@ bool CClimateExplorerDoc::IsPlotProperty(const CString& csName)
 	if (csName == L"Station") return true;
 	if (csName == L"Latitude") return true;
 	if (csName == L"Longitude") return true;
-	if (csName == L"SQL") return true; // debug-only, ignored but recognized
 
 	// -------------------------------------------------------------
 	// Appearance: Titles and labels
@@ -1324,11 +1448,7 @@ void CClimateExplorerDoc::AssignPlotPropertyToTemp
 	// -------------------------------------------------------------
 	// Query properties
 	// -------------------------------------------------------------
-	if (csName == L"QueryType")
-	{
-		temp.QueryType = csValue;
-	}
-	else if (csName == L"Pure")
+	if (csName == L"Pure")
 	{
 		temp.Pure = (csValue == L"true");
 	}
@@ -1577,7 +1697,6 @@ void CClimateExplorerDoc::CopyPlotPropertiesToDocument(CGraphPlotter* pPlot)
 	// -------------------------------------------------------------
 	// Query properties
 	// -------------------------------------------------------------
-	QueryType = pPlot->QueryType;
 	Pure = pPlot->Pure;
 	Scope = pPlot->Scope;
 	YearStart = pPlot->YearStart;
@@ -1677,7 +1796,6 @@ void CClimateExplorerDoc::ApplyPlotPropsToDocument(const PlotProps& temp)
 	// -------------------------------------------------------------
 	// Query properties
 	// -------------------------------------------------------------
-	QueryType = temp.QueryType;
 	Pure = temp.Pure;
 	Scope = temp.Scope;
 	YearStart = temp.YearStart;
@@ -1769,7 +1887,6 @@ void CClimateExplorerDoc::ApplyPlotPropsToPlotter
 )
 {
 	// ---------------- QUERY PROPERTIES -------------------
-	plot.QueryType = props.QueryType;
 	plot.Pure = props.Pure;
 	plot.Scope = props.Scope;
 
@@ -2046,9 +2163,6 @@ BOOL CClimateExplorerDoc::LoadCE(const CString& csPath)
 // Loads a full‑fidelity Climate Explorer (.CEx) document.
 // Restores all document and plot properties from XML,
 // then regenerates the document using OnExecuteQuery().
-//
-// SQL stored in the CEx file is debug‑only and is NOT executed.
-// The authoritative source is the restored properties.
 //
 // Pagination, page creation, and plot creation are handled
 // entirely by OnExecuteQuery(), exactly as during live execution.

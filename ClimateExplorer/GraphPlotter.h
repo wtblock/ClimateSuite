@@ -127,20 +127,6 @@ public:
 	// Query Properties
 	/////////////////////////////////////////////////////////////////////////////
 	
-	// Query Type (Picker, Natural Language, or SQL)
-	CString GetQueryType()
-	{
-		return m_csQueryType;
-	}
-	// Query Type (Picker, Natural Language, or SQL)
-	void SetQueryType(CString value)
-	{
-		m_csQueryType = value;
-	}
-	// Query Type (Picker, Natural Language, or SQL)
-	__declspec(property(get = GetQueryType, put = SetQueryType))
-		CString QueryType;
-
 	// when true, estimated data is ignored in addition to QC flagged data
 	bool GetPure()
 	{

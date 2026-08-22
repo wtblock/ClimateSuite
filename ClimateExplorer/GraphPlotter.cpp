@@ -94,7 +94,6 @@ void CGraphPlotter::SetDefaults(CClimateExplorerDoc* pDoc)
 	// -------------------------------------------------------------
 	// Query properties
 	// -------------------------------------------------------------
-	QueryType = pDoc->QueryType;
 	Pure = pDoc->Pure;
 	Scope = pDoc->Scope;
 	YearStart = pDoc->YearStart;

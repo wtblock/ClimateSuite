@@ -348,69 +348,7 @@ LRESULT CPropertiesWnd::OnPropertyChange
 	}
 	else if (csGroup == L"Query Properties")
 	{
-		if (csName == L"Type of Query")
-		{
-			CString value = CString(varIn);
-			pDoc->QueryType = value;
-			value.MakeLower();
-			if (value == L"picker")
-			{
-				EnablePickers();
-
-				// Disable NL + SQL
-				m_pPropNaturalLanguage->SetValue(COleVariant(L"None"));
-				m_pPropSQL->SetValue(COleVariant(L""));
-
-				pDoc->NaturalLanguage = L"None";
-				pDoc->SQL = L"";
-
-				m_pPropNaturalLanguage->Enable(FALSE);
-				m_pPropSQL->Enable(FALSE);
-			}
-			else if (value == L"natural language")
-			{
-				m_pPropSQL->SetValue(COleVariant(L""));
-				m_pPropScope->SetValue(COleVariant(L"National"));
-				m_pPropState->SetValue(COleVariant(L"None"));
-				m_pPropLocation->SetValue(COleVariant(L"None"));
-
-				pDoc->SQL = L"";
-				pDoc->Scope = L"National";
-				pDoc->State = L"None";
-				pDoc->Location = L"None";
-
-				EnablePickers(FALSE);
-				m_pPropNaturalLanguage->Enable();
-				m_pPropSQL->Enable(FALSE);
-			}
-			else if (value == L"sql")
-			{
-				m_pPropNaturalLanguage->SetValue(COleVariant(L"None"));
-				m_pPropScope->SetValue(COleVariant(L"National"));
-				m_pPropState->SetValue(COleVariant(L"None"));
-				m_pPropLocation->SetValue(COleVariant(L"None"));
-
-				pDoc->NaturalLanguage = L"None";
-				pDoc->Scope = L"National";
-				pDoc->State = L"None";
-				pDoc->Location = L"None";
-
-				EnablePickers(FALSE);
-				m_pPropNaturalLanguage->Enable(FALSE);
-				m_pPropSQL->Enable();
-			}
-
-			m_wndPropList.RedrawWindow();
-		}
-		else if (csName == L"Natural Language")
-		{
-			pDoc->NaturalLanguage = CString(varIn);
-		}
-		else if (csName == L"SQL")
-		{
-			pDoc->SQL = CString(varIn);
-		}
-		else if (csName == L"Pure")
+		if (csName == L"Pure")
 		{
 			pDoc->Pure = bool(varIn);
 		}
@@ -853,21 +791,6 @@ void CPropertiesWnd::UpdatePropertiesFromDocument(CClimateExplorerDoc* pDoc)
 					csValue = L"75";
 				}
 				pProp->SetValue(csValue);
-			}
-			else if (csName == L"Type of Query")
-			{
-				CString value = pDoc->QueryType;
-				pProp->SetValue(value);
-			}
-			else if (csName == L"Natural Language")
-			{
-				CString value = pDoc->NaturalLanguage;
-				pProp->SetValue(value);
-			}
-			else if (csName == L"SQL")
-			{
-				CString value = pDoc->SQL;
-				pProp->SetValue(value);
 			}
 			else if (csName == L"Pure")
 			{
@@ -1415,6 +1338,139 @@ void CPropertiesWnd::InitExportPageProperties()
 } // InitExportPageProperties
 
 /////////////////////////////////////////////////////////////////////////////
+void CPropertiesWnd::InitRenderProperties()
+{
+	CMFCPropertyGridProperty* pRenderGroup =
+		new CMFCPropertyGridProperty(L"Render Properties");
+
+	pRenderGroup->SetDescription
+	(
+		L"Properties that define how the query is rendered."
+	);
+
+	m_wndPropList.AddProperty(pRenderGroup);
+
+	// ---------------------------------------------------------------
+	// Units (degF, degC, raw)
+	// ---------------------------------------------------------------
+	CMFCPropertyGridProperty* pPropUnits =
+		new CMFCPropertyGridProperty
+		(
+			L"Units",
+			(_variant_t)L"degF",
+			L"Select the output units for the query:\n"
+			L"  • degF — Fahrenheit\n"
+			L"  • degC — Celsius\n"
+			L"  • raw — unconverted database values"
+		);
+
+	// Add dropdown options
+	pPropUnits->AddOption(L"degF");
+	pPropUnits->AddOption(L"degC");
+	pPropUnits->AddOption(L"raw");
+
+	// Default selection
+	pPropUnits->SetValue((_variant_t)L"degF");
+
+	// remember the property
+	m_pPropUnits = pPropUnits;
+
+	// Add to group
+	pRenderGroup->AddSubItem(pPropUnits);
+
+	// ---------------------------------------------------------------
+	// Output (Plot, Image...)
+	// ---------------------------------------------------------------
+	CMFCPropertyGridProperty* pPropOutput =
+		new CMFCPropertyGridProperty
+		(
+			L"Output",
+			(_variant_t)L"Plot",
+			L"Select the visual output type:\n"
+			L"  • Plot  — Plots the result of a query.\n"
+			L"  • Image — Displays an image the user selected.\n"
+			L"  • Map   — Displays a map of stations based on location.\n"
+			L"  • ML    — Displays Markup Language file the user selected.\n"
+			L"  • HTML  — Displays an HTML link the user selected."
+		);
+
+	// Add dropdown options
+	pPropOutput->AddOption(L"Plot");
+	pPropOutput->AddOption(L"Image");
+	pPropOutput->AddOption(L"Map");
+	pPropOutput->AddOption(L"ML");
+	pPropOutput->AddOption(L"HTML");
+
+	// Default selection
+	pPropOutput->SetValue((_variant_t)L"Plot");
+
+	// remember the property
+	m_pPropOutput = pPropOutput;
+
+	// Add to group
+	pRenderGroup->AddSubItem(pPropOutput);
+
+	// ---------------------------------------------------------------
+	// Layout (Full, Half, Quarter)
+	// ---------------------------------------------------------------
+	CMFCPropertyGridProperty* pPropLayout =
+		new CMFCPropertyGridProperty
+		(
+			L"Layout",
+			(_variant_t)L"Full",
+			L"Select the page layout:\n"
+			L"  • Full    — landscape plot or full-page table\n"
+			L"  • Half    — portrait mode, stacked vertically\n"
+			L"  • Quarter — landscape, quarter-page panel"
+		);
+
+	// Add dropdown options
+	pPropLayout->AddOption(L"Full");
+	pPropLayout->AddOption(L"Half");
+	pPropLayout->AddOption(L"Quarter");
+
+	// Default selection
+	pPropLayout->SetValue((_variant_t)L"Full");
+
+	// remember the property
+	m_pPropLayout = pPropLayout;
+
+	// Add to group
+	pRenderGroup->AddSubItem(pPropLayout);
+
+	// ---------------------------------------------------------------
+	// Placement (append, insert, or replace)
+	// ---------------------------------------------------------------
+	CMFCPropertyGridProperty* pPropPlacement =
+		new CMFCPropertyGridProperty
+		(
+			L"Placement",
+			(_variant_t)L"Append",
+			L"Select the placement of new query execution:\n"
+			L"  • Append  — append to the end of the document.\n"
+			L"  • Insert  — insert before a SINGLE selection.\n"
+			L"  • Replace — replace a sINGLE selection.\n"
+			L"NOTE: Execute button is disabled for Insert\n"
+			L" and Replace if a single item is not selected."
+		);
+
+	// Add dropdown options
+	pPropPlacement->AddOption(L"Append");
+	pPropPlacement->AddOption(L"Insert");
+	pPropPlacement->AddOption(L"Replace");
+
+	// Default selection
+	pPropPlacement->SetValue((_variant_t)L"Append");
+
+	// remember the property
+	m_pPropPlacement = pPropPlacement;
+
+	// Add to group
+	pRenderGroup->AddSubItem(pPropPlacement);
+
+} // InitRenderProperties
+
+/////////////////////////////////////////////////////////////////////////////
 void CPropertiesWnd::InitQueryProperties()
 {
 	CMFCPropertyGridProperty* pQueryGroup =
@@ -1425,87 +1481,8 @@ void CPropertiesWnd::InitQueryProperties()
 		L"Properties that define how the climate query is constructed."
 	);
 
-	// ---------------------------------------------------------------
-	// Type of Query
-	// ---------------------------------------------------------------
-	CMFCPropertyGridProperty* pPropQueryType =
-		new CMFCPropertyGridProperty
-		(
-			L"Type of Query",
-			(_variant_t)L"Picker",
-			L"Specifies how the query will be constructed:\n"
-			L"  • Natural Language — enter or select a natural-language query.\n"
-			L"  • SQL — manually enter SQL text.\n"
-			L"  • Picker — choose individual properties to build a query."
-		);
-
-	// Add dropdown options
-	pPropQueryType->AddOption(L"Picker");
-	pPropQueryType->AddOption(L"Natural Language");
-	pPropQueryType->AddOption(L"SQL");
-
-	// Default selection
-	pPropQueryType->SetValue((_variant_t)L"Picker");
-
-	// remember the property
-	m_pPropQueryType = pPropQueryType;
-
-	// Add to group
-	pQueryGroup->AddSubItem(pPropQueryType);
-
 	// Add the group to the property list
 	m_wndPropList.AddProperty(pQueryGroup);
-
-	// ---------------------------------------------------------------
-	// Natural Language Query (dropdown + editable text)
-	// ---------------------------------------------------------------
-	CMFCPropertyGridProperty* pPropNaturalLanguage =
-		new CMFCPropertyGridProperty
-		(
-			L"Natural Language",
-			(_variant_t)L"None",
-			L"Select a predefined natural-language query or type your own."
-		);
-
-	// Make this an editable combo box
-	pPropNaturalLanguage->AllowEdit(TRUE);          // allow manual typing
-
-	// Add predefined natural-language queries
-	pPropNaturalLanguage->AddOption(L"None");
-	pPropNaturalLanguage->AddOption(L"List your table schemas.");
-	pPropNaturalLanguage->AddOption(L"Show me the hottest states in July.");
-	pPropNaturalLanguage->AddOption(L"List stations with rising trends.");
-	pPropNaturalLanguage->AddOption(L"Find extreme temperature events.");
-	pPropNaturalLanguage->AddOption(L"Show climate trends for Texas.");
-
-	// Default value (empty)
-	pPropNaturalLanguage->SetValue((_variant_t)L"None");
-
-	// remember the property
-	m_pPropNaturalLanguage = pPropNaturalLanguage;
-	m_pPropNaturalLanguage->Enable(FALSE);
-
-	// Add to group
-	pQueryGroup->AddSubItem(pPropNaturalLanguage);
-
-	// ---------------------------------------------------------------
-	// SQL (multiline editor)
-	// ---------------------------------------------------------------
-	CMFCPropertyGridProperty* pPropSQL =
-		new CPropertyGridMultilineText
-		(
-			L"SQL",
-			L"",
-			L"Enter a SQL query. This field is enabled only when "
-			L"'Type of Query' is set to SQL."
-		);
-
-	// remember the property
-	m_pPropSQL = pPropSQL;
-	m_pPropSQL->Enable(FALSE);
-
-	// Add to group
-	pQueryGroup->AddSubItem(pPropSQL);
 
 	// ---------------------------------------------------------------
 	// Pure (boolean)
@@ -1706,132 +1683,6 @@ void CPropertiesWnd::InitQueryProperties()
 	pQueryGroup->AddSubItem(pPropThreshold);
 
 } // InitQueryProperties
-
-/////////////////////////////////////////////////////////////////////////////
-void CPropertiesWnd::InitRenderProperties()
-{
-	CMFCPropertyGridProperty* pRenderGroup =
-		new CMFCPropertyGridProperty(L"Render Properties");
-
-	pRenderGroup->SetDescription
-	(
-		L"Properties that define how the query is rendered."
-	);
-
-	m_wndPropList.AddProperty(pRenderGroup);
-
-	// ---------------------------------------------------------------
-	// Units (degF, degC, raw)
-	// ---------------------------------------------------------------
-	CMFCPropertyGridProperty* pPropUnits =
-		new CMFCPropertyGridProperty
-		(
-			L"Units",
-			(_variant_t)L"degF",
-			L"Select the output units for the query:\n"
-			L"  • degF — Fahrenheit\n"
-			L"  • degC — Celsius\n"
-			L"  • raw — unconverted database values"
-		);
-
-	// Add dropdown options
-	pPropUnits->AddOption(L"degF");
-	pPropUnits->AddOption(L"degC");
-	pPropUnits->AddOption(L"raw");
-
-	// Default selection
-	pPropUnits->SetValue((_variant_t)L"degF");
-
-	// remember the property
-	m_pPropUnits = pPropUnits;
-
-	// Add to group
-	pRenderGroup->AddSubItem(pPropUnits);
-
-	// ---------------------------------------------------------------
-	// Output (Plot, Table, Map + Plot)
-	// ---------------------------------------------------------------
-	CMFCPropertyGridProperty* pPropOutput =
-		new CMFCPropertyGridProperty
-		(
-			L"Output",
-			(_variant_t)L"Plot",
-			L"Select the visual output format for the query."
-		);
-
-	// Add dropdown options
-	pPropOutput->AddOption(L"Plot");
-	pPropOutput->AddOption(L"Table");
-	pPropOutput->AddOption(L"Map + Plot");
-
-	// Default selection
-	pPropOutput->SetValue((_variant_t)L"Plot");
-
-	// remember the property
-	m_pPropOutput = pPropOutput;
-
-	// Add to group
-	pRenderGroup->AddSubItem(pPropOutput);
-
-	// ---------------------------------------------------------------
-	// Layout (Full, Half, Quarter)
-	// ---------------------------------------------------------------
-	CMFCPropertyGridProperty* pPropLayout =
-		new CMFCPropertyGridProperty
-		(
-			L"Layout",
-			(_variant_t)L"Full",
-			L"Select the page layout:\n"
-			L"  • Full    — landscape plot or full-page table\n"
-			L"  • Half    — portrait mode, stacked vertically\n"
-			L"  • Quarter — landscape, quarter-page panel"
-		);
-
-	// Add dropdown options
-	pPropLayout->AddOption(L"Full");
-	pPropLayout->AddOption(L"Half");
-	pPropLayout->AddOption(L"Quarter");
-
-	// Default selection
-	pPropLayout->SetValue((_variant_t)L"Full");
-
-	// remember the property
-	m_pPropLayout = pPropLayout;
-
-	// Add to group
-	pRenderGroup->AddSubItem(pPropLayout);
-
-	// ---------------------------------------------------------------
-	// Placement (append, insert, or replace)
-	// ---------------------------------------------------------------
-	CMFCPropertyGridProperty* pPropPlacement =
-		new CMFCPropertyGridProperty
-		(
-			L"Placement",
-			(_variant_t)L"Append",
-			L"Select the placement of new query execution:\n"
-			L"  • Append  — append to the end of the document.\n"
-			L"  • Insert  — insert before a SINGLE selection.\n"
-			L"  • Replace — replace a sINGLE selection.\n"
-			L"NOTE: Execute button is disabled for Insert\n"
-			L" and Replace if a single item is not selected."
-		);
-
-	// Add dropdown options
-	pPropPlacement->AddOption(L"Append");
-	pPropPlacement->AddOption(L"Insert");
-	pPropPlacement->AddOption(L"Replace");
-
-	// Default selection
-	pPropPlacement->SetValue((_variant_t)L"Append");
-
-	// remember the property
-	m_pPropPlacement = pPropPlacement;
-
-	// Add to group
-	pRenderGroup->AddSubItem(pPropPlacement);
-
-} // InitRenderProperties
 
 /////////////////////////////////////////////////////////////////////////////
 void CPropertiesWnd::InitGraphProperties()
@@ -2240,14 +2091,14 @@ void CPropertiesWnd::InitPropList()
 	InitExportPageProperties();
 
 	// ===============================================
-	// Query Properties 
-	// ===============================================
-	InitQueryProperties();
-
-	// ===============================================
 	// Render Properties 
 	// ===============================================
 	InitRenderProperties();
+
+	// ===============================================
+	// Query Properties 
+	// ===============================================
+	InitQueryProperties();
 
 	// ===============================================
 	// Graphing Properties

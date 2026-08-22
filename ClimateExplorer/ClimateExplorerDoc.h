@@ -82,7 +82,6 @@ public:
 		// -------------------------------------------------------------
 		// Query properties
 		// -------------------------------------------------------------
-		CString QueryType;
 		bool    Pure;
 		CString Scope;
 		long    YearStart;
@@ -1354,82 +1353,54 @@ public:
 	// Query Properties (new Climate Explorer section)
 	// ===============================================
 
-	// 1. Type of Query
-	CString GetQueryType()
-	{
-		return m_csQueryType;
-	}
-	// 1. Type of Query
-	void SetQueryType(CString value)
-	{
-		m_csQueryType = value;
-	}
-	// 1. Type of Query
-	__declspec(property(get = GetQueryType, put = SetQueryType))
-		CString QueryType;
-
-	// 2. Natural Language Query
-	CString GetNaturalLanguage()
-	{
-		return m_csNaturalLanguage;
-	}
-	// 2. Natural Language Query
-	void SetNaturalLanguage(CString value)
-	{
-		m_csNaturalLanguage = value;
-	}
-	// 2. Natural Language Query
-	__declspec(property(get = GetNaturalLanguage, put = SetNaturalLanguage))
-		CString NaturalLanguage;
-
-	// 3. SQL query
+	// SQL query
 	CString GetSQL()
 	{
 		return m_csSQL;
 	}
-	// 3. SQL query
+	// SQL query
 	void SetSQL(CString value)
 	{
 		m_csSQL = value;
 	}
-	// 3. SQL query
+	// SQL query
 	__declspec(property(get = GetSQL, put = SetSQL))
 		CString SQL;
 
-	// 4B. Pure meaning no estimated data
+	// Pure meaning no estimated data
 	bool GetPure()
 	{
 		return m_bPure;
 	}
-	// 4B. Pure meaning no estimated data
+	// Pure meaning no estimated data
 	void SetPure(bool value)
 	{
 		m_bPure = value;
 	}
-	// 4B. Pure meaning no estimated data
+	// Pure meaning no estimated data
 	__declspec(property(get = GetPure, put = SetPure))
 		bool Pure;
 
-	// 4D. Scope (National, State, or Location)
+	// Scope (National, State, or Location)
 	CString GetScope()
 	{
 		return m_csScope;
 	}
-	// 4D. Scope (National, State, or Location)
+	// Scope (National, State, or Location)
 	void SetScope(CString value)
 	{
 		m_csScope = value;
 	}
-	// 4D. Scope (National, State, or Location)
+	// Scope (National, State, or Location)
 	__declspec(property(get = GetScope, put = SetScope))
 		CString Scope;
 
-	// 4E. State postal code (AL, TX, CA, etc.) location of station
+	// State postal code (AL, TX, CA, etc.) location of station
 	CString GetState()
 	{
 		return m_csState;
 	}
-	// 4E. State postal code (AL, TX, CA, etc.) location of station
+	// State postal code (AL, TX, CA, etc.) location of station
 	void SetState(CString value)
 	{
 		m_csState = value;
@@ -1438,58 +1409,58 @@ public:
 		// the user may want all locations in the state
 		Location = L"None";
 	}
-	// 4E. State postal code (AL, TX, CA, etc.) location of station
+	// State postal code (AL, TX, CA, etc.) location of station
 	__declspec(property(get = GetState, put = SetState))
 		CString State;
 
-	// 4F. Location is the name of the cite the station is in
+	// Location is the name of the cite the station is in
 	CString GetLocation()
 	{
 		return m_csLocation;
 	}
-	// 4F. Location is the name of the cite the station is in
+	// Location is the name of the cite the station is in
 	void SetLocation(CString value)
 	{
 		m_csLocation = value;
 	}
-	// 4F. Location is the name of the cite the station is in
+	// Location is the name of the cite the station is in
 	__declspec(property(get = GetLocation, put = SetLocation))
 		CString Location;
 
-	// 4G. Starting Year
+	// Starting Year
 	long GetYearStart()
 	{
 		return m_lYearStart;
 	}
-	// 4G. Starting Year
+	// Starting Year
 	void SetYearStart(long value)
 	{
 		m_lYearStart = value;
 	}
-	// 4G. Starting Year
+	// Starting Year
 	__declspec(property(get = GetYearStart, put = SetYearStart))
 		long YearStart;
 
-	// 4H. Ending Year
+	// Ending Year
 	long GetYearEnd()
 	{
 		return m_lYearEnd;
 	}
-	// 4H. Ending Year
+	// Ending Year
 	void SetYearEnd(long value)
 	{
 		m_lYearEnd = value;
 	}
-	// 4H. Ending Year
+	// Ending Year
 	__declspec(property(get = GetYearEnd, put = SetYearEnd))
 		long YearEnd;
 
-	// 4I. Subtype ("Maximum", "Minimum", "Average", "Threshold", and "Stations")
+	// Subtype ("Maximum", "Minimum", "Average", "Threshold", and "Stations")
 	CString GetSubtype()
 	{
 		return m_csSubtype;
 	}
-	// 4I. Subtype ("Maximum", "Minimum", "Average", "Threshold", and "Stations")
+	// Subtype ("Maximum", "Minimum", "Average", "Threshold", and "Stations")
 	void SetSubtype(CString value)
 	{
 		m_csSubtype = value;
@@ -1505,25 +1476,25 @@ public:
 			MeasurementType = CClimateTemperature::mtMinimum;
 		}
 	}
-	// 4I. Subtype ("Maximum", "Minimum", "Average", "Threshold", and "Stations")
+	// Subtype ("Maximum", "Minimum", "Average", "Threshold", and "Stations")
 	__declspec(property(get = GetSubtype, put = SetSubtype))
 		CString Subtype;
 
-	// 4I. Type (Maximum, Minimum, Average)
+	// Type (Maximum, Minimum, Average)
 	CClimateTemperature::MEASURE_TYPE GetMeasurementType()
 	{
 		return m_eMeasurementType;
 	}
-	// 4I. Type (Maximum, Minimum, Average)
+	// Type (Maximum, Minimum, Average)
 	void SetMeasurementType(CClimateTemperature::MEASURE_TYPE value)
 	{
 		m_eMeasurementType = value;
 	}
-	// 4I. Type (Maximum, Minimum, Average)
+	// Type (Maximum, Minimum, Average)
 	__declspec(property(get = GetMeasurementType, put = SetMeasurementType))
 		CClimateTemperature::MEASURE_TYPE MeasurementType;
 
-	// 4J. Threshold (90F, 95F, ... 125F) temperatures to count
+	// Threshold (90F, 95F, ... 125F) temperatures to count
 	CString GetThresholdText()
 	{
 		CString value = L"90";
@@ -1531,27 +1502,27 @@ public:
 		value.Format(L"%d", nThreshold);
 		return value;
 	}
-	// 4J. Threshold (90F, 95F, ... 125F) temperatures to count
+	// Threshold (90F, 95F, ... 125F) temperatures to count
 	void SetThresholdText(CString value)
 	{
 		const int nThreshold = (int)_tstol(value);
 		Threshold = nThreshold;
 	}
-	// 4J. Threshold (90F, 95F, ... 125F) temperatures to count
+	// Threshold (90F, 95F, ... 125F) temperatures to count
 	__declspec(property(get = GetThresholdText, put = SetThresholdText))
 		CString ThresholdText;
 
-	// 4J. Threshold (90F, 95F, ... 125F) temperatures to count
+	// Threshold (90F, 95F, ... 125F) temperatures to count
 	int GetThreshold()
 	{
 		return m_nThreshold;
 	}
-	// 4J. Threshold (90F, 95F, ... 125F) temperatures to count
+	// Threshold (90F, 95F, ... 125F) temperatures to count
 	void SetThreshold(int value)
 	{
 		m_nThreshold = value;
 	}
-	// 4J. Threshold (90F, 95F, ... 125F) temperatures to count
+	// Threshold (90F, 95F, ... 125F) temperatures to count
 	__declspec(property(get = GetThreshold, put = SetThreshold))
 		int Threshold;
 
@@ -1560,21 +1531,21 @@ public:
 	// Render Properties 
 	// ===============================================
 
-	// 5A. Units (degF, degC, raw)
+	// Units (degF, degC, raw)
 	CString GetUnits()
 	{
 		return m_csUnits;
 	}
-	// 5A. Units (degF, degC, raw)
+	//  Units (degF, degC, raw)
 	void SetUnits(CString value)
 	{
 		m_csUnits = value;
 	}
-	// 5A. Units (degF, degC, raw)
+	// Units (degF, degC, raw)
 	__declspec(property(get = GetUnits, put = SetUnits))
 		CString Units;
 
-	// 5A. natural language unit type
+	// natural language unit type
 	CNaturalLanguage::UnitType GetUnitType()
 	{
 		CNaturalLanguage::UnitType value = CNaturalLanguage::UnitType::DegF;
@@ -1590,7 +1561,7 @@ public:
 		
 		return value;
 	}
-	// 5A. natural language unit type
+	// natural language unit type
 	void SetUnitType(CNaturalLanguage::UnitType value)
 	{
 		CString csUnits = L"degF";
@@ -1608,49 +1579,49 @@ public:
 
 		Units = csUnits;
 	}
-	// 5A. natural language unit type
+	// natural language unit type
 	__declspec(property(get = GetUnitType, put = SetUnitType))
 		CNaturalLanguage::UnitType UnitType;
 
-	// 5B. Output (Plot, Table, Map + Plot)
+	// Output (Plot, Image, Map, ML, HTML)
 	CString GetOutput()
 	{
 		return m_csOutput;
 	}
-	// 5B. Output (Plot, Table, Map + Plot)
+	// Output (Plot, Image, Map, ML, HTML)
 	void SetOutput(CString value)
 	{
 		m_csOutput = value;
 	}
-	// 5B. Output (Plot, Table, Map + Plot)
+	// Output (Plot, Image, Map, ML, HTML)
 	__declspec(property(get = GetOutput, put = SetOutput))
 		CString Output;
 
-	// 5C. Layout (Full, Half, Quarter)
+	// Layout (Full, Half, Quarter)
 	CString GetLayout()
 	{
 		return m_csLayout;
 	}
-	// 5C. Layout (Full, Half, Quarter)
+	// Layout (Full, Half, Quarter)
 	void SetLayout(CString value)
 	{
 		m_csLayout = value;
 	}
-	// 5C. Layout (Full, Half, Quarter)
+	// Layout (Full, Half, Quarter)
 	__declspec(property(get = GetLayout, put = SetLayout))
 		CString Layout;
 
-	// 5D. Placement (append, insert, or replace)
+	// Placement (append, insert, or replace)
 	CString GetPlacement()
 	{
 		return m_csPlacement;
 	}
-	// 5D. Placement (append, insert, or replace)
+	// Placement (append, insert, or replace)
 	void SetPlacement(CString value)
 	{
 		m_csPlacement = value;
 	}
-	// 5D. Placement (append, insert, or replace)
+	// Placement (append, insert, or replace)
 	__declspec(property(get = GetPlacement, put = SetPlacement))
 		CString Placement;
 
@@ -1705,83 +1676,7 @@ public:
 	/////////////////////////////////////////////////////////////////////////////
 	
 	// The title of the graph
-	CString GetGraphTitle()
-	{
-		CString value;
-
-		long lYearStart = YearStart;
-		long lYearEnd = YearEnd;
-		CString csRange;
-		csRange.Format(L"from %d to %d", lYearStart, lYearEnd);
-		CString csScope = Scope;
-		CString csState = State;
-		CString csLocation = Location;
-		csLocation.TrimRight();
-		CString csSubtype = Subtype;
-		CString csAt;
-		if (csScope != L"National")
-		{
-			if (csScope == L"State")
-			{
-				csAt = csState;
-			}
-			else if (csScope == L"Location")
-			{
-				csAt.Format
-				(
-					L"%s, %s",
-					csLocation.GetString(), csState.GetString()
-				);
-			}
-		}
-		if (csSubtype == L"Stations")
-		{
-			value.Format( L"USHCN Yearly Station Count %s", csRange.GetString());
-		}
-		else if (csSubtype == L"Threshold")
-		{
-			int nLimit = Threshold;
-			CString csUnits = Units;
-			if (csScope == L"National")
-			{
-				value.Format
-				(
-					L"Percent of USHCN Readings Above %d %s %s",
-					nLimit, csUnits.GetString(), csRange.GetString()
-				);
-			}
-			else
-			{
-				value.Format
-				(
-					L"Percent of USHCN Readings Above %d %s for %s %s",
-					nLimit, csUnits.GetString(), csAt.GetString(), csRange.GetString()
-				);
-			}
-		}
-		else
-		{
-			if (csScope == L"National")
-			{
-				value.Format
-				(
-					L"USHCN %s Temperatures Nationally %s",
-					csSubtype.GetString(), csRange.GetString()
-				);
-			}
-			else
-			{
-				value.Format
-				(
-					L"USHCN %s Temperatures for %s %s",
-					csSubtype.GetString(), csAt.GetString(), csRange.GetString()
-				);
-			}
-		}
-
-		GraphTitle = value;
-		return value;
-	}
+	CString GetGraphTitle();
 	// The title of the graph
 	void SetGraphTitle(CString value)
 	{
@@ -2602,59 +2497,12 @@ protected:
 	// -------------------------------------------------------------
 	// Assign plot-level properties
 	// -------------------------------------------------------------
-	void AssignPlotProperty(shared_ptr<CGraphPlotter>& pPlot,
+	void AssignPlotProperty
+	(
+		shared_ptr<CGraphPlotter>& pPlot,
 		const CString& name,
-		const CString& value)
-	{
-		if (!pPlot) return;
-
-		if (name == L"QueryType") pPlot->QueryType = value;
-		else if (name == L"Pure") pPlot->Pure = (value == L"true");
-		else if (name == L"Scope") pPlot->Scope = value;
-		else if (name == L"YearStart") pPlot->YearStart = _ttoi(value);
-		else if (name == L"YearEnd") pPlot->YearEnd = _ttoi(value);
-		else if (name == L"Subtype") pPlot->Subtype = value;
-		else if (name == L"Threshold") pPlot->Threshold = _ttoi(value);
-		else if (name == L"Units") pPlot->Units = value;
-		else if (name == L"Output") pPlot->Output = value;
-
-		else if (name == L"State") pPlot->State = value;
-		else if (name == L"Location") pPlot->Location = value;
-		else if (name == L"Station") pPlot->Station = value;
-
-		else if (name == L"Latitude") pPlot->Latitude = (float)_ttof(value);
-		else if (name == L"Longitude") pPlot->Longitude = (float)_ttof(value);
-
-		else if (name == L"SQL") pPlot->SQL = value;
-
-		else if (name == L"GraphTitle") pPlot->GraphTitle = value;
-		else if (name == L"AxisLabelX") pPlot->AxisLabelX = value;
-		else if (name == L"AxisLabelY") pPlot->AxisLabelY = value;
-
-		else if (name == L"LineColor") pPlot->LineColor = value;
-		else if (name == L"LineStyle") pPlot->LineStyle = StringToDashStyle(value);
-		else if (name == L"LineThicknessInches") pPlot->LineThicknessInches = _ttof(value);
-
-		else if (name == L"RunningAvgColor") pPlot->RunningAvgColor = value;
-		else if (name == L"RunningAvgStyle") pPlot->RunningAvgStyle = StringToDashStyle(value);
-		else if (name == L"RunningAvgThicknessInches") pPlot->RunningAvgThicknessInches = _ttof(value);
-
-		else if (name == L"GridColor") pPlot->GridColor = value;
-		else if (name == L"GridLineStyle") pPlot->GridLineStyle = StringToDashStyle(value);
-		else if (name == L"GridLineThicknessInches") pPlot->GridLineThicknessInches = _ttof(value);
-
-		else if (name == L"TitleFontSizePoints") pPlot->TitleFontSizePoints = _ttoi(value);
-		else if (name == L"AxisLabelFontSizePoints") pPlot->AxisLabelFontSizePoints = _ttoi(value);
-		else if (name == L"TickLabelFontSizePoints") pPlot->TickLabelFontSizePoints = _ttoi(value);
-
-		else if (name == L"LeftPaddingInches") pPlot->LeftPaddingInches = _ttof(value);
-		else if (name == L"RightPaddingInches") pPlot->RightPaddingInches = _ttof(value);
-		else if (name == L"TopPaddingInches") pPlot->TopPaddingInches = _ttof(value);
-		else if (name == L"BottomPaddingInches") pPlot->BottomPaddingInches = _ttof(value);
-
-		else if (name == L"TickLengthInches") pPlot->TickLengthInches = _ttof(value);
-		else if (name == L"Layout") pPlot->Layout = value;
-	}
+		const CString& value
+	);
 
 	Gdiplus::DashStyle StringToDashStyle(const CString& s)
 	{
