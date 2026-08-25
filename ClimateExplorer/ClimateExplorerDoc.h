@@ -68,154 +68,6 @@ public:
 		}
 	};
 
-	/////////////////////////////////////////////////////////////////////////////
-	// PlotProps
-	//
-	// Temporary structure used only during LoadCEx() to collect plot-level
-	// properties from the XML before restoring them into the document.
-	// OnExecuteQuery() will regenerate pages and plots using these restored
-	// document properties.
-	//
-	/////////////////////////////////////////////////////////////////////////////
-	struct PlotProps
-	{
-		// -------------------------------------------------------------
-		// Query properties
-		// -------------------------------------------------------------
-		bool    Pure;
-		CString Scope;
-		long    YearStart;
-		long    YearEnd;
-		CString Subtype;
-		int     Threshold;
-		CString Units;
-		CString Output;
-		CString State;
-		CString Location;
-		CString Station;
-		double  Latitude;
-		double  Longitude;
-
-		// -------------------------------------------------------------
-		// Appearance: Titles and labels
-		// -------------------------------------------------------------
-		CString GraphTitle;
-		CString AxisLabelX;
-		CString AxisLabelY;
-
-		// -------------------------------------------------------------
-		// Curve line appearance
-		// -------------------------------------------------------------
-		CString  LineColor;
-		CString  LineStyle;
-		double   LineThicknessInches;
-
-		// -------------------------------------------------------------
-		// Running Average line appearance
-		// -------------------------------------------------------------
-		CString  RunningAvgColor;
-		CString  RunningAvgStyle;
-		double   RunningAvgThicknessInches;
-
-		// -------------------------------------------------------------
-		// Grid appearance
-		// -------------------------------------------------------------
-		CString  GridColor;
-		CString  GridLineStyle;
-		double   GridLineThicknessInches;
-
-		// -------------------------------------------------------------
-		// Font sizes
-		// -------------------------------------------------------------
-		long TitleFontSizePoints;
-		long AxisLabelFontSizePoints;
-		long TickLabelFontSizePoints;
-
-		// -------------------------------------------------------------
-		// Padding
-		// -------------------------------------------------------------
-		double LeftPaddingInches;
-		double RightPaddingInches;
-		double TopPaddingInches;
-		double BottomPaddingInches;
-
-		// -------------------------------------------------------------
-		// Tick length
-		// -------------------------------------------------------------
-		double TickLengthInches;
-
-		// -------------------------------------------------------------
-		// Layout
-		// -------------------------------------------------------------
-		CString Layout;
-
-		// -------------------------------------------------------------
-		// Trending properties
-		// -------------------------------------------------------------
-		bool     TrendOneEnable;
-		CString  TrendOneColor;
-		CString  TrendOneStyle;
-		double   TrendOneThickness;
-		long     TrendOneYear;
-
-		bool     TrendTwoEnable;
-		CString  TrendTwoColor;
-		CString  TrendTwoStyle;
-		double   TrendTwoThickness;
-		long     TrendTwoYear;
-
-		bool     TrendThreeEnable;
-		CString  TrendThreeColor;
-		CString  TrendThreeStyle;
-		double   TrendThreeThickness;
-		long     TrendThreeYear;
-
-		// -------------------------------------------------------------
-		// Constructor initializes defaults
-		// -------------------------------------------------------------
-		PlotProps()
-			: Pure(false)
-			, YearStart(0)
-			, YearEnd(0)
-			, Threshold(0)
-			, Latitude(0.0)
-			, Longitude(0.0)
-			, LineColor(L"DarkRed")
-			, LineStyle(L"Solid")
-			, LineThicknessInches(0.0)
-			, RunningAvgColor(L"Red")
-			, RunningAvgStyle(L"Solid")
-			, RunningAvgThicknessInches(0.0)
-			, GridColor(L"Silver")
-			, GridLineStyle(L"Dot")
-			, GridLineThicknessInches(0.0)
-			, TitleFontSizePoints(0)
-			, AxisLabelFontSizePoints(0)
-			, TickLabelFontSizePoints(0)
-			, LeftPaddingInches(0.0)
-			, RightPaddingInches(0.0)
-			, TopPaddingInches(0.0)
-			, BottomPaddingInches(0.0)
-			, TickLengthInches(0.0)
-			, TrendOneEnable(true)
-			, TrendOneColor(L"Gold")
-			, TrendOneStyle(L"DashDotDot")
-			, TrendOneThickness(0.02)
-			, TrendOneYear(1900)
-			, TrendTwoEnable(true)
-			, TrendTwoColor(L"Orange")
-			, TrendTwoStyle(L"DashDotDot")
-			, TrendTwoThickness(0.02)
-			, TrendTwoYear(1950)
-			, TrendThreeEnable(true)
-			, TrendThreeColor(L"Olive")
-			, TrendThreeStyle(L"DashDotDot")
-			, TrendThreeThickness(0.02)
-			, TrendThreeYear(2000)
-		{
-		}
-	};
-
 // protected data
 protected:
 	DECLARE_DYNCREATE(CClimateExplorerDoc)
@@ -241,6 +93,11 @@ protected:
 	// collection of pages containing image names and rectangles
 	CSmartArray<CPage> m_arrPages;
 
+	/////////////////////////////////////////////////////////////////////////////
+	// New architecture (disabled for now)
+	/////////////////////////////////////////////////////////////////////////////
+	// std::vector<std::shared_ptr<CPage>> m_arrPagesEx;
+	
 	// selected images where the first pair is the start page
 	// and image number (0..3) and the second pair is the end 
 	// page and image number. If start and end are the same, 
@@ -1676,7 +1533,10 @@ public:
 	/////////////////////////////////////////////////////////////////////////////
 	
 	// The title of the graph
-	CString GetGraphTitle();
+	CString GetGraphTitle()
+	{
+		return m_csGraphTitle;
+	}
 	// The title of the graph
 	void SetGraphTitle(CString value)
 	{
@@ -2436,74 +2296,6 @@ protected:
 		}
 	}
 
-	// -------------------------------------------------------------
-	// XML attribute readers
-	// -------------------------------------------------------------
-	CString ReadValueAttribute(IXmlReader* pReader)
-	{
-		if (pReader->MoveToFirstAttribute() == S_OK)
-		{
-			do
-			{
-				const WCHAR* pwszAttrName = nullptr;
-				const WCHAR* pwszValue = nullptr;
-
-				pReader->GetLocalName(&pwszAttrName, nullptr);
-				pReader->GetValue(&pwszValue, nullptr);
-
-				if (wcscmp(pwszAttrName, L"value") == 0)
-					return CString(pwszValue);
-
-			} while (pReader->MoveToNextAttribute() == S_OK);
-		}
-		return L"";
-	}
-
-	CString ReadAttribute(IXmlReader* pReader, LPCWSTR attrName)
-	{
-		if (pReader->MoveToFirstAttribute() == S_OK)
-		{
-			do
-			{
-				const WCHAR* pwszAttrName = nullptr;
-				const WCHAR* pwszValue = nullptr;
-
-				pReader->GetLocalName(&pwszAttrName, nullptr);
-				pReader->GetValue(&pwszValue, nullptr);
-
-				if (wcscmp(pwszAttrName, attrName) == 0)
-					return CString(pwszValue);
-
-			} while (pReader->MoveToNextAttribute() == S_OK);
-		}
-		return L"";
-	}
-
-	// -------------------------------------------------------------
-	// Identify document-level properties
-	// -------------------------------------------------------------
-	bool IsDocProperty(const CString& name);
-
-	// -------------------------------------------------------------
-	// Assign document-level properties
-	// -------------------------------------------------------------
-	void AssignDocumentProperty(const CString& name, const CString& value);
-
-	// -------------------------------------------------------------
-	// Identify plot-level properties
-	// -------------------------------------------------------------
-	bool IsPlotProperty(const CString& name);
-
-	// -------------------------------------------------------------
-	// Assign plot-level properties
-	// -------------------------------------------------------------
-	void AssignPlotProperty
-	(
-		shared_ptr<CGraphPlotter>& pPlot,
-		const CString& name,
-		const CString& value
-	);
-
 	Gdiplus::DashStyle StringToDashStyle(const CString& s)
 	{
 		if (s == L"Solid") return Gdiplus::DashStyleSolid;
@@ -2523,26 +2315,39 @@ protected:
 
 	void ExecuteQuery(bool bProgres = true);
 
+	void WriteHeaderElement(IXmlWriter* pWriter, LPCWSTR name, const CString& value)
+	{
+		pWriter->WriteStartElement(nullptr, name, nullptr);
+		pWriter->WriteAttributeString(nullptr, L"value", nullptr, value);
+		pWriter->WriteAttributeString(nullptr, L"type", nullptr, L"string");
+		pWriter->WriteEndElement();
+	}
+
+	void WriteHeaderElement(IXmlWriter* pWriter, LPCWSTR name, int value)
+	{
+		CString cs; cs.Format(L"%d", value);
+		pWriter->WriteStartElement(nullptr, name, nullptr);
+		pWriter->WriteAttributeString(nullptr, L"value", nullptr, cs);
+		pWriter->WriteAttributeString(nullptr, L"type", nullptr, L"int");
+		pWriter->WriteEndElement();
+	}
+
+	void WriteHeaderElement(IXmlWriter* pWriter, LPCWSTR name, double value)
+	{
+		CString cs; cs.Format(L"%f", value);
+		pWriter->WriteStartElement(nullptr, name, nullptr);
+		pWriter->WriteAttributeString(nullptr, L"value", nullptr, cs);
+		pWriter->WriteAttributeString(nullptr, L"type", nullptr, L"double");
+		pWriter->WriteEndElement();
+	}
+
 	BOOL SaveCE(const CString& csPath);
 	BOOL SaveCEx(CString& csPath);
 
-	COLORREF ParseColor(const CString& csValue);
-
-	void AssignPlotPropertyToTemp
-	(
-		PlotProps& temp,
-		const CString& csName,
-		const CString& csValue
-	);
-
 	void CopyPlotPropertiesToDocument(CGraphPlotter* pPlot);
-	void ApplyPlotPropsToDocument(const PlotProps& temp);
-	void ApplyPlotPropsToPlotter(CGraphPlotter& plot, const PlotProps& props);
 
 	BOOL LoadCE(const CString& csPath);
 	BOOL LoadCEx(const CString& csPath);
-
-	CRect ConvertLogicalToPixels(const CRect& rcLogical);
 
 	bool RenderPlotToPNG
 	(

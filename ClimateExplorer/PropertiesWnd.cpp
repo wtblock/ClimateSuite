@@ -1390,7 +1390,7 @@ void CPropertiesWnd::InitRenderProperties()
 			L"  • Plot  — Plots the result of a query.\n"
 			L"  • Image — Displays an image the user selected.\n"
 			L"  • Map   — Displays a map of stations based on location.\n"
-			L"  • ML    — Displays Markup Language file the user selected.\n"
+			L"  • MD    — Displays Markdown file the user selected.\n"
 			L"  • HTML  — Displays an HTML link the user selected."
 		);
 
@@ -1398,7 +1398,7 @@ void CPropertiesWnd::InitRenderProperties()
 	pPropOutput->AddOption(L"Plot");
 	pPropOutput->AddOption(L"Image");
 	pPropOutput->AddOption(L"Map");
-	pPropOutput->AddOption(L"ML");
+	pPropOutput->AddOption(L"MD");
 	pPropOutput->AddOption(L"HTML");
 
 	// Default selection

@@ -204,6 +204,12 @@
     <ClInclude Include="MultilineTextDialog.h" />
     <ClInclude Include="OutputWnd.h" />
     <ClInclude Include="Page.h" />
+    <ClInclude Include="PageContent.h" />
+    <ClInclude Include="PageGraph.h" />
+    <ClInclude Include="PageHTML.h" />
+    <ClInclude Include="PageImage.h" />
+    <ClInclude Include="PageMap.h" />
+    <ClInclude Include="PageMD.h" />
     <ClInclude Include="pch.h" />
     <ClInclude Include="PropertiesWnd.h" />
     <ClInclude Include="PropertyGridCtrl.h" />
@@ -228,6 +234,12 @@
     <ClCompile Include="MultilineTextDialog.cpp" />
     <ClCompile Include="OutputWnd.cpp" />
     <ClCompile Include="Page.cpp" />
+    <ClCompile Include="PageContent.cpp" />
+    <ClCompile Include="PageGraph.cpp" />
+    <ClCompile Include="PageHTML.cpp" />
+    <ClCompile Include="PageImage.cpp" />
+    <ClCompile Include="PageMap.cpp" />
+    <ClCompile Include="PageMD.cpp" />
     <ClCompile Include="pch.cpp" />
     <ClCompile Include="PropertiesWnd.cpp" />
     <ClCompile Include="PropertyGridCtrl.cpp" />

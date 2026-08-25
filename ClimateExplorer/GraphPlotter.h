@@ -1,7 +1,10 @@
-/////////////////////////////////////////////////////////////////////////////
-// Copyright � 2026 by W. T. Block, all rights reserved
+﻿/////////////////////////////////////////////////////////////////////////////
+// Copyright © 2026 by W. T. Block, all rights reserved
 /////////////////////////////////////////////////////////////////////////////
 #pragma once
+#include "ClimateTemperature.h"
+#include "NaturalLanguage.h"
+#include "SmartArray.h"
 #include <memory>
 #include <vector>
 
@@ -13,13 +16,56 @@ class CClimateExplorerDoc;
 /////////////////////////////////////////////////////////////////////////////
 class CGraphPlotter
 {
+	// public definitions
+public:
+	/////////////////////////////////////////////////////////////////////////////
+	// Row structures for each Subtype
+	/////////////////////////////////////////////////////////////////////////////
+
+	struct CClimateTempRow
+	{
+		int     nYear;
+		//int     nMonth;
+		double  dTemperature;
+
+		CClimateTempRow()
+			: nYear(0)
+			//, nMonth(0)
+			, dTemperature(0.0)
+		{
+		}
+	};
+
+	struct CClimateThresholdRow
+	{
+		int     nYear;
+		double  dPercent;
+
+		CClimateThresholdRow()
+			: nYear(0)
+			, dPercent(0.0)
+		{
+		}
+	};
+
+	struct CClimateStationRow
+	{
+		int     nYear;
+		int     nCount;
+
+		CClimateStationRow()
+			: nYear(0)
+			, nCount(0)
+		{
+		}
+	};
+
+
 // protected data
 protected:
 	// in GraphPlotter.h
 	std::vector<uint8_t> m_arrPNG;
 
-	// Query Type (Picker, Natural Language, or SQL)
-	CString             m_csQueryType;
 	// when true, estimated data is ignored in addition to QC flagged data
 	bool                m_bPure;
 	// Scope (National, State, and Location)
@@ -33,6 +79,8 @@ protected:
 	// threshold temperature in the current units selection
 	// for Subtype Threshold
 	int                 m_nThreshold;
+	// Type (Maximum, Minimum, Average)
+	CClimateTemperature::MEASURE_TYPE m_eMeasurementType;
 	// Units (degF, degC, or raw)
 	CString             m_csUnits;
 	// Output (Plot, Table, or Map+Plot
@@ -121,6 +169,21 @@ protected:
 	float m_fLatitude;
 	float m_fLongitude;
 
+	// ---------------------------------------------------------------------
+	// Temperature results: Year, Month, Temperature
+	// ---------------------------------------------------------------------
+	std::vector<CClimateTempRow> m_arrTemperatureRows;
+
+	// ---------------------------------------------------------------------
+	// Threshold results: Year, Percent
+	// ---------------------------------------------------------------------
+	std::vector<CClimateThresholdRow> m_arrThresholdRows;
+
+	// ---------------------------------------------------------------------
+	// Station count results: Year, Count
+	// ---------------------------------------------------------------------
+	std::vector<CClimateStationRow> m_arrStationRows;
+
 // public properties
 public:
 	/////////////////////////////////////////////////////////////////////////////
@@ -197,6 +260,20 @@ public:
 	__declspec(property(get = GetSubtype, put = SetSubtype))
 		CString Subtype;
 
+	// Type (Maximum, Minimum, Average)
+	CClimateTemperature::MEASURE_TYPE GetMeasurementType()
+	{
+		return m_eMeasurementType;
+	}
+	// Type (Maximum, Minimum, Average)
+	void SetMeasurementType(CClimateTemperature::MEASURE_TYPE value)
+	{
+		m_eMeasurementType = value;
+	}
+	// Type (Maximum, Minimum, Average)
+	__declspec(property(get = GetMeasurementType, put = SetMeasurementType))
+		CClimateTemperature::MEASURE_TYPE MeasurementType;
+
 	// threshold temperature in the current units selection
 	// for Subtype Threshold
 	int GetThreshold()
@@ -213,6 +290,90 @@ public:
 	// for Subtype Threshold
 	__declspec(property(get = GetThreshold, put = SetThreshold))
 		int Threshold;
+
+	// natural language unit type
+	CNaturalLanguage::UnitType GetUnitType()
+	{
+		CNaturalLanguage::UnitType value = CNaturalLanguage::UnitType::DegF;
+		CString csUnits = Units.MakeLower();
+		if (csUnits == L"degc")
+		{
+			value = CNaturalLanguage::UnitType::DegC;
+		}
+		else if (csUnits == L"raw")
+		{
+			value = CNaturalLanguage::UnitType::Raw;
+		}
+
+		return value;
+	}
+	// natural language unit type
+	void SetUnitType(CNaturalLanguage::UnitType value)
+	{
+		CString csUnits = L"degF";
+		switch (value)
+		{
+		case CNaturalLanguage::UnitType::DegF:
+			csUnits = L"degF";
+			break;
+		case CNaturalLanguage::UnitType::DegC:
+			csUnits = L"degC";
+			break;
+		case CNaturalLanguage::UnitType::Raw:
+			csUnits = L"raw";
+		}
+
+		Units = csUnits;
+	}
+	// natural language unit type
+	__declspec(property(get = GetUnitType, put = SetUnitType))
+		CNaturalLanguage::UnitType UnitType;
+
+	// format the given value based on current units
+	CString GetFormatValue(double value)
+	{
+		CString csOut;
+
+		// Format using right‑justified, fixed width
+		switch (UnitType)
+		{
+		case CNaturalLanguage::UnitType::Raw:
+			csOut.Format(L"% 6.0f", value);
+			break;
+		case CNaturalLanguage::UnitType::DegC:
+			csOut.Format(L"% 7.2f", value);
+			break;
+		case CNaturalLanguage::UnitType::DegF:
+			csOut.Format(L"% 8.3f", value);
+			break;
+		}
+
+		return csOut;
+	}
+	// format the given value based on current units
+	__declspec(property(get = GetFormatValue))
+		CString FormatValue[];
+
+	// convert from raw units to the user's choice
+	double GetConvertUnits(double dRaw)
+	{
+		double value = dRaw;
+		CNaturalLanguage::UnitType eType = UnitType;
+		switch (eType)
+		{
+		case CNaturalLanguage::UnitType::DegC:
+			value /= 100;
+			break;
+		case CNaturalLanguage::UnitType::DegF:
+			value /= 100;
+			value *= 1.8f;
+			value += 32.0f;
+		}
+		return value;
+	}
+	// convert from raw units to the user's choice
+	__declspec(property(get = GetConvertUnits))
+		double ConvertUnits[];
 
 	// Units (degF, degC, or raw)
 	CString GetUnits()
@@ -391,11 +552,9 @@ public:
 	/////////////////////////////////////////////////////////////////////////////
 	// Graphing Appearance Properties
 	/////////////////////////////////////////////////////////////////////////////
+	// 
 	// The title of the graph
-	CString GetGraphTitle()
-	{
-		return m_csGraphTitle;
-	}
+	CString GetGraphTitle();
 	// The title of the graph
 	void SetGraphTitle(CString value)
 	{
@@ -404,6 +563,7 @@ public:
 	// The title of the graph
 	__declspec(property(get = GetGraphTitle, put = SetGraphTitle))
 		CString GraphTitle;
+
 
 	// The label of the values on the X axis
 	CString GetAxisLabelX()
@@ -1072,11 +1232,52 @@ protected:
 		int targetCount
 	);
 
+	// -------------------------------------------------------------
+	// Conversion methods
+	// -------------------------------------------------------------
+	void ConvertTemperatureRows(const CSmartArray<CSmartArray<CString>>& arrRaw);
+	void ConvertTemperatureRows
+	(
+		const CSmartArray<CSmartArray<CString>>& arrRaw,
+		vector<double>& outYears,
+		vector<double>& outValues
+	);
+
+	void ConvertThresholdRows(const CSmartArray<CSmartArray<CString>>& arrRaw);
+	void ConvertThresholdRows
+	(
+		const CSmartArray<CSmartArray<CString>>& arrRaw,
+		vector<double>& outYears,
+		vector<double>& outValues
+	);
+
+	void ConvertStationRows(const CSmartArray<CSmartArray<CString>>& arrRaw);
+	void ConvertStationRows
+	(
+		const CSmartArray<CSmartArray<CString>>& arrRaw,
+		vector<double>& outYears,
+		vector<double>& outValues
+	);
+
+	void FormatTemperatureText();
+	void FormatThresholdText();
+	void FormatStationText();
+
+
 // public methods
 public:
+	// -------------------------------------------------------------
+	// allow the document to get some defaults from here
+	// -------------------------------------------------------------
+	void GetDefaults(CClimateExplorerDoc* pDoc);
+
 	std::unique_ptr<Bitmap> RenderPlot(const CRect& rcPixels);
 
 	std::shared_ptr<Bitmap> CreatePlot(const CRect& rcPixels);
+
+	CString BuildPickerSQL();
+
+	void ExecutePickerQuery();
 
 // protected overrides
 protected:

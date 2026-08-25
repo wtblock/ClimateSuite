@@ -1210,28 +1210,6 @@ void CClimateExplorerView::OnInitialUpdate()
 	CSize sizeTotal(nWidth, nHeight);
 	SetScrollSizes(MM_HIENGLISH, sizeTotal);
 
-////
-//	// -------------------------------------------------------------
-//	// Define a test rectangle (landscape pixel size)
-//	// -------------------------------------------------------------
-//	CRect rcPixels(0, 0, 4000, 2925);
-//
-//	// the sample data is stations
-//	pDoc->Subtype = L"Stations";
-//
-//	// -------------------------------------------------------------
-//	// Generate the graph bitmap
-//	// -------------------------------------------------------------
-//	CGraphPlotter plot(pDoc);
-//	auto pBmp = plot.CreatePlot(rcPixels);
-//
-//	// -------------------------------------------------------------
-//	// Wrap in CImagePlus
-//	// -------------------------------------------------------------
-//	m_pTestImage = new CImagePlus(pBmp);
-//
-//	m_pTestImage->Save(L".\\GraphTest.jpg");
-////
 } // OnInitialUpdate
 
 /////////////////////////////////////////////////////////////////////////////
@@ -1507,13 +1485,16 @@ void CClimateExplorerView::OnUpdateBingMap(CCmdUI* pCmdUI)
 			if (nPlotStart == nPlotEnd)
 			{
 				shared_ptr<CGraphPlotter> pPlot = pDoc->SelectedPlot[pairStart];
-				csStation = pPlot->Station;
-				if (!csStation.IsEmpty())
+				if (pPlot != nullptr)
 				{
-					Station = csStation;
-					Latitude = pPlot->Latitude;
-					Longitude = pPlot->Longitude;
-					pCmdUI->Enable();
+					csStation = pPlot->Station;
+					if (!csStation.IsEmpty())
+					{
+						Station = csStation;
+						Latitude = pPlot->Latitude;
+						Longitude = pPlot->Longitude;
+						pCmdUI->Enable();
+					}
 				}
 			}
 		}

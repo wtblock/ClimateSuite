@@ -2,6 +2,7 @@
 // Copyright © 2026, by W. T. Block, all rights reserved
 /////////////////////////////////////////////////////////////////////////////
 #include "pch.h"
+#include "ClimateExplorer.h"
 #include "ClimateExplorerDoc.h"
 #include "GraphPlotter.h"
 #include <gdiplus.h>
@@ -100,6 +101,7 @@ void CGraphPlotter::SetDefaults(CClimateExplorerDoc* pDoc)
 	YearEnd = pDoc->YearEnd;
 	Subtype = pDoc->Subtype;
 	Threshold = pDoc->Threshold;
+	MeasurementType = pDoc->MeasurementType;
 	Units = pDoc->Units;
 	Output = pDoc->Output;
 	SQL = pDoc->SQL;
@@ -188,6 +190,704 @@ void CGraphPlotter::SetDefaults(CClimateExplorerDoc* pDoc)
 	TrendThreeYear = pDoc->TrendThreeYear;
 
 } // SetDefaults
+
+/////////////////////////////////////////////////////////////////////////////
+// allow the document to get some defaults from here
+void CGraphPlotter::GetDefaults(CClimateExplorerDoc* pDoc)
+{
+	pDoc->Pure = Pure;
+	pDoc->Scope = Scope;
+	pDoc->YearStart = YearStart;
+	pDoc->YearEnd = YearEnd;
+	pDoc->Subtype = Subtype;
+	pDoc->Threshold = Threshold;
+	pDoc->MeasurementType = MeasurementType;
+	pDoc->Units = Units;
+	pDoc->Output = Output;
+	pDoc->SQL = SQL;
+	pDoc->State = State;
+	pDoc->Location = Location;
+	pDoc->Layout = Layout;
+	pDoc->GraphTitle = GraphTitle;
+
+} // GetDefaults
+
+/////////////////////////////////////////////////////////////////////////////
+// The title of the graph
+CString CGraphPlotter::GetGraphTitle()
+{
+	CString value;
+
+	long lYearStart = YearStart;
+	long lYearEnd = YearEnd;
+	CString csRange;
+	csRange.Format(L"from %d to %d", lYearStart, lYearEnd);
+	CString csScope = Scope;
+	CString csState = State;
+	CString csLocation = Location;
+	csLocation.TrimRight();
+	CString csSubtype = Subtype;
+	CString csAt;
+	if (csScope != L"National")
+	{
+		if (csScope == L"State")
+		{
+			csAt = csState;
+		}
+		else if (csScope == L"Location")
+		{
+			csAt.Format
+			(
+				L"%s, %s",
+				csLocation.GetString(), csState.GetString()
+			);
+		}
+	}
+	if (csSubtype == L"Stations")
+	{
+		value.Format(L"USHCN Yearly Station Count %s", csRange.GetString());
+	}
+	else if (csSubtype == L"Threshold")
+	{
+		int nLimit = Threshold;
+		CString csUnits = Units;
+		if (csScope == L"National")
+		{
+			value.Format
+			(
+				L"Percent of USHCN Readings Above %d %s %s",
+				nLimit, csUnits.GetString(), csRange.GetString()
+			);
+		}
+		else
+		{
+			value.Format
+			(
+				L"Percent of USHCN Readings Above %d %s for %s %s",
+				nLimit, csUnits.GetString(), csAt.GetString(), csRange.GetString()
+			);
+		}
+	}
+	else
+	{
+		if (csScope == L"National")
+		{
+			value.Format
+			(
+				L"USHCN %s Temperatures Nationally %s",
+				csSubtype.GetString(), csRange.GetString()
+			);
+		}
+		else
+		{
+			value.Format
+			(
+				L"USHCN %s Temperatures for %s %s",
+				csSubtype.GetString(), csAt.GetString(), csRange.GetString()
+			);
+		}
+	}
+
+	GraphTitle = value;
+
+	return value;
+
+} // GetGraphTitle
+
+/////////////////////////////////////////////////////////////////////////////
+// BuildPickerSQL
+//
+// Constructs a SQL query based on the picker settings in ClimateExplorer.
+// The method supports three distinct modes:
+//
+//   1. Threshold mode   (Subtype == "Threshold")
+//   2. Stations mode    (Subtype == "Stations")
+//   3. Temperature mode (Subtype == "Max", "Min", "Avg" via MeasurementType)
+//
+// Each mode returns a completely different SQL structure and result type.
+//
+/////////////////////////////////////////////////////////////////////////////
+CString CGraphPlotter::BuildPickerSQL()
+{
+	CString sql;
+
+	CString csSubtype = Subtype;
+
+	/////////////////////////////////////////////////////////////////////////////
+	// 1. THRESHOLD MODE
+	//
+	// Computes the percentage of *monthly* temperature values that exceed
+	// a user‑defined threshold. This mode always uses the Months table and
+	// always uses MeasurementType = 1 (maximum temperature).
+	//
+	// The threshold is converted into raw hundredths‑of‑°C because
+	// Months.CentigradeRaw stores values in that format.
+	//
+	/////////////////////////////////////////////////////////////////////////////
+	if (csSubtype == L"Threshold")
+	{
+		// Convert threshold to raw hundredths‑of‑°C
+		double dThreshold = Threshold;
+		double dRaw = dThreshold;
+		CString csUnits = Units;
+
+		if (csUnits == L"degF")
+		{
+			// Convert Fahrenheit → Celsius → hundredths‑C
+			dRaw = (dThreshold - 32.0) * 5.0 / 9.0;
+			dRaw *= 100;
+		}
+		else if (csUnits == L"degC")
+		{
+			// Convert Celsius → hundredths‑C
+			dRaw *= 100;
+		}
+
+		int nRaw = (int)dRaw;
+
+		// Build SQL: percent of monthly values >= threshold
+		sql.Format
+		(
+			L"SELECT m.Year,\n"
+			L"       100.0 * SUM(CASE WHEN m.CentigradeRaw >= %d THEN 1 ELSE 0 END)\n"
+			L"             / SUM(CASE WHEN m.CentigradeRaw > -9000 THEN 1 ELSE 0 END) AS Percent\n"
+			L"FROM Months m\n"
+			L"JOIN Stations s ON m.StationID = s.StationID\n"
+			L"WHERE m.MeasurementType = 1\n"
+			L"  AND m.CentigradeRaw > -9000\n",
+			nRaw
+		);
+
+		sql.AppendFormat(L"  AND m.Year >= %d\n", YearStart);
+		sql.AppendFormat(L"  AND m.Year <= %d\n", YearEnd);
+
+		/////////////////////////////////////////////////////////////////////////////
+		// PURE MODE
+		//
+		// Pure mode filters out based on quality flags.
+		//
+		/////////////////////////////////////////////////////////////////////////////
+		if (Pure)
+		{
+			sql += L"AND m.DMFLAG != 'E' \n";
+			sql += L"AND m.QCFLAG = ' ' \n";
+		}
+
+		/////////////////////////////////////////////////////////////////////////////
+		// SCOPE FILTERING
+		//
+		// National  → no additional filtering
+		// State     → restrict to a specific state
+		// Location  → restrict to a specific station
+		//
+		/////////////////////////////////////////////////////////////////////////////
+		if (Scope == L"State" && State != L"None")
+		{
+			sql.AppendFormat(L"  AND s.State = '%s'\n", State.GetString());
+		}
+
+		if (Scope == L"Location" && Location != L"None")
+		{
+			sql.AppendFormat(L"  AND s.Location = '%s'\n", Location.GetString());
+		}
+
+		/////////////////////////////////////////////////////////////////////////////
+		// Final grouping and ordering
+		/////////////////////////////////////////////////////////////////////////////
+		sql +=
+			L"GROUP BY m.Year\n"
+			L"ORDER BY m.Year;\n";
+
+		return sql;
+	}
+
+	/////////////////////////////////////////////////////////////////////////////
+	// 2. STATIONS MODE
+	//
+	// Counts how many stations were active in each year. A station is considered
+	// active if it has at least one valid monthly reading (CentigradeRaw > -9000).
+	//
+	// This mode uses the Months table and ignores MeasurementType.
+	//
+	/////////////////////////////////////////////////////////////////////////////
+	if (csSubtype == L"Stations")
+	{
+		sql.Format
+		(
+			L"SELECT m.Year,\n"
+			L"       COUNT(DISTINCT m.StationID) AS ActiveStations\n"
+			L"FROM Months m\n"
+			L"WHERE m.CentigradeRaw > -9000\n"
+			L"  AND m.Year >= %d\n"
+			L"  AND m.Year <= %d\n"
+			L"GROUP BY m.Year\n"
+			L"ORDER BY m.Year;\n",
+			YearStart,
+			YearEnd
+		);
+
+		return sql;
+	}
+
+	/////////////////////////////////////////////////////////////////////////////
+	// 3. TEMPERATURE MODE (Max / Min / Avg)
+	//
+	// This mode uses the Years table, which is *constructed by ImportUSHCN*
+	// from the monthly USHCN station files (.tmax, .tmin, .tavg). The Years table
+	// is not a NOAA annual product; it is an annual aggregation created entirely
+	// from the monthly values parsed by ImportUSHCN.
+	//
+	// What the monthly USHCN files contain:
+	//   - .tmax = monthly average of daily maximum temperatures
+	//   - .tmin = monthly average of daily minimum temperatures
+	//   - .tavg = monthly average of daily mean temperatures
+	//   (all stored in hundredths of °C)
+	//
+	// What ImportUSHCN stores in the Years table:
+	//   MaxValue = the maximum of the 12 monthly values for the year
+	//   MinValue = the minimum of the 12 monthly values for the year
+	//   AvgValue = the average of the non‑missing monthly values for the year
+	//   ValidReadings = the number of non‑missing monthly values (0–12)
+	//
+	// These are *annual aggregates of monthly data*, stored in raw hundredths‑°C.
+	// They are NOT daily maxima, NOT daily minima, and NOT daily means. They are
+	// exactly the values used by ClimateHistory to generate its CSV output.
+	//
+	// MeasurementType selects which annual statistic is returned:
+	//
+	//   1 → MaxValue : max of the 12 monthly TMAX values
+	//   2 → MinValue : min of the 12 monthly TMIN values
+	//   3 → AvgValue : average of the 12 monthly TAVG values
+	//
+	// This method returns raw values (hundredths‑°C). Downstream plotting logic
+	// converts these raw values into Fahrenheit for display.
+	//
+	/////////////////////////////////////////////////////////////////////////////
+	int nMeasureType = (int)MeasurementType;
+
+	CString column;
+
+	// Map MeasurementType → Years table column
+	switch (nMeasureType)
+	{
+	case 1: column = L"MaxValue"; break;
+	case 2: column = L"MinValue"; break;
+	case 3: column = L"AvgValue"; break;
+	default: return sql; // invalid type
+	}
+
+	// Base SQL for annual temperature values
+	sql.Format
+	(
+		L"SELECT y.Year, AVG(y.%s) AS RawValue\n"
+		L"FROM Years y\n"
+		L"JOIN Stations s ON y.StationID = s.StationID\n"
+		L"WHERE y.MeasurementType = %d\n"
+		L"  AND y.%s <> -9999\n",
+		column.GetString(),
+		nMeasureType,
+		column.GetString()
+	);
+
+	sql.AppendFormat(L"  AND y.Year >= %d\n", YearStart);
+	sql.AppendFormat(L"  AND y.Year <= %d\n", YearEnd);
+
+	/////////////////////////////////////////////////////////////////////////////
+	// PURE MODE
+	//
+	// For monthly USHCN data, a "complete" station‑year contains all 12 months.
+	// Years.ValidReadings stores the number of months present.
+	//
+	// Pure mode filters out incomplete years by requiring ValidReadings = 12.
+	//
+	/////////////////////////////////////////////////////////////////////////////
+	if (Pure)
+	{
+		sql += L"  AND y.ValidReadings = 12\n";
+	}
+
+	/////////////////////////////////////////////////////////////////////////////
+	// SCOPE FILTERING
+	//
+	// National  → no additional filtering
+	// State     → restrict to a specific state
+	// Location  → restrict to a specific station
+	//
+	/////////////////////////////////////////////////////////////////////////////
+	if (Scope == L"State" && State != L"None")
+	{
+		sql.AppendFormat(L"  AND s.State = '%s'\n", State.GetString());
+	}
+
+	if (Scope == L"Location" && Location != L"None")
+	{
+		sql.AppendFormat(L"  AND s.Location = '%s'\n", Location.GetString());
+	}
+
+	/////////////////////////////////////////////////////////////////////////////
+	// Final grouping and ordering
+	/////////////////////////////////////////////////////////////////////////////
+	sql +=
+		L"GROUP BY y.Year\n"
+		L"ORDER BY y.Year;\n";
+
+	return sql;
+} // BuildPickerSQL
+
+/////////////////////////////////////////////////////////////////////////////
+// ConvertTemperatureRows
+/////////////////////////////////////////////////////////////////////////////
+void CGraphPlotter::ConvertTemperatureRows
+(
+	const CSmartArray<CSmartArray<CString>>& arrRaw
+)
+{
+	m_arrTemperatureRows.clear();
+
+	for (auto& pRow : arrRaw.Items)
+	{
+		CClimateTempRow r;
+
+		int nCol = 0;
+		for (auto& pCol : pRow->Items)
+		{
+			switch (nCol)
+			{
+			case 0:
+				r.nYear = _ttoi(*pCol);
+				break;
+			case 1:
+				r.dTemperature = _ttof(*pCol);
+				//case 1: 
+				//	r.nMonth = _ttoi(*pCol); 
+				//	break;
+				//case 2: 
+				//	r.dTemperature = _ttof(*pCol);
+			}
+			nCol++;
+		}
+
+		// data for the output window
+		m_arrTemperatureRows.push_back(r);
+	}
+
+} // ConvertTemperatureRows
+
+/////////////////////////////////////////////////////////////////////////////
+void CGraphPlotter::ConvertTemperatureRows
+(
+	const CSmartArray<CSmartArray<CString>>& arrRaw,
+	vector<double>& outYears,
+	vector<double>& outValues
+)
+{
+	outYears.clear();
+	outValues.clear();
+
+	for (auto& pRow : arrRaw.Items)
+	{
+		int nCol = 0;
+		int year = 0;
+		double temp = 0.0;
+
+		for (auto& pCol : pRow->Items)
+		{
+			switch (nCol)
+			{
+			case 0:
+				year = _ttoi(*pCol);
+				break;
+			case 1:
+				temp = _ttof(*pCol);
+				break;
+			}
+			nCol++;
+		}
+
+		outYears.push_back((double)year);
+		outValues.push_back(temp);
+	}
+}
+
+/////////////////////////////////////////////////////////////////////////////
+// ConvertThresholdRows
+/////////////////////////////////////////////////////////////////////////////
+void CGraphPlotter::ConvertThresholdRows
+(
+	const CSmartArray<CSmartArray<CString>>& arrRaw
+)
+{
+	m_arrThresholdRows.clear();
+
+	for (auto& pRow : arrRaw.Items)
+	{
+		CClimateThresholdRow r;
+
+		int nCol = 0;
+		for (auto& pCol : pRow->Items)
+		{
+			switch (nCol)
+			{
+			case 0:
+				r.nYear = _ttoi(*pCol);
+				break;
+			case 1:
+				r.dPercent = _ttof(*pCol);
+			}
+			nCol++;
+		}
+
+		// data to create the graph
+		const double dYear = double(r.nYear);
+		const double dValue = r.dPercent;
+		Years.push_back(dYear);
+		Values.push_back(dValue);
+
+		// data for the output window
+		m_arrThresholdRows.push_back(r);
+	}
+
+} // ConvertThresholdRows
+
+/////////////////////////////////////////////////////////////////////////////
+void CGraphPlotter::ConvertThresholdRows
+(
+	const CSmartArray<CSmartArray<CString>>& arrRaw,
+	vector<double>& outYears,
+	vector<double>& outValues
+)
+{
+	outYears.clear();
+	outValues.clear();
+
+	for (auto& pRow : arrRaw.Items)
+	{
+		int nCol = 0;
+		int year = 0;
+		double percent = 0.0;
+
+		for (auto& pCol : pRow->Items)
+		{
+			switch (nCol)
+			{
+			case 0:
+				year = _ttoi(*pCol);
+				break;
+			case 1:
+				percent = _ttof(*pCol);
+				break;
+			}
+			nCol++;
+		}
+
+		outYears.push_back((double)year);
+		outValues.push_back(percent);
+	}
+} // ConvertThresholdRows
+
+/////////////////////////////////////////////////////////////////////////////
+// ConvertStationRows
+/////////////////////////////////////////////////////////////////////////////
+void CGraphPlotter::ConvertStationRows
+(
+	const CSmartArray<CSmartArray<CString>>& arrRaw
+)
+{
+	m_arrStationRows.clear();
+
+	for (auto& pRow : arrRaw.Items)
+	{
+		CClimateStationRow r;
+
+		int nCol = 0;
+		for (auto& pCol : pRow->Items)
+		{
+			switch (nCol)
+			{
+			case 0:
+				r.nYear = _ttoi(*pCol);
+				break;
+			case 1:
+				r.nCount = _ttoi(*pCol);
+			}
+			nCol++;
+		}
+
+		// data to create the graph
+		const double dYear = double(r.nYear);
+		const double dValue = double(r.nCount);
+		Years.push_back(dYear);
+		Values.push_back(dValue);
+
+		// data for the output window
+		m_arrStationRows.push_back(r);
+	}
+
+} // ConvertStationRows
+
+/////////////////////////////////////////////////////////////////////////////
+void CGraphPlotter::ConvertStationRows
+(
+	const CSmartArray<CSmartArray<CString>>& arrRaw,
+	vector<double>& outYears,
+	vector<double>& outValues
+)
+{
+	outYears.clear();
+	outValues.clear();
+
+	for (auto& pRow : arrRaw.Items)
+	{
+		int nCol = 0;
+		int year = 0;
+		int count = 0;
+
+		for (auto& pCol : pRow->Items)
+		{
+			switch (nCol)
+			{
+			case 0:
+				year = _ttoi(*pCol);
+				break;
+			case 1:
+				count = _ttoi(*pCol);
+				break;
+			}
+			nCol++;
+		}
+
+		outYears.push_back((double)year);
+		outValues.push_back((double)count);
+	}
+} // ConvertStationRows
+
+/////////////////////////////////////////////////////////////////////////////
+// FormatTemperatureText
+/////////////////////////////////////////////////////////////////////////////
+void CGraphPlotter::FormatTemperatureText()
+{
+	CString cs;
+	CString csUnits = Units;
+	CString csUnitLine;
+	csUnitLine.Format(L"               % 8s\n", csUnits);
+
+	cs += L"Year   Temperature\n";
+	cs += csUnitLine;
+	cs += L"---------------------------\n";
+
+	for (const auto& r : m_arrTemperatureRows)
+	{
+		CString line;
+		double dUnit = ConvertUnits[r.dTemperature];
+		CString csTemp = FormatValue[dUnit];
+		line.Format(L"%4d      %s\n", r.nYear, csTemp);
+		cs += line;
+
+		// populate the graph data arrays
+		double dYear = double(r.nYear);
+		Years.push_back(double(dYear));
+
+		// the value is the converted temperture
+		Values.push_back(dUnit);
+	}
+
+} // FormatTemperatureText
+
+/////////////////////////////////////////////////////////////////////////////
+// FormatThresholdText
+/////////////////////////////////////////////////////////////////////////////
+void CGraphPlotter::FormatThresholdText()
+{
+	CString cs;
+
+	cs += L"Year   Percent\n";
+	cs += L"----------------\n";
+
+	for (const auto& r : m_arrThresholdRows)
+	{
+		CString line;
+		line.Format(L"%4d   %.2f\n", r.nYear, r.dPercent);
+		cs += line;
+	}
+
+} // FormatThresholdText
+
+/////////////////////////////////////////////////////////////////////////////
+// FormatStationText
+/////////////////////////////////////////////////////////////////////////////
+void CGraphPlotter::FormatStationText()
+{
+	CString cs;
+
+	cs += L"Year   Count\n";
+	cs += L"-------------\n";
+
+	for (const auto& r : m_arrStationRows)
+	{
+		CString line;
+		line.Format(L"%4d   %d\n", r.nYear, r.nCount);
+		cs += line;
+	}
+
+} // FormatStationText
+
+/////////////////////////////////////////////////////////////////////////////
+// ExecutePickerQuery
+/////////////////////////////////////////////////////////////////////////////
+void CGraphPlotter::ExecutePickerQuery()
+{
+	// -------------------------------------------------------------
+	// 1. Clear previous results
+	// -------------------------------------------------------------
+	m_arrTemperatureRows.clear();
+	m_arrThresholdRows.clear();
+	m_arrStationRows.clear();
+
+	Years.clear();
+	Values.clear();
+
+	// -------------------------------------------------------------
+	// 2. Execute SQL
+	// -------------------------------------------------------------
+	CSmartArray<CSmartArray<CString>> arrRawRows;
+	CString csSQL = SQL;
+	theApp.ClimateDatabase->ExecuteTable(csSQL, arrRawRows);
+
+	// -------------------------------------------------------------
+	// 3. Branch based on Subtype
+	// -------------------------------------------------------------
+	CString csSubtype = Subtype;
+
+	if
+	(
+		csSubtype == L"Maximum" ||
+		csSubtype == L"Minimum" ||
+		csSubtype == L"Average"
+	)
+	{
+		ConvertTemperatureRows(arrRawRows);
+		FormatTemperatureText();
+		//FormatTemperatureCSV();
+		return;
+	}
+
+	if (csSubtype == L"Threshold")
+	{
+		ConvertThresholdRows(arrRawRows);
+		FormatThresholdText();
+		//FormatThresholdCSV();
+		return;
+	}
+
+	if (csSubtype == L"Stations")
+	{
+		ConvertStationRows(arrRawRows);
+		FormatStationText();
+		//FormatStationCSV();
+		return;
+	}
+
+} // ExecutePickerQuery
 
 /////////////////////////////////////////////////////////////////////////////
 // RenderPlot
