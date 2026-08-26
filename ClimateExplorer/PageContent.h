@@ -10,7 +10,7 @@
 //     • CPageImage   (PNG/JPEG images)
 //     • CPageMD      (Markdown)
 //     • CPageHTML    (HTML fragments)
-//     • CPageMap     (Map + Plot)
+//     • CPageMap     (Station Map)
 //
 // This class is intentionally minimal so the project continues
 // to compile while we migrate functionality into the new design.
@@ -36,27 +36,43 @@ public:
 	};
 
 protected:
-	///////////////////////////////////////////////////////////////////////////
-	// m_eType
-	///////////////////////////////////////////////////////////////////////////
-	CONTENT_TYPE m_eType;
+	// Content type property
+	CONTENT_TYPE m_eContentType;
+
+	// Title of the content
+	CString m_csTitle;
 
 public:
-	///////////////////////////////////////////////////////////////////////////
-	// Type property
-	///////////////////////////////////////////////////////////////////////////
-	CONTENT_TYPE GetType()
+	// Content type property
+	CONTENT_TYPE GetContentType()
 	{
-		return m_eType;
+		return m_eContentType;
 	}
 
-	void SetType(CONTENT_TYPE value)
+	// Content type property
+	void SetContentType(CONTENT_TYPE value)
 	{
-		m_eType = value;
+		m_eContentType = value;
 	}
 
-	__declspec(property(get = GetType, put = SetType))
-		CONTENT_TYPE Type;
+	// Content type property
+	__declspec(property(get = GetContentType, put = SetContentType))
+		CONTENT_TYPE ContentType;
+
+	// Title of the content
+	virtual CString GetTitle()
+	{
+		return m_csTitle;
+	}
+	// Title of the content
+	void SetTitle(CString value)
+	{
+		m_csTitle = value;
+	}
+	// Title of the content
+	__declspec(property(get = GetTitle, put = SetTitle))
+		CString Title;
+
 
 public:
 	/////////////////////////////////////////////////////////////////////////////
@@ -106,7 +122,7 @@ public:
 	// Constructor / Destructor
 	///////////////////////////////////////////////////////////////////////////
 	CPageContent()
-		: m_eType(ContentGraph)   // default; derived classes override
+		: m_eContentType(ContentGraph)   // default; derived classes override
 	{
 	}
 

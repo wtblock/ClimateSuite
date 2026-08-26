@@ -1,5 +1,5 @@
 ﻿/////////////////////////////////////////////////////////////////////////////
-// Copyright © 2026, by W. T. Block
+// Copyright (c) 2026 by W. T. Block, All Rights Reserved
 /////////////////////////////////////////////////////////////////////////////
 #include "pch.h"
 #include "PageGraph.h"
@@ -8,21 +8,21 @@
 /////////////////////////////////////////////////////////////////////////////
 CPageGraph::CPageGraph()
 {
-	Type = ContentGraph;
+	ContentType = ContentGraph;
 	m_pDoc = nullptr;
 }
 
 /////////////////////////////////////////////////////////////////////////////
 CPageGraph::CPageGraph(CClimateExplorerDoc* pDoc)
 {
-	Type = ContentGraph;
+	ContentType = ContentGraph;
 	m_pDoc = pDoc;
 }
 
 /////////////////////////////////////////////////////////////////////////////
 CPageGraph::CPageGraph(std::shared_ptr<CGraphPlotter> pPlot, CClimateExplorerDoc* pDoc)
 {
-	Type = ContentGraph;
+	ContentType = ContentGraph;
 	m_pPlot = pPlot;
 	m_pDoc = pDoc;
 }
@@ -49,6 +49,12 @@ void CPageGraph::WriteXml(IXmlWriter* pWriter)
 /////////////////////////////////////////////////////////////////////////////
 void CPageGraph::ReadXml(IXmlReader* pReader)
 {
+	// Ensure we have a plot when called from CPage::ReadXml
+	if (m_pPlot == nullptr && m_pDoc != nullptr)
+	{
+		m_pPlot = std::make_shared<CGraphPlotter>(m_pDoc);
+	}
+
 	XmlNodeType nodeType = XmlNodeType_None;
 
 	while (pReader->Read(&nodeType) == S_OK)
@@ -85,6 +91,16 @@ void CPageGraph::ReadXml(IXmlReader* pReader)
 			continue;
 		}
 	}
+
+	// After picker + appearance are read, run SQL for CEx
+	if (m_pPlot != nullptr)
+	{
+		CString csSQL = m_pPlot->BuildPickerSQL();
+		m_pPlot->SQL = csSQL;
+		m_pPlot->ExecutePickerQuery();
+		m_pPlot->GetDefaults(m_pDoc);
+	}
+
 } // ReadXml
 
 /////////////////////////////////////////////////////////////////////////////

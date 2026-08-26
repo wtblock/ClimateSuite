@@ -272,43 +272,11 @@ BOOL CClimateExplorerDoc::SaveCEx(CString& csPath)
 
 	pWriter->WriteEndElement(); // </Document>
 
-	// <PageEx>
 	pWriter->WriteStartElement(nullptr, L"PageEx", nullptr);
 
-	// Iterate CSmartArray<CPage>
-	for (auto& page : m_arrPages.Items)
+	for (auto& pPage : m_arrPages.Items)
 	{
-		pWriter->WriteStartElement(nullptr, L"Page", nullptr);
-
-		// number
-		CString csNum;
-		csNum.Format(L"%u", page->Page);
-		pWriter->WriteAttributeString(nullptr, L"number", nullptr, csNum);
-
-		// type
-		CString csType;
-		switch (page->PageType)
-		{
-		case CPage::pageCover: csType = L"Cover"; break;
-		case CPage::pageTOC:   csType = L"TOC";   break;
-		case CPage::pageGraph: csType = L"Graph"; break;
-		default:               csType = L"Graph"; break;
-		}
-		pWriter->WriteAttributeString(nullptr, L"type", nullptr, csType);
-
-		// layout
-		pWriter->WriteAttributeString(nullptr, L"layout", nullptr, page->Layout);
-
-		// each plot → <Graph>
-		auto& plots = page->Plots.Items;
-		for (auto& kv : plots)
-		{
-			auto pPlot = kv.second;
-			CPageGraph wrapper(pPlot, this);
-			wrapper.WriteXml(pWriter);
-		}
-
-		pWriter->WriteEndElement(); // </Page>
+		pPage->WriteXml(pWriter);
 	}
 
 	pWriter->WriteEndElement(); // </PageEx>
@@ -1395,6 +1363,7 @@ BOOL CClimateExplorerDoc::LoadCEx(const CString& csPath)
 				CString csLayout;
 				CString csType;
 				CPage::PAGE_TYPE eType = CPage::pageGraph;
+				int nPage = 0;
 
 				const WCHAR* attrName = nullptr;
 				const WCHAR* attrValue = nullptr;
@@ -1406,7 +1375,7 @@ BOOL CClimateExplorerDoc::LoadCEx(const CString& csPath)
 
 					if (wcscmp(attrName, L"number") == 0)
 					{
-						int nPage = _wtoi(attrValue);
+						nPage = _wtoi(attrValue);
 					}
 					else if (wcscmp(attrName, L"type") == 0)
 					{
@@ -1430,16 +1399,30 @@ BOOL CClimateExplorerDoc::LoadCEx(const CString& csPath)
 					}
 				}
 
+				pReader->MoveToElement();
+
 				// Ignore Cover and TOC pages (constructor already created them)
 				if (csType == L"Cover" || csType == L"TOC")
 				{
 					continue;
 				}
+				// Convert type string → enum
+				// only Graph pages reach here
+
+				// Create the page
+				auto pPage = std::make_shared<CPage>(nPage, csLayout, this, eType);
+
+				// Let the page read its entire subtree (Graph content)
+				pPage->ReadXml(pReader);
+
+				// Store the page
+				m_arrPages.append(pPage);
 
 				continue;
 			}
 
 			// <Graph>
+			/*
 			if (wcscmp(name, L"Graph") == 0)
 			{
 				// Create a real plot object
@@ -1495,6 +1478,7 @@ BOOL CClimateExplorerDoc::LoadCEx(const CString& csPath)
 
 				continue;
 			}
+			*/
 		}
 
 		// End of <Page>

@@ -5,6 +5,8 @@
 #include "KeyedCollection.h"
 #include "GraphPlotter.h"
 #include "CHelper.h"
+#include <xmllite.h>
+#include "PageContent.h"
 
 /////////////////////////////////////////////////////////////////////////////
 class CClimateExplorerDoc;
@@ -62,6 +64,10 @@ public:
 		pageCover,
 		pageTOC,
 		pageGraph,
+		pageImage,
+		pageMD,
+		pageHTML,
+		pageMap
 	} PAGE_TYPE;
 
 // protected data
@@ -108,8 +114,14 @@ protected:
 	// title of the page
 	CString m_csTitle;
 
+	// pointer to our document
+	CClimateExplorerDoc* m_pDoc;
+
 	// the key is the image title associated with the given plot
 	CKeyedCollection<CString, CGraphPlotter> m_arrPlots;
+
+	// the key is the content title
+	CKeyedCollection<CString, CPageContent> m_arrContent;
 
 // public properties
 public:
@@ -491,8 +503,12 @@ public:
 
 // protected methods
 protected:
+
 // public methods
 public:
+	void WriteXml(IXmlWriter* pWriter);
+	void ReadXml(IXmlReader* pReader);
+
 	// add an image to the page
 	bool AddAnImage(shared_ptr<CGraphPlotter> pPlot);
 

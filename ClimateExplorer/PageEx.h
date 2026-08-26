@@ -2,92 +2,118 @@
 // Copyright (c) 2026 by W. T. Block, All Rights Reserved
 /////////////////////////////////////////////////////////////////////////////
 #pragma once
-#include "PageContent.h"
-#include <afxstr.h>
-#include <memory>
 #include <vector>
+#include <memory>
+#include <afxstr.h>
+#include <xmllite.h>
+
+#include "PageContent.h"
 
 /////////////////////////////////////////////////////////////////////////////
-// CPageImage
+// CPage
 //
-// Shell wrapper for image content. This class will eventually handle:
+// Updated shell for Climate Explorer page objects.
 //
-//     • XML serialization of image metadata
-//     • XML deserialization of image metadata
-//     • CE (.CE) PNG export
-//     • CEx (.CEx) full‑fidelity export
-//     • Integration with CPageContent polymorphism
+// This class will eventually:
 //
-// For now, it simply stores a title, a relative path, and raw PNG bytes.
-// All methods are safe placeholders.
+//     • Hold multiple CPageContent items (Graph, Image, MD, HTML, Map)
+//     • Serialize/deserialize page-level XML
+//     • Compute rectangles for layout
+//     • Integrate with CE (.CE) and CEx (.CEx) formats
+//
+// For now, it compiles cleanly and does not interfere with existing CE code.
 //
 /////////////////////////////////////////////////////////////////////////////
-class CPageImage : public CPageContent
+class CPageEx
 {
+public:
+	///////////////////////////////////////////////////////////////////////////
+	// PAGE_TYPE
+	///////////////////////////////////////////////////////////////////////////
+	enum PAGE_TYPE
+	{
+		pageCover,
+		pageTOC,
+		pageGraph,
+		pageImage,
+		pageMD,
+		pageHTML,
+		pageMap
+	};
+
 protected:
 	///////////////////////////////////////////////////////////////////////////
-	// m_csTitle
+	// m_eType
 	///////////////////////////////////////////////////////////////////////////
-	CString m_csTitle;
+	PAGE_TYPE m_eType;
 
 	///////////////////////////////////////////////////////////////////////////
-	// m_csRelativePath
+	// m_nPage
 	///////////////////////////////////////////////////////////////////////////
-	CString m_csRelativePath;
+	UINT m_nPage;
 
 	///////////////////////////////////////////////////////////////////////////
-	// m_arrBytesPNG
+	// m_arrContent
 	///////////////////////////////////////////////////////////////////////////
-	std::vector<uint8_t> m_arrBytesPNG;
+	std::vector<std::shared_ptr<CPageContent>> m_arrContent;
 
 public:
 	///////////////////////////////////////////////////////////////////////////
-	// Title property
+	// Type property
 	///////////////////////////////////////////////////////////////////////////
-	CString GetTitle()
+	PAGE_TYPE GetType()
 	{
-		return m_csTitle;
+		return m_eType;
 	}
 
-	void SetTitle(CString value)
+	void SetType(PAGE_TYPE value)
 	{
-		m_csTitle = value;
+		m_eType = value;
 	}
 
-	__declspec(property(get = GetTitle, put = SetTitle))
-		CString Title;
-
-	///////////////////////////////////////////////////////////////////////////
-	// RelativePath property
-	///////////////////////////////////////////////////////////////////////////
-	CString GetRelativePath()
-	{
-		return m_csRelativePath;
-	}
-
-	void SetRelativePath(CString value)
-	{
-		m_csRelativePath = value;
-	}
-
-	__declspec(property(get = GetRelativePath, put = SetRelativePath))
-		CString RelativePath;
+	__declspec(property(get = GetType, put = SetType))
+		PAGE_TYPE Type;
 
 	///////////////////////////////////////////////////////////////////////////
-	// BytesPNG property
+	// Page property
 	///////////////////////////////////////////////////////////////////////////
-	std::vector<uint8_t>& GetBytesPNG()
+	UINT GetPage()
 	{
-		return m_arrBytesPNG;
+		return m_nPage;
 	}
 
-	void SetBytesPNG(std::vector<uint8_t>& value)
+	void SetPage(UINT value)
 	{
-		m_arrBytesPNG = value;
+		m_nPage = value;
 	}
 
-	__declspec(property(get = GetBytesPNG, put = SetBytesPNG))
-		std::vector<uint8_t> BytesPNG;
+	__declspec(property(get = GetPage, put = SetPage))
+		UINT Page;
+
+	///////////////////////////////////////////////////////////////////////////
+	// Content property
+	///////////////////////////////////////////////////////////////////////////
+	std::vector<std::shared_ptr<CPageContent>>& GetContent()
+	{
+		return m_arrContent;
+	}
+
+	void SetContent(std::vector<std::shared_ptr<CPageContent>>& value)
+	{
+		m_arrContent = value;
+	}
+
+	__declspec(property(get = GetContent, put = SetContent))
+		std::vector<std::shared_ptr<CPageContent>> Content;
+
+public:
+	///////////////////////////////////////////////////////////////////////////
+	// AddContent
+	///////////////////////////////////////////////////////////////////////////
+	void AddContent(std::shared_ptr<CPageContent> pContent)
+	{
+		m_arrContent.push_back(pContent);
+	}
 
 public:
 	///////////////////////////////////////////////////////////////////////////
@@ -96,7 +122,7 @@ public:
 	// Shell only — does nothing yet.
 	// Will be implemented during the serialization refactor.
 	///////////////////////////////////////////////////////////////////////////
-	virtual void WriteXml(IXmlWriter* pWriter) override;
+	void WriteXml(IXmlWriter* pWriter);
 
 	///////////////////////////////////////////////////////////////////////////
 	// ReadXml
@@ -104,18 +130,25 @@ public:
 	// Shell only — does nothing yet.
 	// Will be implemented during the serialization refactor.
 	///////////////////////////////////////////////////////////////////////////
-	virtual void ReadXml(IXmlReader* pReader) override;
+	void ReadXml(IXmlReader* pReader);
 
 public:
 	///////////////////////////////////////////////////////////////////////////
 	// Constructor / Destructor
 	///////////////////////////////////////////////////////////////////////////
-	CPageImage()
+	CPageEx()
+		: m_eType(pageGraph)
+		, m_nPage(0)
 	{
-		ContentType = ContentImage;
 	}
 
-	virtual ~CPageImage()
+	CPageEx(PAGE_TYPE eType, UINT nPage)
+		: m_eType(eType)
+		, m_nPage(nPage)
+	{
+	}
+
+	virtual ~CPageEx()
 	{
 	}
 };

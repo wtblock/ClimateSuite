@@ -1,5 +1,5 @@
 ﻿/////////////////////////////////////////////////////////////////////////////
-// Copyright © 2026, by W. T. Block
+// Copyright (c) 2026 by W. T. Block, All Rights Reserved
 /////////////////////////////////////////////////////////////////////////////
 #pragma once
 #include "PageContent.h"
@@ -30,6 +30,8 @@ protected:
 	///////////////////////////////////////////////////////////////////////////
 	std::shared_ptr<CGraphPlotter> m_pPlot;
 
+	CString m_csTitle;
+
 	CClimateExplorerDoc* m_pDoc;
 
 public:
@@ -48,6 +50,24 @@ public:
 
 	__declspec(property(get = GetPlot, put = SetPlot))
 		std::shared_ptr<CGraphPlotter> Plot;
+
+	// Title of the content
+	virtual CString GetTitle()
+	{
+		if (m_pPlot != nullptr)
+		{
+			m_csTitle = m_pPlot->GraphTitle;
+		}
+		return m_csTitle;
+	}
+	// Title of the content
+	void SetTitle(CString value)
+	{
+		m_csTitle = value;
+	}
+	// Title of the content
+	__declspec(property(get = GetTitle, put = SetTitle))
+		CString Title;
 
 // XML helper methods
 protected:
