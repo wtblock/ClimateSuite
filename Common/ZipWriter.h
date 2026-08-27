@@ -8,6 +8,22 @@
 /////////////////////////////////////////////////////////////////////////////
 class CZipWriter
 {
+// public properties
+public:
+	// true if a file is open
+	bool GetIsOpen()
+	{
+		return m_bIsOpen;
+	}
+	// true if a file is open
+	void SetIsOpen(bool value)
+	{
+		m_bIsOpen = value;
+	}
+	// true if a file is open
+	__declspec(property(get = GetIsOpen, put = SetIsOpen))
+		bool IsOpen;
+
 public:
 	CZipWriter();
 	~CZipWriter();
@@ -18,7 +34,7 @@ public:
 
 private:
 	mz_zip_archive m_zip;
-	bool m_initialized;
+	bool m_bIsOpen;
 
 }; // CZipWriter
 

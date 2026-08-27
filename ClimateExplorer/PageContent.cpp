@@ -4,7 +4,7 @@
 #include "pch.h"
 #include "PageContent.h"
 
-void CPageContent::WriteXml(IXmlWriter* pWriter)
+void CPageContent::WriteXml(IXmlWriter* pWriter, int /*nPage*/, int /*nItem*/)
 {
 	// <Content Type="Graph"> ... </Content>
 	// Placeholder — no-op

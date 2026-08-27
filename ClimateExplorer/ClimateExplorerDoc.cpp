@@ -11,8 +11,6 @@
 #include "MainFrm.h"
 #include <propkey.h>
 #include <set>
-#include "ZipWriter.h"
-#include "ZipReader.h"
 #include "PageGraph.h"
 
 /////////////////////////////////////////////////////////////////////////////
@@ -216,27 +214,17 @@ CString CClimateExplorerDoc::GenerateMapLink(double dLat, double dLong, bool bBi
 } // GenerateMapLink
 
 /////////////////////////////////////////////////////////////////////////////
-BOOL CClimateExplorerDoc::SaveCEx(CString& csPath)
+BOOL CClimateExplorerDoc::WriteXml(CComPtr<IStream> pStream)
 {
-	HRESULT hr = S_OK;
-	CComPtr<IXmlWriter> pWriter;
-	CComPtr<IStream> pStream;
-
-	// Create file-backed stream directly
-	hr = SHCreateStreamOnFileEx
-	(
-		csPath,
-		STGM_CREATE | STGM_WRITE | STGM_SHARE_EXCLUSIVE,
-		FILE_ATTRIBUTE_NORMAL,
-		TRUE,      // fCreate
-		nullptr,
-		&pStream
-	);
-	if (FAILED(hr)) return FALSE;
-
+	BOOL value = FALSE;
 
 	// Create XML writer
-	hr = CreateXmlWriter(__uuidof(IXmlWriter), (void**)&pWriter, nullptr);
+	CComPtr<IXmlWriter> pWriter;
+	HRESULT hr = CreateXmlWriter
+	(
+		__uuidof(IXmlWriter), (void**)&pWriter, nullptr
+	);
+
 	if (FAILED(hr)) return FALSE;
 
 	hr = pWriter->SetOutput(pStream);
@@ -283,18 +271,58 @@ BOOL CClimateExplorerDoc::SaveCEx(CString& csPath)
 	pWriter->WriteEndElement(); // </ClimateExplorer>
 	pWriter->WriteEndDocument();
 
+	value = TRUE;
+	return value;
+} // WriteXml
+
+/////////////////////////////////////////////////////////////////////////////
+BOOL CClimateExplorerDoc::SaveCEx(CString& csPath)
+{
+	BOOL value = FALSE;
+
+	// -------------------------------------------------------------
+	// 1. Create the output stream
+	// -------------------------------------------------------------
+	CComPtr<IStream> pStream;
+	HRESULT hr = SHCreateStreamOnFileEx
+	(
+		csPath,
+		STGM_CREATE | STGM_WRITE | STGM_SHARE_EXCLUSIVE,
+		FILE_ATTRIBUTE_NORMAL,
+		TRUE,      // fCreate
+		nullptr,
+		&pStream
+	);
+
+	if (FAILED(hr))
+	{
+		AfxMessageBox(L"Failed to create CEx file stream.");
+		return FALSE;
+	}
+
+	value = WriteXml(pStream);
+
 	// SHCreateStreamOnFileEx flushes on release
-	return TRUE;
+	return value;
 } // SaveCEx
 
 /////////////////////////////////////////////////////////////////////////////
 BOOL CClimateExplorerDoc::SaveCE(const CString& csPath)
 {
 	BOOL value = FALSE;
-	m_arrCEPNGs.clear();
 
 	// -------------------------------------------------------------
-	// 1. Create the output stream
+	// Create CE ZIP file using CZipWriter
+	// -------------------------------------------------------------
+	shared_ptr<CZipWriter> pZip = ZipWriter;
+	if (!pZip->Create(csPath))
+	{
+		AfxMessageBox(L"Failed to create CE file.");
+		return value;
+	}
+
+	// -------------------------------------------------------------
+	// Create the output stream
 	// -------------------------------------------------------------
 	IStream* pStream = nullptr;
 	HRESULT hr = CreateStreamOnHGlobal(NULL, TRUE, &pStream);
@@ -302,179 +330,38 @@ BOOL CClimateExplorerDoc::SaveCE(const CString& csPath)
 	if (FAILED(hr))
 	{
 		AfxMessageBox(L"Failed to create CE file stream.");
-		return FALSE;
+		return value;
 	}
 
-	// -------------------------------------------------------------
-	// 2. Create the XmlLite writer
-	// -------------------------------------------------------------
-	IXmlWriter* pWriter = nullptr;
-	hr = CreateXmlWriter(__uuidof(IXmlWriter),
-		reinterpret_cast<void**>(&pWriter), nullptr);
+	value = WriteXml(pStream);
 
-	if (FAILED(hr))
+	if (value)
 	{
-		AfxMessageBox(L"Failed to create CE XML writer.");
-		pStream->Release();
-		return FALSE;
+		// -------------------------------------------------------------
+		// Extract XML bytes from the memory stream
+		// -------------------------------------------------------------
+		STATSTG stat;
+		pStream->Stat(&stat, STATFLAG_NONAME);
+
+		ULONG xmlSize = (ULONG)stat.cbSize.QuadPart;
+		std::vector<BYTE> xmlBytes(xmlSize);
+
+		LARGE_INTEGER liZero = {};
+		pStream->Seek(liZero, STREAM_SEEK_SET, NULL);
+
+		ULONG bytesRead = 0;
+		pStream->Read(xmlBytes.data(), xmlSize, &bytesRead);
+
+		// -------------------------------------------------------------
+		// Add XML file to ZIP
+		// -------------------------------------------------------------
+		pZip->AddFile(L"ClimateExplorer.xml", xmlBytes.data(), xmlBytes.size());
 	}
-
-	pWriter->SetOutput(pStream);
-	pWriter->SetProperty(XmlWriterProperty_Indent, TRUE);
-
-	// Helper lambda for CE properties (trimmed set)
-	auto WriteCEProp = [&](LPCWSTR name, const CString& val)
-	{
-		pWriter->WriteStartElement(nullptr, name, nullptr);
-		pWriter->WriteAttributeString(nullptr, L"value", nullptr, val);
-		pWriter->WriteEndElement();
-	};
-
-	// -------------------------------------------------------------
-	// 3. Begin CE XML document
-	// -------------------------------------------------------------
-	pWriter->WriteStartDocument(XmlStandalone_Yes);
-	pWriter->WriteStartElement(nullptr, L"ClimateExplorer", nullptr);
-
-	pWriter->WriteStartElement(nullptr, L"Document", nullptr);
-
-	WriteHeaderElement(pWriter, L"PageCount", (int)Pages);
-	WriteHeaderElement(pWriter, L"Title", Title);
-	WriteHeaderElement(pWriter, L"Subtitle", Subtitle);
-	WriteHeaderElement(pWriter, L"Publisher", Publisher);
-	WriteHeaderElement(pWriter, L"ISBN", ISBN);
-	WriteHeaderElement(pWriter, L"Copyright", Copyright);
-	WriteHeaderElement(pWriter, L"Description", Description);
-	WriteHeaderElement(pWriter, L"ExportFolder", ExportFolder);
-	WriteHeaderElement(pWriter, L"ExportPages", ExportPages);
-	WriteHeaderElement(pWriter, L"ExportDPI", (int)ExportDPI);
-	WriteHeaderElement(pWriter, L"ExportQuality", (int)ExportQuality);
-	WriteHeaderElement(pWriter, L"WidthOfPage", WidthOfPage);
-	WriteHeaderElement(pWriter, L"HeightOfPage", HeightOfPage);
-	WriteHeaderElement(pWriter, L"LogicalDPI", (int)Map);
-	WriteHeaderElement(pWriter, L"TopMargin", TopMargin);
-	WriteHeaderElement(pWriter, L"BottomMargin", BottomMargin);
-	WriteHeaderElement(pWriter, L"InsideMargin", InsideMargin);
-	WriteHeaderElement(pWriter, L"OutsideMargin", OutsideMargin);
-	WriteHeaderElement(pWriter, L"Gutter", Gutter);
-
-	pWriter->WriteEndElement(); // </Document>
-
-	// <PageEx>
-	pWriter->WriteStartElement(nullptr, L"PageEx", nullptr);
-
-	for (auto& pPage : m_arrPages.Items)
-	{
-		pWriter->WriteStartElement(nullptr, L"Page", nullptr);
-
-		CString csPageNum; csPageNum.Format(L"%u", pPage->Page);
-		CString csType;
-
-		switch (pPage->PageType)
-		{
-		case CPage::pageCover: csType = L"Cover"; break;
-		case CPage::pageTOC:   csType = L"TOC"; break;
-		case CPage::pageGraph: csType = L"Graph"; break;
-		}
-
-		pWriter->WriteAttributeString(nullptr, L"number", nullptr, csPageNum);
-		pWriter->WriteAttributeString(nullptr, L"type", nullptr, csType);
-		pWriter->WriteAttributeString(nullptr, L"layout", nullptr, pPage->Layout);
-
-		UINT plotIndex = 0;
-		// each plot → <Graph>
-		auto& plots = pPage->Plots.Items;
-		for (auto& kv : plots)
-		{
-			auto pPlot = kv.second;
-			CPageGraph wrapper(pPlot, this);
-			wrapper.WriteXml(pWriter);
-
-			// -------------------------------------------------------------
-			// Render PNG for this plot and write filename
-			// -------------------------------------------------------------
-
-			// Convert logical → pixel rectangle (already rotated to landscape)
-			CRect rcPixels = ImageRectangle;
-
-			// Render PNG bytes
-			std::vector<BYTE> pngBytes;
-			RenderPlotToPNG(pPlot, rcPixels, pngBytes);
-
-			// 5. Assign CE filename
-			CString csFilename;
-			csFilename.Format
-			(
-				L"Plots/Page_%04u_Plot_%02u.png",
-				pPage->Page,
-				plotIndex + 1
-			);
-
-			// 6. Write filename into CE XML
-			WriteCEProp(L"Image", csFilename);
-
-			// 7. Store PNG bytes for ZIP packaging (Step 5)
-			CEPNG item;
-			item.filename = csFilename;
-			item.bytes = std::move(pngBytes);
-			m_arrCEPNGs.push_back(std::move(item));
-
-			plotIndex++;
-		}
-
-		pWriter->WriteEndElement(); // </Page>
-	}
-
-	pWriter->WriteEndElement(); // </PageEx>
-	pWriter->WriteEndElement(); // </ClimateExplorer>
-	pWriter->WriteEndDocument();
-
-	// -------------------------------------------------------------
-	// 7. Cleanup
-	// -------------------------------------------------------------
-	pWriter->Release();
-
-	// -------------------------------------------------------------
-	// Extract XML bytes from the memory stream
-	// -------------------------------------------------------------
-	STATSTG stat;
-	pStream->Stat(&stat, STATFLAG_NONAME);
-
-	ULONG xmlSize = (ULONG)stat.cbSize.QuadPart;
-	std::vector<BYTE> xmlBytes(xmlSize);
-
-	LARGE_INTEGER liZero = {};
-	pStream->Seek(liZero, STREAM_SEEK_SET, NULL);
-
-	ULONG bytesRead = 0;
-	pStream->Read(xmlBytes.data(), xmlSize, &bytesRead);
-
-	// -------------------------------------------------------------
-	// Create CE ZIP file using CZipWriter
-	// -------------------------------------------------------------
-	CZipWriter zip;
-	if (!zip.Create(csPath))
-	{
-		pStream->Release();
-		return FALSE;
-	}
-
-	// Add XML file
-	zip.AddFile(L"ClimateExplorer.xml", xmlBytes.data(), xmlBytes.size());
-
-	// Add PNGs
-	for (const auto& item : m_arrCEPNGs)
-	{
-		zip.AddFile(item.filename, item.bytes.data(), item.bytes.size());
-	}
-
-	// Finalize ZIP
-	zip.Close();
 
 	// Cleanup
+	pZip->Close();
 	pStream->Release();
 
-	value = TRUE;
 	return value;
 } // SaveCE
 
@@ -861,389 +748,35 @@ void CClimateExplorerDoc::CopyPlotPropertiesToDocument(CGraphPlotter* pPlot)
 } // CopyPlotPropertiesToDocument
 
 /////////////////////////////////////////////////////////////////////////////
-BOOL CClimateExplorerDoc::LoadCE(const CString& csPath)
+BOOL CClimateExplorerDoc::ReadXml(CComPtr<IStream> pStream)
 {
 	BOOL value = FALSE;
-
 	// -------------------------------------------------------------
-	// 1. Open CE ZIP file
-	// -------------------------------------------------------------
-	CZipReader zip;
-	if (!zip.Open(csPath))
-	{
-		AfxMessageBox(L"Failed to open CE file.");
-		return value;
-	}
-
-	// -------------------------------------------------------------
-	// 2. Extract ClimateExplorer.xml
-	// -------------------------------------------------------------
-	std::vector<uint8_t> xmlBytes;
-	if (!zip.ExtractFile(L"ClimateExplorer.xml", xmlBytes))
-	{
-		AfxMessageBox(L"CE file missing ClimateExplorer.xml.");
-		zip.Close();
-		return value;
-	}
-
-	// Create stream from XML bytes
-	CComPtr<IStream> pStream;
-	HRESULT hr = CreateStreamOnHGlobal(NULL, TRUE, &pStream);
-	if (FAILED(hr))
-	{
-		zip.Close();
-		return value;
-	}
-
-	ULONG written = 0;
-	pStream->Write(xmlBytes.data(), (ULONG)xmlBytes.size(), &written);
-
-	LARGE_INTEGER liZero = {};
-	pStream->Seek(liZero, STREAM_SEEK_SET, NULL);
-
-	// -------------------------------------------------------------
-	// 3. Create XmlLite reader
+	// Create XmlLite reader
 	// -------------------------------------------------------------
 	CComPtr<IXmlReader> pReader;
-	hr = CreateXmlReader(__uuidof(IXmlReader), (void**)&pReader, nullptr);
-	if (FAILED(hr))
-	{
-		zip.Close();
-		return value;
-	}
-
-	hr = pReader->SetInput(pStream);
-	if (FAILED(hr))
-	{
-		zip.Close();
-		return value;
-	}
-
-	XmlNodeType nodeType = XmlNodeType_None;
-	const WCHAR* name = nullptr;
-	shared_ptr<CGraphPlotter> pPlot;
-
-	// -------------------------------------------------------------
-	// 5. XML reading loop
-	// -------------------------------------------------------------
-	while (pReader->Read(&nodeType) == S_OK)
-	{
-		if (nodeType == XmlNodeType_Element)
-		{
-			pReader->GetLocalName(&name, nullptr);
-			if (!name) continue;
-
-			// <Document>
-			if (wcscmp(name, L"Document") == 0)
-			{
-				while (pReader->Read(&nodeType) == S_OK)
-				{
-					if (nodeType == XmlNodeType_EndElement)
-					{
-						const WCHAR* endName = nullptr;
-						pReader->GetLocalName(&endName, nullptr);
-						if (endName && wcscmp(endName, L"Document") == 0)
-							break;     // finished reading header
-					}
-
-					if (nodeType != XmlNodeType_Element)
-						continue;
-
-					const WCHAR* propName = nullptr;
-					pReader->GetLocalName(&propName, nullptr);
-					if (!propName)
-						continue;
-
-					// Read attributes: value + type
-					const WCHAR* attrName = nullptr;
-					const WCHAR* attrValue = nullptr;
-					CString csValue;
-					CString csType;
-
-					while (pReader->MoveToNextAttribute() == S_OK)
-					{
-						pReader->GetLocalName(&attrName, nullptr);
-						pReader->GetValue(&attrValue, nullptr);
-
-						if (wcscmp(attrName, L"value") == 0)
-							csValue = attrValue;
-						else if (wcscmp(attrName, L"type") == 0)
-							csType = attrValue;
-					}
-
-					// Assign based on element name
-					if (wcscmp(propName, L"PageCount") == 0)
-						Pages = _wtoi(csValue);
-
-					else if (wcscmp(propName, L"Title") == 0)
-						Title = csValue;
-
-					else if (wcscmp(propName, L"Subtitle") == 0)
-						Subtitle = csValue;
-
-					else if (wcscmp(propName, L"Publisher") == 0)
-						Publisher = csValue;
-
-					else if (wcscmp(propName, L"ISBN") == 0)
-						ISBN = csValue;
-
-					else if (wcscmp(propName, L"Copyright") == 0)
-						Copyright = csValue;
-
-					else if (wcscmp(propName, L"Description") == 0)
-						Description = csValue;
-
-					else if (wcscmp(propName, L"ExportFolder") == 0)
-						ExportFolder = csValue;
-
-					else if (wcscmp(propName, L"ExportPages") == 0)
-						ExportPages = csValue;
-
-					else if (wcscmp(propName, L"ExportDPI") == 0)
-						ExportDPI = _wtoi(csValue);
-
-					else if (wcscmp(propName, L"ExportQuality") == 0)
-						ExportQuality = _wtoi(csValue);
-
-					else if (wcscmp(propName, L"WidthOfPage") == 0)
-						WidthOfPage = _wtof(csValue);
-
-					else if (wcscmp(propName, L"HeightOfPage") == 0)
-						HeightOfPage = _wtof(csValue);
-
-					else if (wcscmp(propName, L"LogicalDPI") == 0)
-						Map = _wtoi(csValue);
-
-					else if (wcscmp(propName, L"TopMargin") == 0)
-						TopMargin = _wtof(csValue);
-
-					else if (wcscmp(propName, L"BottomMargin") == 0)
-						BottomMargin = _wtof(csValue);
-
-					else if (wcscmp(propName, L"InsideMargin") == 0)
-						InsideMargin = _wtof(csValue);
-
-					else if (wcscmp(propName, L"OutsideMargin") == 0)
-						OutsideMargin = _wtof(csValue);
-
-					else if (wcscmp(propName, L"Gutter") == 0)
-						Gutter = _wtof(csValue);
-				}
-
-				continue;   // finished <Document>, return to main loop
-			}
-
-			// <PageEx>
-			if (wcscmp(name, L"PageEx") == 0)
-			{
-				continue;   // descend into PageEx and keep reading
-			}
-
-			// <Page>
-			if (wcscmp(name, L"Page") == 0)
-			{
-				CString csLayout;
-				CString csType;
-				CPage::PAGE_TYPE eType = CPage::pageGraph;
-
-				const WCHAR* attrName = nullptr;
-				const WCHAR* attrValue = nullptr;
-
-				while (pReader->MoveToNextAttribute() == S_OK)
-				{
-					pReader->GetLocalName(&attrName, nullptr);
-					pReader->GetValue(&attrValue, nullptr);
-
-					if (wcscmp(attrName, L"number") == 0)
-					{
-						int nPage = _wtoi(attrValue);
-					}
-					else if (wcscmp(attrName, L"type") == 0)
-					{
-						if (wcscmp(attrValue, L"Cover") == 0)
-						{
-							csType = attrValue;
-						}
-						else if (wcscmp(attrValue, L"TOC") == 0)
-						{
-							csType = attrValue;
-						}
-						else
-						{
-							eType = CPage::pageGraph;
-							csType = attrValue;
-						}
-					}
-					else if (wcscmp(attrName, L"layout") == 0)
-					{
-						csLayout = attrValue;
-					}
-				}
-
-				// Ignore Cover and TOC pages (constructor already created them)
-				if (csType == L"Cover" || csType == L"TOC")
-				{
-					continue;
-				}
-
-				continue;
-			}
-
-			// <Graph>
-			if (wcscmp(name, L"Graph") == 0)
-			{
-				// Create a real plot object
-				pPlot = make_shared<CGraphPlotter>(this);
-
-				// Wrap it in CPageGraph – m_pPlot is now valid
-				CPageGraph wrapper(pPlot, this);
-
-				// Let CPageGraph read XML into pPlot 
-				// (picker + appearance + metadata)
-				wrapper.ReadXml(pReader);
-
-				// the following commented out code is the 
-				// time consuming part that is replaced
-				// by the next section labeled <Image>
-				// where the image is stored in the zip file.
-				// 
-				//// Build SQL from picker properties
-				//CString csSQL = pPlot->BuildPickerSQL();
-
-				//// Store SQL in the plot
-				//pPlot->SQL = csSQL;
-
-				//// execute the query to build the table of values
-				//pPlot->ExecutePickerQuery();
-
-				//// restore some data gathered from the query
-				//pPlot->GetDefaults(this);
-
-				Pages = (UINT)m_arrPages.Count;
-				int nPages = Pages;
-
-				// page index is zero based
-				int nPage = nPages - 1;
-
-				shared_ptr<CPage> pPage = m_arrPages.get(nPage);
-
-				// critical: reorganzes rectangle and margins
-				pPage->Page = nPages;
-
-				if (pPage->PageIsFull)
-				{
-					pPage = shared_ptr<CPage>
-						(new CPage(nPages + 1, Layout, this, CPage::pageGraph));
-					m_arrPages.append(pPage);
-					Pages = (UINT)m_arrPages.Count;
-					nPages = Pages;
-					nPage = nPages - 1;
-
-					// critical: reorganzes rectangle and margins
-					pPage->Page = nPages;
-				}
-
-				Page = pPage->Page;
-
-				// Add the plot to the current page
-				pPage->AddAnImage(pPlot);
-
-				continue;
-			}
-
-			// <Image>
-			if (wcscmp(name, L"Image") == 0)
-			{
-				const WCHAR* attrName = nullptr;
-				const WCHAR* attrValue = nullptr;
-
-				CString csImagePath;
-
-				// Read all attributes on <Image ... />
-				while (pReader->MoveToNextAttribute() == S_OK)
-				{
-					pReader->GetLocalName(&attrName, nullptr);
-					pReader->GetValue(&attrValue, nullptr);
-
-					if (wcscmp(attrName, L"value") == 0)
-					{
-						csImagePath = attrValue;
-
-						// Load PNG bytes from ZIP
-						std::vector<uint8_t> pngBytes;
-						if (zip.ExtractFile(csImagePath, pngBytes))
-						{
-							pPlot->BytesPNG = pngBytes;
-						}
-
-					}
-				}
-				continue;
-			}
-		}
-
-		// End of <Page>
-		if (nodeType == XmlNodeType_EndElement)
-		{
-			pReader->GetLocalName(&name, nullptr);
-			CString csName(name);
-		}
-	}
-
-	zip.Close();
-
-	/////////////////////////////////////////////////////////////////////////////
-	// New architecture (disabled for now)
-	/////////////////////////////////////////////////////////////////////////////
-	// {
-	//     std::shared_ptr<CPage> pNewPage = std::make_shared<CPage>();
-	//     pNewPage->ReadXml(pReader);
-	//     m_arrPagesEx.push_back(pNewPage);
-	// }
-
-	return TRUE;
-} // LoadCE
-
-/////////////////////////////////////////////////////////////////////////////
-// LoadCEx
-//
-// Loads a full‑fidelity Climate Explorer (.CEx) document.
-// Restores all document and plot properties from XML,
-// then regenerates the document using OnExecuteQuery().
-//
-// Pagination, page creation, and plot creation are handled
-// entirely by OnExecuteQuery(), exactly as during live execution.
-//
-/////////////////////////////////////////////////////////////////////////////
-BOOL CClimateExplorerDoc::LoadCEx(const CString& csPath)
-{
-	HRESULT hr = S_OK;
-	CComPtr<IXmlReader> pReader;
-	CComPtr<IStream> pStream;
-
-	// Load file into stream
-	hr = SHCreateStreamOnFileEx
+	HRESULT hr = CreateXmlReader
 	(
-		csPath,
-		STGM_READ | STGM_SHARE_DENY_WRITE,
-		FILE_ATTRIBUTE_NORMAL,
-		FALSE,
-		nullptr,
-		&pStream
+		__uuidof(IXmlReader), (void**)&pReader, nullptr
 	);
 
-	if (FAILED(hr)) return FALSE;
-
-	// Create XML reader
-	hr = CreateXmlReader(__uuidof(IXmlReader), (void**)&pReader, nullptr);
-	if (FAILED(hr)) return FALSE;
+	if (FAILED(hr))
+	{
+		return value;
+	}
 
 	hr = pReader->SetInput(pStream);
-	if (FAILED(hr)) return FALSE;
+	if (FAILED(hr))
+	{
+		return value;
+	}
 
 	XmlNodeType nodeType = XmlNodeType_None;
 	const WCHAR* name = nullptr;
 
+	// -------------------------------------------------------------
+	// XML reading loop
+	// -------------------------------------------------------------
 	while (pReader->Read(&nodeType) == S_OK)
 	{
 		if (nodeType == XmlNodeType_Element)
@@ -1373,11 +906,11 @@ BOOL CClimateExplorerDoc::LoadCEx(const CString& csPath)
 					pReader->GetLocalName(&attrName, nullptr);
 					pReader->GetValue(&attrValue, nullptr);
 
-					if (wcscmp(attrName, L"number") == 0)
+					if (wcscmp(attrName, L"Number") == 0)
 					{
 						nPage = _wtoi(attrValue);
 					}
-					else if (wcscmp(attrName, L"type") == 0)
+					else if (wcscmp(attrName, L"Type") == 0)
 					{
 						if (wcscmp(attrValue, L"Cover") == 0)
 						{
@@ -1393,12 +926,13 @@ BOOL CClimateExplorerDoc::LoadCEx(const CString& csPath)
 							csType = attrValue;
 						}
 					}
-					else if (wcscmp(attrName, L"layout") == 0)
+					else if (wcscmp(attrName, L"Layout") == 0)
 					{
 						csLayout = attrValue;
 					}
 				}
 
+				// ⭐ Critical fix — move reader back to <Page>
 				pReader->MoveToElement();
 
 				// Ignore Cover and TOC pages (constructor already created them)
@@ -1406,13 +940,11 @@ BOOL CClimateExplorerDoc::LoadCEx(const CString& csPath)
 				{
 					continue;
 				}
-				// Convert type string → enum
-				// only Graph pages reach here
 
 				// Create the page
 				auto pPage = std::make_shared<CPage>(nPage, csLayout, this, eType);
 
-				// Let the page read its entire subtree (Graph content)
+				// ⭐ Unified architecture — let the page read its subtree
 				pPage->ReadXml(pReader);
 
 				// Store the page
@@ -1420,65 +952,6 @@ BOOL CClimateExplorerDoc::LoadCEx(const CString& csPath)
 
 				continue;
 			}
-
-			// <Graph>
-			/*
-			if (wcscmp(name, L"Graph") == 0)
-			{
-				// Create a real plot object
-				auto pPlot = make_shared<CGraphPlotter>(this);
-
-				// Wrap it in CPageGraph – m_pPlot is now valid
-				CPageGraph wrapper(pPlot, this);
-
-				// Let CPageGraph read XML into pPlot 
-				// (picker + appearance + metadata)
-				wrapper.ReadXml(pReader);
-
-				// Build SQL from picker properties
-				CString csSQL = pPlot->BuildPickerSQL();
-
-				// Store SQL in the plot
-				pPlot->SQL = csSQL;
-
-				// execute the query to build the table of values
-				pPlot->ExecutePickerQuery();
-
-				// restore some data gathered from the query
-				pPlot->GetDefaults(this);
-
-				Pages = (UINT)m_arrPages.Count;
-				int nPages = Pages;
-
-				// page index is zero based
-				int nPage = nPages - 1;
-
-				shared_ptr<CPage> pPage = m_arrPages.get(nPage);
-
-				// critical: reorganzes rectangle and margins
-				pPage->Page = nPages;
-
-				if (pPage->PageIsFull)
-				{
-					pPage = shared_ptr<CPage>
-						(new CPage(nPages + 1, Layout, this, CPage::pageGraph));
-					m_arrPages.append(pPage);
-					Pages = (UINT)m_arrPages.Count;
-					nPages = Pages;
-					nPage = nPages - 1;
-
-					// critical: reorganzes rectangle and margins
-					pPage->Page = nPages;
-				}
-
-				Page = pPage->Page;
-
-				// Add the plot to the current page
-				pPage->AddAnImage(pPlot);
-
-				continue;
-			}
-			*/
 		}
 
 		// End of <Page>
@@ -1490,6 +963,86 @@ BOOL CClimateExplorerDoc::LoadCEx(const CString& csPath)
 	}
 
 	return TRUE;
+} // ReadXml
+
+/////////////////////////////////////////////////////////////////////////////
+BOOL CClimateExplorerDoc::LoadCE(const CString& csPath)
+{
+	BOOL value = FALSE;
+
+	// -------------------------------------------------------------
+	// Open CE ZIP file
+	// -------------------------------------------------------------
+
+	// using a pointer to the document's zip reader
+	shared_ptr<CZipReader> pZip = ZipReader;
+
+	if (!pZip->Open(csPath))
+	{
+		AfxMessageBox(L"Failed to open CE file.");
+		return value;
+	}
+
+	// -------------------------------------------------------------
+	// Extract ClimateExplorer.xml from the zip file
+	// -------------------------------------------------------------
+	std::vector<uint8_t> xmlBytes;
+	if (!pZip->ExtractFile(L"ClimateExplorer.xml", xmlBytes))
+	{
+		AfxMessageBox(L"CE file missing ClimateExplorer.xml.");
+		return value;
+	}
+
+	// Create stream from XML bytes
+	CComPtr<IStream> pStream;
+	HRESULT hr = CreateStreamOnHGlobal(NULL, TRUE, &pStream);
+	if (FAILED(hr))
+	{
+		return value;
+	}
+
+	ULONG written = 0;
+	pStream->Write(xmlBytes.data(), (ULONG)xmlBytes.size(), &written);
+
+	LARGE_INTEGER liZero = {};
+	pStream->Seek(liZero, STREAM_SEEK_SET, NULL);
+
+	// read the ClimateExplorer.xml from the zip file
+	value = ReadXml(pStream);
+
+	return value;
+} // LoadCE
+
+/////////////////////////////////////////////////////////////////////////////
+BOOL CClimateExplorerDoc::LoadCEx(const CString& csPath)
+{
+	BOOL value = FALSE;
+
+	// -------------------------------------------------------------
+	// Open CEx XML file
+	// -------------------------------------------------------------
+
+	CComPtr<IStream> pStream;
+	HRESULT hr = SHCreateStreamOnFileEx
+	(
+		csPath,
+		STGM_READ | STGM_SHARE_DENY_WRITE,
+		FILE_ATTRIBUTE_NORMAL,
+		FALSE,
+		nullptr,
+		&pStream
+	);
+
+	if (FAILED(hr))
+	{
+		AfxMessageBox(L"Failed to open CEx file.");
+		return FALSE;
+	}
+
+	// read the XML file we just opened
+	value = ReadXml(pStream);
+
+	return value;
 } // LoadCEx
 
 /////////////////////////////////////////////////////////////////////////////

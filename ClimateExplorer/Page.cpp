@@ -49,8 +49,11 @@ bool CPage::AddAnImage(shared_ptr<CGraphPlotter> pPlot)
 	}
 	value = true;
 
+	shared_ptr<CPageGraph> pGraph = make_shared<CPageGraph>(pPlot, m_pDoc);
+
 	// replaces an image if it exists
 	m_arrPlots.add(csImage, pPlot, true);
+	m_arrContent.add(csImage, pGraph, true);
 
 	return value;
 } // AddAnImage
@@ -125,7 +128,10 @@ vector<CRect> CPage::GetRectangles()
 /////////////////////////////////////////////////////////////////////////////
 // CPage::WriteXml
 /////////////////////////////////////////////////////////////////////////////
-void CPage::WriteXml(IXmlWriter* pWriter)
+void CPage::WriteXml
+(	
+	IXmlWriter* pWriter
+)
 {
 	HRESULT hr = S_OK;
 
@@ -162,18 +168,19 @@ void CPage::WriteXml(IXmlWriter* pWriter)
 		return;
 
 	// layout
-	pWriter->WriteAttributeString(nullptr, L"layout", nullptr, Layout);
+	pWriter->WriteAttributeString(nullptr, L"Layout", nullptr, Layout);
 
 	/////////////////////////////////////////////////////////////////////////////
 	// Write content items
 	/////////////////////////////////////////////////////////////////////////////
+	int nItem = 1;
 	for (auto& Content : m_arrContent.Items)
 	{
 		CString csTitle = Content.first;
 		shared_ptr<CPageContent> pContent = Content.second;
 		if (pContent != nullptr)
 		{
-			pContent->WriteXml(pWriter);
+			pContent->WriteXml(pWriter, Page, nItem++);
 		}
 	}
 
@@ -248,7 +255,7 @@ void CPage::ReadXml(IXmlReader* pReader)
 				continue;
 			}
 
-			else if (wcscmp(pwszAttrValue, L"Image") == 0)
+			else if (wcscmp(pwszAttrValue, L"Picture") == 0)
 				PageType = pageImage;
 
 			else if (wcscmp(pwszAttrValue, L"MD") == 0)
@@ -329,7 +336,7 @@ void CPage::ReadXml(IXmlReader* pReader)
 
 			continue;
 		}
-		else if (wcscmp(pwszLocalName, L"Image") == 0)
+		else if (wcscmp(pwszLocalName, L"Picture") == 0)
 		{
 			pContent = std::make_shared<CPageImage>();
 		}

@@ -10,6 +10,8 @@
 #include "NaturalLanguage.h"
 #include "Page.h"
 #include "SmartArray.h"
+#include "ZipReader.h"
+#include "ZipWriter.h"
 #include <xmllite.h>
 
 /////////////////////////////////////////////////////////////////////////////
@@ -319,8 +321,40 @@ protected:
 	// lookup GDI dash style
 	CKeyedCollection<CString, Gdiplus::DashStyle> m_mapDash;
 
+	// get a pointer to the zip reader
+	shared_ptr<CZipReader> m_pZipReader;
+
+	// get a pointer to the zip writer
+	shared_ptr<CZipWriter> m_pZipWriter;
+
 // public properties
 public:
+	// get a pointer to the zip reader
+	shared_ptr<CZipReader> GetZipReader()
+	{
+		if (m_pZipReader == nullptr)
+		{
+			m_pZipReader = make_shared<CZipReader>();
+		}
+		return m_pZipReader;
+	}
+	// get a pointer to the zip reader
+	__declspec(property(get = GetZipReader))
+		shared_ptr<CZipReader> ZipReader;
+
+	// get a pointer to the zip writer
+	shared_ptr<CZipWriter> GetZipWriter()
+	{
+		if (m_pZipWriter == nullptr)
+		{
+			m_pZipWriter = make_shared<CZipWriter>();
+		}
+		return m_pZipWriter;
+	}
+	// get a pointer to the zip writer
+	__declspec(property(get = GetZipWriter))
+		shared_ptr<CZipWriter> ZipWriter;
+
 	// the climate database is a relational database of USHCN data
 	CClimateDatabase* GetClimateDatabase()
 	{
@@ -2341,20 +2375,15 @@ protected:
 		pWriter->WriteEndElement();
 	}
 
+	BOOL WriteXml(CComPtr<IStream> pStream);
 	BOOL SaveCE(const CString& csPath);
 	BOOL SaveCEx(CString& csPath);
 
 	void CopyPlotPropertiesToDocument(CGraphPlotter* pPlot);
 
+	BOOL ReadXml(CComPtr<IStream> pStream);
 	BOOL LoadCE(const CString& csPath);
 	BOOL LoadCEx(const CString& csPath);
-
-	bool RenderPlotToPNG
-	(
-		std::shared_ptr<CGraphPlotter> pPlot,
-		const CRect& rcPixels,
-		std::vector<BYTE>& outBytes
-	);
 
 	// plots are shifted toward the end of the document on position
 	// starting at the selection
@@ -2418,6 +2447,14 @@ public:
 	// Execute the SQL stored in the SQL property
 	// -------------------------------------------------------------
 	void ExecutePickerQuery();
+
+	bool RenderPlotToPNG
+	(
+		std::shared_ptr<CGraphPlotter> pPlot,
+		const CRect& rcPixels,
+		std::vector<BYTE>& outBytes
+	);
+
 
 #ifdef _DEBUG
 	virtual void AssertValid() const;

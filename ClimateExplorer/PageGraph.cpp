@@ -28,21 +28,80 @@ CPageGraph::CPageGraph(std::shared_ptr<CGraphPlotter> pPlot, CClimateExplorerDoc
 }
 
 /////////////////////////////////////////////////////////////////////////////
-// CPageGraph::WriteXml
+// CPageGraph::WriteXml  (Unified CE + CEx)
+// Writes <Graph> with Picker + Appearance.
+// If ZipWriter->IsOpen == true → embeds <Image> and writes PNG to ZIP.
 /////////////////////////////////////////////////////////////////////////////
-void CPageGraph::WriteXml(IXmlWriter* pWriter)
+void CPageGraph::WriteXml
+(
+	IXmlWriter* pWriter, int nPage, int nItem
+)
 {
 	// <Graph>
 	pWriter->WriteStartElement(nullptr, L"Graph", nullptr);
 
-	// Always write full Picker (including Title, Lat/Lon)
+	// Always write full Picker
 	WritePickerXml(pWriter);
 
 	// Always write full Appearance
 	WriteAppearanceXml(pWriter);
 
-	pWriter->WriteEndElement(); // </Graph>
+	// -------------------------------------------------------------
+	// CE-only behavior: embed <Image> and write PNG to ZIP
+	// -------------------------------------------------------------
+	auto pZip = m_pDoc->ZipWriter;
+	if (pZip && pZip->IsOpen)
+	{
+		// Compute CE filename
+		CString csFilename;
+		csFilename.Format
+		(
+			L"Plots/Page_%04u_Plot_%02u.png",
+			nPage, 
+			nItem  
+		);
+
+		// <Image value="Plots/Page_XXXX_Plot_YY.png"/>
+		pWriter->WriteStartElement(nullptr, L"Image", nullptr);
+		pWriter->WriteAttributeString(nullptr, L"value", nullptr, csFilename);
+		pWriter->WriteEndElement(); // </Image>
+
+		// Render PNG bytes
+		std::vector<BYTE> pngBytes;
+		CRect rcPixels = m_pDoc->ImageRectangle;
+		if (m_pDoc->RenderPlotToPNG(m_pPlot, rcPixels, pngBytes))
+		{
+			// Add PNG to ZIP
+			pZip->AddFile(csFilename, pngBytes.data(), pngBytes.size());
+		}
+	}
+
+	// </Graph>
+	pWriter->WriteEndElement();
 } // WriteXml
+
+/////////////////////////////////////////////////////////////////////////////
+// CPageGraph::WriteXmlWithImage  (CE)
+// Writes <Graph> with Picker, Appearance, and embedded <Image>.
+/////////////////////////////////////////////////////////////////////////////
+void CPageGraph::WriteXmlWithImage(IXmlWriter* pWriter, const CString& csFilename)
+{
+	// <Graph>
+	pWriter->WriteStartElement(nullptr, L"Graph", nullptr);
+
+	// Full Picker
+	WritePickerXml(pWriter);
+
+	// Full Appearance
+	WriteAppearanceXml(pWriter);
+
+	// CE-only: embedded PNG reference
+	pWriter->WriteStartElement(nullptr, L"Image", nullptr);
+	pWriter->WriteAttributeString(nullptr, L"value", nullptr, csFilename);
+	pWriter->WriteEndElement(); // </Image>
+
+	pWriter->WriteEndElement(); // </Graph>
+} // WriteXmlWithImage
 
 /////////////////////////////////////////////////////////////////////////////
 // CPageGraph::ReadXml
@@ -90,9 +149,51 @@ void CPageGraph::ReadXml(IXmlReader* pReader)
 			ReadAppearanceXml(pReader);
 			continue;
 		}
+
+		// CE-only: <Image value="Plots/Page_XXXX_Plot_YY.png"/>
+		if (wcscmp(name, L"Image") == 0)
+		{
+			const WCHAR* attrName = nullptr;
+			const WCHAR* attrValue = nullptr;
+
+			CString csImagePath;
+
+			while (pReader->MoveToNextAttribute() == S_OK)
+			{
+				pReader->GetLocalName(&attrName, nullptr);
+				pReader->GetValue(&attrValue, nullptr);
+
+				if (wcscmp(attrName, L"value") == 0)
+					csImagePath = attrValue;
+			}
+
+			if (!csImagePath.IsEmpty())
+			{
+				shared_ptr<CZipReader> pZip = m_pDoc->ZipReader;
+				if (pZip != nullptr)
+				{
+					if (pZip->IsOpen)
+					{
+						std::vector<uint8_t> pngBytes;
+						if (pZip->ExtractFile(csImagePath, pngBytes))
+						{
+							m_pPlot->BytesPNG = pngBytes;
+						}
+					}
+				}
+			}
+
+			continue;
+		}
 	}
 
-	// After picker + appearance are read, run SQL for CEx
+	// CE: If PNG bytes were already loaded in LoadCE, skip SQL entirely.
+	if (m_pPlot != nullptr && !m_pPlot->BytesPNG.empty())
+	{
+		return;
+	}
+
+	// CEx: No PNG → regenerate plot from SQL
 	if (m_pPlot != nullptr)
 	{
 		CString csSQL = m_pPlot->BuildPickerSQL();
@@ -100,7 +201,6 @@ void CPageGraph::ReadXml(IXmlReader* pReader)
 		m_pPlot->ExecutePickerQuery();
 		m_pPlot->GetDefaults(m_pDoc);
 	}
-
 } // ReadXml
 
 /////////////////////////////////////////////////////////////////////////////

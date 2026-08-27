@@ -8,13 +8,13 @@
 CZipWriter::CZipWriter()
 {
 	memset(&m_zip, 0, sizeof(m_zip));
-	m_initialized = false;
+	IsOpen = false;
 } // CZipWriter
 
 /////////////////////////////////////////////////////////////////////////////
 CZipWriter::~CZipWriter()
 {
-	if (m_initialized)
+	if (IsOpen)
 		Close();
 } // ~CZipWriter
 
@@ -29,14 +29,14 @@ bool CZipWriter::Create(const CString& path)
 	if (!mz_zip_writer_init_file(&m_zip, utf8, 0))
 		return false;
 
-	m_initialized = true;
+	IsOpen = true;
 	return true;
 } // Create
 
 /////////////////////////////////////////////////////////////////////////////
 bool CZipWriter::AddFile(const CString& internalPath, const void* data, size_t size)
 {
-	if (!m_initialized)
+	if (!IsOpen)
 		return false;
 
 	CT2A utf8(internalPath, CP_UTF8);
@@ -50,13 +50,13 @@ bool CZipWriter::AddFile(const CString& internalPath, const void* data, size_t s
 /////////////////////////////////////////////////////////////////////////////
 bool CZipWriter::Close()
 {
-	if (!m_initialized)
+	if (!IsOpen)
 		return false;
 
 	mz_zip_writer_finalize_archive(&m_zip);
 	mz_zip_writer_end(&m_zip);
 
-	m_initialized = false;
+	IsOpen = false;
 	return true;
 } // Close
 

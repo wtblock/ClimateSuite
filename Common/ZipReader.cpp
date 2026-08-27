@@ -8,13 +8,13 @@
 CZipReader::CZipReader()
 {
 	memset(&m_zip, 0, sizeof(m_zip));
-	m_initialized = false;
+	IsOpen = false;
 } // CZipReader
 
 /////////////////////////////////////////////////////////////////////////////
 CZipReader::~CZipReader()
 {
-	if (m_initialized)
+	if (IsOpen)
 		Close();
 } // ~CZipReader
 
@@ -28,14 +28,14 @@ bool CZipReader::Open(const CString& path)
 	if (!mz_zip_reader_init_file(&m_zip, utf8, 0))
 		return false;
 
-	m_initialized = true;
+	IsOpen = true;
 	return true;
 } // Open
 
 /////////////////////////////////////////////////////////////////////////////
 bool CZipReader::ExtractFile(const CString& internalPath, std::vector<uint8_t>& outData)
 {
-	if (!m_initialized)
+	if (!IsOpen)
 		return false;
 
 	CT2A utf8(internalPath, CP_UTF8);
@@ -59,11 +59,11 @@ bool CZipReader::ExtractFile(const CString& internalPath, std::vector<uint8_t>& 
 /////////////////////////////////////////////////////////////////////////////
 bool CZipReader::Close()
 {
-	if (!m_initialized)
+	if (!IsOpen)
 		return false;
 
 	mz_zip_reader_end(&m_zip);
-	m_initialized = false;
+	IsOpen = false;
 	return true;
 } // Close
 

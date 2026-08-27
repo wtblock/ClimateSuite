@@ -52,7 +52,10 @@ public:
 	// Shell only — does nothing yet.
 	// Will be implemented during the serialization refactor.
 	///////////////////////////////////////////////////////////////////////////
-	virtual void WriteXml(IXmlWriter* pWriter) override;
+	virtual void WriteXml
+	(
+		IXmlWriter* pWriter, int nPage = 0, int nItem = 0
+	) override;
 
 	///////////////////////////////////////////////////////////////////////////
 	// ReadXml
