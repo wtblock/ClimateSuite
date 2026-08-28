@@ -9,6 +9,7 @@
 #include "ClimateTemperature.h"
 #include "NaturalLanguage.h"
 #include "Page.h"
+#include "PageGraph.h"
 #include "SmartArray.h"
 #include "ZipReader.h"
 #include "ZipWriter.h"
@@ -628,9 +629,9 @@ public:
 		int SelectedPages;
 
 	// selected plot
-	shared_ptr<CGraphPlotter> GetSelectedPlot(pair<int, int> pairSelection)
+	shared_ptr<CPageContent> GetSelectedContent(pair<int, int> pairSelection)
 	{
-		shared_ptr<CGraphPlotter> value;
+		shared_ptr<CPageContent> value;
 		UINT uiPage = pairSelection.first - 1;
 		int nImageSelection = pairSelection.second;
 		size_t nPages = m_arrPages.Count;
@@ -638,7 +639,7 @@ public:
 		{
 			shared_ptr<CPage> pPage = m_arrPages.get(uiPage);
 			int nImage = 0;
-			for (auto& plot : pPage->Plots.Items)
+			for (auto& plot : pPage->Content.Items)
 			{
 				if (nImage == nImageSelection)
 				{
@@ -651,8 +652,8 @@ public:
 		return value;
 	}
 	// selected plot
-	__declspec(property(get = GetSelectedPlot))
-		shared_ptr<CGraphPlotter> SelectedPlot[];
+	__declspec(property(get = GetSelectedContent))
+		shared_ptr<CPageContent> SelectedContent[];
 
 	// is the given page image pair selected? Returns true is the pair
 	// is the current selection or if it falls within the multiple 
@@ -765,10 +766,15 @@ public:
 			pairStart.second = nImage;
 			pairEnd.first = nPage;
 			pairEnd.second = nImage;
-			shared_ptr<CGraphPlotter> pPlot = SelectedPlot[pairStart];
-			if (pPlot != nullptr)
+			shared_ptr<CPageContent> pContent = SelectedContent[pairStart];
+			if (pContent != nullptr)
 			{
-				CopyPlotPropertiesToDocument(pPlot.get());
+				if (pContent->ContentType == CPageContent::ContentGraph)
+				{
+					CPageGraph* pGraph = (CPageGraph*)pContent.get();
+					shared_ptr<CGraphPlotter> pPlot = pGraph->Plot;
+					CopyPlotPropertiesToDocument(pPlot.get());
+				}
 			}
 		}
 	}
@@ -1598,22 +1604,21 @@ public:
 	CString GetAxisLabelY()
 	{
 		CString value = m_csAxisLabelY;
-		if (value == L"Value")
+		CString csSubtype = Subtype;
+		if (csSubtype == L"Stations")
 		{
-			CString csSubtype = Subtype;
-			if (csSubtype == L"Stations")
-			{
-				value = L"Count";
-			}
-			else if (csSubtype == L"Threshold")
-			{
-				value = L"Percent";
-			}
-			else
-			{
-				value = Units;
-			}
+			value = L"Count";
 		}
+		else if (csSubtype == L"Threshold")
+		{
+			value = L"Percent";
+		}
+		else
+		{
+			value = Units;
+		}
+
+		AxisLabelY = value;
 		return value;
 	}
 	// The label of the values on the Y axis

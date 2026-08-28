@@ -774,6 +774,27 @@ BOOL CClimateExplorerDoc::ReadXml(CComPtr<IStream> pStream)
 	XmlNodeType nodeType = XmlNodeType_None;
 	const WCHAR* name = nullptr;
 
+	// launch the progress dialog
+	CThumbnailDialog dlg;
+
+	// prepare the progress dialog
+	theApp.OnIdle(0);
+	CMainFrame* pFrame = (CMainFrame*)AfxGetMainWnd();
+
+	int nPages = 0;
+	int nPage = 0;
+	bool bAbort = false;
+	dlg.Parent = pFrame;
+	dlg.CreateDlg();
+	dlg.ShowWindow(SW_SHOW);
+	CString csDialogTitle;
+	csDialogTitle.Format(L"Reading %d pages", nPages);
+
+	dlg.SetWindowText(csDialogTitle);
+	dlg.Objects = L"Pages";
+
+	dlg.TotalImages = (int)nPages;
+
 	// -------------------------------------------------------------
 	// XML reading loop
 	// -------------------------------------------------------------
@@ -824,7 +845,16 @@ BOOL CClimateExplorerDoc::ReadXml(CComPtr<IStream> pStream)
 
 					// Assign based on element name
 					if (wcscmp(propName, L"PageCount") == 0)
+					{
 						Pages = _wtoi(csValue);
+						nPages = Pages;
+						csDialogTitle.Format(L"Reading %d pages", nPages);
+
+						dlg.SetWindowText(csDialogTitle);
+						dlg.Objects = L"Pages";
+
+						dlg.TotalImages = (int)nPages;
+					}
 
 					else if (wcscmp(propName, L"Title") == 0)
 						Title = csValue;
@@ -893,6 +923,16 @@ BOOL CClimateExplorerDoc::ReadXml(CComPtr<IStream> pStream)
 			// <Page>
 			if (wcscmp(name, L"Page") == 0)
 			{
+				// let the user cancel out
+				if (dlg.Cancel)
+				{
+					bAbort = true;
+					break;
+				}
+
+				// update the progress dialog's status
+				dlg.CurrentImage = nPage++;
+
 				CString csLayout;
 				CString csType;
 				CPage::PAGE_TYPE eType = CPage::pageGraph;
@@ -950,7 +990,15 @@ BOOL CClimateExplorerDoc::ReadXml(CComPtr<IStream> pStream)
 				// Store the page
 				m_arrPages.append(pPage);
 
+				// wait one millisecond while letting normal 
+				// window messaging to run
+				pFrame->Wait(1);
 				continue;
+			}
+
+			if (bAbort)
+			{
+				break;
 			}
 		}
 
@@ -960,6 +1008,14 @@ BOOL CClimateExplorerDoc::ReadXml(CComPtr<IStream> pStream)
 			pReader->GetLocalName(&name, nullptr);
 			CString csName(name);
 		}
+	}
+
+
+	// close the progress dialog
+	if (dlg.m_hWnd != nullptr)
+	{
+		// done with the progress dialog
+		dlg.DestroyWindow();
 	}
 
 	return TRUE;
@@ -1344,9 +1400,9 @@ void CClimateExplorerDoc::ExecuteQuery(bool bProgress/* = true*/)
 		// a title cannot be duplicated on a page, so if it exists
 		// on the page, replace it by first removing the existing
 		// plot on the page
-		if (pPage->Plots.Exists[csTitle])
+		if (pPage->Content.Exists[csTitle])
 		{
-			pPage->Plots.remove(csTitle);
+			pPage->Content.remove(csTitle);
 		}
 
 		if (pPage->PageIsFull)
@@ -2266,7 +2322,7 @@ void CClimateExplorerDoc::OnEditDelete()
 	// the first plot on the first page is zero based and depending on the layout,
 	// there can be up to four plots on a page (0..3). If zero, the whole page
 	// is selected.
-	int nPlotStart = pairStart.second;
+	int nContentStart = pairStart.second;
 
 	// the last plot on the last page which can be the same as the first. If the 
 	// plot is the last plot on a different page number than the first plot, 
@@ -2280,7 +2336,7 @@ void CClimateExplorerDoc::OnEditDelete()
 	//		whole page is not selected.
 	//   3.	Different start and end and the plot on the start is not the first, the
 	//		whole first page is not selected.
-	int nPlotEnd = pairEnd.second;
+	int nContentEnd = pairEnd.second;
 
 	// number of selected pages
 	int nPages = SelectedPages;
@@ -2291,47 +2347,47 @@ void CClimateExplorerDoc::OnEditDelete()
 	// the following can be duplications if start and end are the same page
 	shared_ptr<CPage> pageStart = m_arrPages.get(nStartIndex);
 	shared_ptr<CPage> pageEnd = m_arrPages.get(nEndIndex);
-	int nStartPlots = pageStart->ImageCount;
-	int nEndPlots = pageEnd->ImageCount;
+	int nStartCount = pageStart->ImageCount;
+	int nEndCount = pageEnd->ImageCount;
 
 	int nFirstDeletedPage = nStartIndex;
 	int nLastDeletedPage = nEndIndex;
 	bool bDeletePages = false;
-	bool bDeleteStartPlots = false;
-	bool bDeleteEndPlots = false;
+	bool bDeleteStartCount = false;
+	bool bDeleteEndCount = false;
 	if (nPages > 1)
 	{
-		bDeleteFirstPage = nPlotStart == 0;
-		bDeleteLastPage = nPlotEnd == nEndPlots - 1;
+		bDeleteFirstPage = nContentStart == 0;
+		bDeleteLastPage = nContentEnd == nEndCount - 1;
 		if (!bDeleteLastPage)
 		{
 			nLastDeletedPage--;
-			bDeleteEndPlots = true;
-			CKeyedCollection<CString, CGraphPlotter> pPlots;
-			int nPlot = 0;
-			for (auto& pPlot : pageEnd->Plots.Items)
+			bDeleteEndCount = true;
+			CKeyedCollection<CString, CPageContent> pContent;
+			int nContent = 0;
+			for (auto& node : pageEnd->Content.Items)
 			{
-				if (nPlot++ > nPlotEnd)
+				if (nContent++ > nContentEnd)
 				{
-					pPlots.add(pPlot.first, pPlot.second);
+					pContent.add(node.first, node.second);
 				}
 			}
-			pageEnd->Plots = pPlots;
+			pageEnd->Content = pContent;
 		}
 		if (!bDeleteFirstPage)
 		{
 			nFirstDeletedPage++;
-			bDeleteStartPlots = true;
-			CKeyedCollection<CString, CGraphPlotter> pPlots;
-			int nPlot = 0;
-			for (auto& pPlot : pageStart->Plots.Items)
+			bDeleteStartCount = true;
+			CKeyedCollection<CString, CPageContent> pContent;
+			int nContent = 0;
+			for (auto& node : pageStart->Content.Items)
 			{
-				if (nPlot++ < nPlotStart)
+				if (nContent++ < nContentStart)
 				{
-					pPlots.add(pPlot.first, pPlot.second);
+					pContent.add(node.first, node.second);
 				}
 			}
-			pageStart->Plots = pPlots;
+			pageStart->Content = pContent;
 		}
 		if (nFirstDeletedPage <= nLastDeletedPage)
 		{
@@ -2340,25 +2396,25 @@ void CClimateExplorerDoc::OnEditDelete()
 	}
 	else // single page
 	{
-		bDeleteFirstPage = nPlotStart == 0 && nPlotEnd == nEndPlots - 1;
+		bDeleteFirstPage = nContentStart == 0 && nContentEnd == nEndCount - 1;
 		if (bDeleteFirstPage)
 		{
 			bDeletePages = true;
 		}
 		else
 		{
-			bDeleteStartPlots = true;
-			CKeyedCollection<CString, CGraphPlotter> pPlots;
-			int nPlot = 0;
-			for (auto& pPlot : pageStart->Plots.Items)
+			bDeleteStartCount = true;
+			CKeyedCollection<CString, CPageContent> pContent;
+			int nContent = 0;
+			for (auto& node : pageStart->Content.Items)
 			{
-				if (nPlot < nPlotStart || nPlot > nPlotEnd)
+				if (nContent < nContentStart || nContent > nContentEnd)
 				{
-					pPlots.add(pPlot.first, pPlot.second);
+					pContent.add(node.first, node.second);
 				}
-				nPlot++;
+				nContent++;
 			}
-			pageStart->Plots = pPlots;
+			pageStart->Content = pContent;
 		}
 	}
 
@@ -2422,11 +2478,11 @@ void CClimateExplorerDoc::OnEditDelete()
 		vector<CString> arrKeys;
 		UINT uiNext = pNext->ImageCount;
 
-		for (auto& Plot : pNext->Plots.Items)
+		for (auto& Content : pNext->Content.Items)
 		{
-			CString csKey = Plot.first;
-			shared_ptr<CGraphPlotter> pGraph = Plot.second;
-			pPage->Plots.add(csKey, pGraph);
+			CString csKey = Content.first;
+			shared_ptr<CPageContent> pGraph = Content.second;
+			pPage->Content.add(csKey, pGraph);
 			//pNext->Plots.remove(csKey);
 			arrKeys.push_back(csKey);
 
@@ -2444,7 +2500,7 @@ void CClimateExplorerDoc::OnEditDelete()
 		// remove the plots we shifted up to the previous page
 		for (auto& csKey : arrKeys)
 		{
-			pNext->Plots.remove(csKey);
+			pNext->Content.remove(csKey);
 		}
 		lPage++;
 	}
@@ -2461,19 +2517,30 @@ void CClimateExplorerDoc::OnEditDelete()
 
 	UINT uiPage = Page;
 	UINT uiPages = Pages;
-	if (uiPage >= uiPages)
+	if (uiPage > uiPages)
 	{
-		uiPage = uiPages - 1;
+		uiPage = uiPages;
 
 		// critical: reorganzes rectangle and margins
 		Page = uiPage;
 	}
 
+	if (nPageStart <= (int)uiPages)
+	{
+		Page = nPageStart;
+	}
+	else
+	{
+		Page = uiPage;
+	}
+
+	uiPage = Page;
+
 	// deselect
 	SelectLimit[-1] = -1;
 
 	double dPageHeight = HeightOfPage;
-	double dTop = dPageHeight * (nPages - 1);
+	double dTop = dPageHeight * (uiPage - 1);
 	pView->TopOfView = dTop;
 	pView->SetupScrollBars();
 	pView->Invalidate();
@@ -2588,14 +2655,14 @@ void CClimateExplorerDoc::ShiftPlotsDown()
 		shared_ptr<CPage> pPageDst = m_arrPages.get(nPage + 1);
 
 		// the source plot to be shifted down
-		CString csKey = pPageSrc->Plots.LastKey;
-		shared_ptr<CGraphPlotter> pPlot = pPageSrc->Plots.find(csKey);
+		CString csKey = pPageSrc->Content.LastKey;
+		shared_ptr<CPageContent> pContent = pPageSrc->Content.find(csKey);
 
 		// add the plot to the destionation page
-		pPageDst->Plots.add(csKey, pPlot);
+		pPageDst->Content.add(csKey, pContent);
 
 		// remove the plot from the source page
-		pPageSrc->Plots.remove(csKey);
+		pPageSrc->Content.remove(csKey);
 
 		// critical: reorganzes rectangle and margins
 		pPageDst->Page = nPage + 2;

@@ -28,6 +28,30 @@ CPageGraph::CPageGraph(std::shared_ptr<CGraphPlotter> pPlot, CClimateExplorerDoc
 }
 
 /////////////////////////////////////////////////////////////////////////////
+// image of the content
+shared_ptr<Gdiplus::Image> CPageGraph::GetImageContent()
+{
+	shared_ptr<Gdiplus::Image> value;
+	if (m_pDoc != nullptr)
+	{
+		shared_ptr<CGraphPlotter> pPlot = Plot;
+		{
+			if (pPlot != nullptr)
+			{
+				// the image is based on the margin rectangle expressed
+				// as a landscape version (rotated 90 degrees) in pixels
+				//CRect rcPixels(0, 0, 4000, 2925);
+				CRect rcPixels = m_pDoc->ImageRectangle;
+				auto pBmp = Plot->CreatePlot(rcPixels);
+				value = shared_ptr<Gdiplus::Image>((pBmp));
+			}
+		}
+	}
+
+	return value;
+} // GetImageContent
+
+/////////////////////////////////////////////////////////////////////////////
 // CPageGraph::WriteXml  (Unified CE + CEx)
 // Writes <Graph> with Picker + Appearance.
 // If ZipWriter->IsOpen == true → embeds <Image> and writes PNG to ZIP.
@@ -79,29 +103,6 @@ void CPageGraph::WriteXml
 	// </Graph>
 	pWriter->WriteEndElement();
 } // WriteXml
-
-/////////////////////////////////////////////////////////////////////////////
-// CPageGraph::WriteXmlWithImage  (CE)
-// Writes <Graph> with Picker, Appearance, and embedded <Image>.
-/////////////////////////////////////////////////////////////////////////////
-void CPageGraph::WriteXmlWithImage(IXmlWriter* pWriter, const CString& csFilename)
-{
-	// <Graph>
-	pWriter->WriteStartElement(nullptr, L"Graph", nullptr);
-
-	// Full Picker
-	WritePickerXml(pWriter);
-
-	// Full Appearance
-	WriteAppearanceXml(pWriter);
-
-	// CE-only: embedded PNG reference
-	pWriter->WriteStartElement(nullptr, L"Image", nullptr);
-	pWriter->WriteAttributeString(nullptr, L"value", nullptr, csFilename);
-	pWriter->WriteEndElement(); // </Image>
-
-	pWriter->WriteEndElement(); // </Graph>
-} // WriteXmlWithImage
 
 /////////////////////////////////////////////////////////////////////////////
 // CPageGraph::ReadXml

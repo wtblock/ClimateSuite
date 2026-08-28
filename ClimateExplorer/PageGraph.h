@@ -69,6 +69,9 @@ public:
 	__declspec(property(get = GetTitle, put = SetTitle))
 		CString Title;
 
+	// image of the content
+	virtual shared_ptr<Gdiplus::Image> GetImageContent();
+
 // XML helper methods
 protected:
 	void ReadPickerXml(IXmlReader* pReader);
@@ -158,12 +161,6 @@ public:
 	(
 		IXmlWriter* pWriter, int nPage = 0, int nItem = 0
 	) override;
-
-	/////////////////////////////////////////////////////////////////////////////
-	// CPageGraph::WriteXmlWithImage  (CE)
-	// Writes <Graph> with Picker, Appearance, and embedded <Image>.
-	/////////////////////////////////////////////////////////////////////////////
-	void WriteXmlWithImage(IXmlWriter* pWriter, const CString& csFilename);
 
 	///////////////////////////////////////////////////////////////////////////
 	// ReadXml

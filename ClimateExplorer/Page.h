@@ -117,9 +117,6 @@ protected:
 	// pointer to our document
 	CClimateExplorerDoc* m_pDoc;
 
-	// the key is the image title associated with the given plot
-	CKeyedCollection<CString, CGraphPlotter> m_arrPlots;
-
 	// the key is the content title
 	CKeyedCollection<CString, CPageContent> m_arrContent;
 
@@ -356,7 +353,7 @@ public:
 	// number of images on the page
 	UINT GetImageCount()
 	{
-		return (UINT)m_arrPlots.Count;
+		return (UINT)m_arrContent.Count;
 	}
 	// number of images on the page
 	__declspec( property( get = GetImageCount) )
@@ -467,10 +464,11 @@ public:
 			value = L"Table of Contents";
 			break;
 		case CPage::pageGraph:
-			if (m_arrPlots.Count != 0)
+			if (m_arrContent.Count != 0)
 			{
-				shared_ptr<CGraphPlotter> plot = m_arrPlots.Items.begin()->second;
-				value = plot->GraphTitle;
+				shared_ptr<CPageContent> pContent = 
+					m_arrContent.Items.begin()->second;
+				value = pContent->Title;
 			}
 		}
 		return value;
@@ -480,18 +478,18 @@ public:
 		CString Title;
 
 	// the key is the image title associated with the given plot
-	CKeyedCollection<CString, CGraphPlotter>& GetPlots()
+	CKeyedCollection<CString, CPageContent>& GetContent()
 	{
-		return m_arrPlots;
+		return m_arrContent;
 	}
 	// the key is the image title associated with the given plot
-	void SetPlots(CKeyedCollection<CString, CGraphPlotter>& pPlots)
+	void SetContent(CKeyedCollection<CString, CPageContent>& pContent)
 	{
-		m_arrPlots = pPlots;
+		m_arrContent = pContent;
 	}
 	// the key is the image title associated with the given plot
-	__declspec(property(get = GetPlots, put = SetPlots))
-		CKeyedCollection<CString, CGraphPlotter>& Plots;
+	__declspec(property(get = GetContent, put = SetContent))
+		CKeyedCollection<CString, CPageContent>& Content;
 
 	// rectangles corresponding to the images based on
 	// the current page number and layout

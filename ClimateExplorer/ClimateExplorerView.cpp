@@ -681,16 +681,15 @@ void CClimateExplorerView::RenderImagePage
 		UINT uiPage = page->Page;
 		CString csTitle = page->Title;
 		vector<CRect> arrRectangles = page->Rectangles;
-		CKeyedCollection<CString, CGraphPlotter>& mapPlots = page->Plots;
+		CKeyedCollection<CString, CPageContent>& mapContent = page->Content;
 
 		int nImage = -1;
-		for (auto& node : mapPlots.Items)
+		for (auto& node : mapContent.Items)
 		{
 			nImage++;
 			pair<int, int> pairImage(uiPage, nImage);
 			bool bSelected = pDoc->Selected[pairImage];
 
-			const CString csImage = node.first;
 			CRect imageRect = arrRectangles[nImage];
 			double dTop = LogicalToInches(imageRect.top);
 			double dBottom = LogicalToInches(imageRect.bottom);
@@ -703,26 +702,24 @@ void CClimateExplorerView::RenderImagePage
 				continue;
 			}
 
-			// the image is based on the margin rectangle expressed
-			// as a landscape version (rotated 90 degrees) in pixels
-			//CRect rcPixels(0, 0, 4000, 2925);
-			CRect rcPixels = pDoc->ImageRectangle;
-
 			// -------------------------------------------------------------
-			// Generate the graph bitmap
+			// Generate the content bitmap
 			// -------------------------------------------------------------
-			bool bExists = mapPlots.Exists[csImage];
+			const CString csContent = node.first;
+			bool bExists = mapContent.Exists[csContent];
 			if (!bExists)
 			{
 				continue;
 			}
 
-			shared_ptr<CGraphPlotter> pPlot = mapPlots.find( csImage );
-			auto pBmp = pPlot->CreatePlot(rcPixels);
-			shared_ptr<Gdiplus::Image> pImage =
-				shared_ptr<Gdiplus::Image>((pBmp));
+			// find the content
+			shared_ptr<CPageContent> pContent = mapContent.find( csContent );
 
-			CString csLayout = pPlot->Layout;
+			// request the content's image
+			shared_ptr<Gdiplus::Image> pImage = pContent->ImageContent;
+
+			// rotate depending on the layout
+			CString csLayout = page->Layout;
 			IMAGE_ROTATION ir = RotateNone;
 			if (csLayout != L"Half")
 			{
@@ -737,14 +734,14 @@ void CClimateExplorerView::RenderImagePage
 				}
 			}
 
+			// draw the image returned from the content
 			DrawImage(pDC, pImage, &imageRect, bSelected, ir);
-			RenderMargins(pDC, dLeftOfView, dTopOfView, dRightOfView, dBottomOfView);
 
-			//shared_ptr<Image> pImage = pDoc->FindImage(csTitle, csImage);
-			//if (pImage)
-			//{
-			//	DrawImage(pDC, pImage, pRect.get());
-			//}
+			// render the margins around the images on the page
+			RenderMargins
+			(
+				pDC, dLeftOfView, dTopOfView, dRightOfView, dBottomOfView
+			);
 		}
 	}
 
@@ -1477,23 +1474,30 @@ void CClimateExplorerView::OnUpdateBingMap(CCmdUI* pCmdUI)
 		}
 		else
 		{
-			pair < pair<int, int>, pair<int, int> >& pairSel = pDoc->SelectedPairs;
+			pair < pair<int, int>, pair<int, int> >& pairSel = 
+				pDoc->SelectedPairs;
 			pair<int, int> pairStart = pairSel.first;
 			pair<int, int> pairEnd = pairSel.second;
 			int nPlotStart = pairStart.second;
 			int nPlotEnd = pairEnd.second;
 			if (nPlotStart == nPlotEnd)
 			{
-				shared_ptr<CGraphPlotter> pPlot = pDoc->SelectedPlot[pairStart];
-				if (pPlot != nullptr)
+				shared_ptr<CPageContent> pContent = 
+					pDoc->SelectedContent[pairStart];
+				if (pContent != nullptr)
 				{
-					csStation = pPlot->Station;
-					if (!csStation.IsEmpty())
+					if (pContent->ContentType == CPageContent::ContentGraph)
 					{
-						Station = csStation;
-						Latitude = pPlot->Latitude;
-						Longitude = pPlot->Longitude;
-						pCmdUI->Enable();
+						CPageGraph* pGraph = (CPageGraph*)pContent.get();
+						shared_ptr<CGraphPlotter> pPlot = pGraph->Plot;
+						csStation = pPlot->Station;
+						if (!csStation.IsEmpty())
+						{
+							Station = csStation;
+							Latitude = pPlot->Latitude;
+							Longitude = pPlot->Longitude;
+							pCmdUI->Enable();
+						}
 					}
 				}
 			}

@@ -52,7 +52,7 @@ bool CPage::AddAnImage(shared_ptr<CGraphPlotter> pPlot)
 	shared_ptr<CPageGraph> pGraph = make_shared<CPageGraph>(pPlot, m_pDoc);
 
 	// replaces an image if it exists
-	m_arrPlots.add(csImage, pPlot, true);
+	//m_arrPlots.add(csImage, pPlot, true);
 	m_arrContent.add(csImage, pGraph, true);
 
 	return value;
@@ -72,7 +72,7 @@ vector<CRect> CPage::GetRectangles()
 	CString csLayout = Layout;
 
 	int nRect = 0;
-	for (auto& node : m_arrPlots.Items)
+	for (auto& node : m_arrContent.Items)
 	{
 		// initialize the image rectangle to the margin rectangle which 
 		// also applies to full page layout
@@ -248,10 +248,6 @@ void CPage::ReadXml(IXmlReader* pReader)
 				// Store it in the page’s content collection
 				m_arrContent.add(pContent->Title, pContent, true);
 				
-				// Add to legacy plot system (required for rendering)
-				auto pGraph = std::static_pointer_cast<CPageGraph>(pContent);
-				m_arrPlots.add(pContent->Title, *(pGraph->Plot), true);
-
 				continue;
 			}
 
@@ -329,10 +325,6 @@ void CPage::ReadXml(IXmlReader* pReader)
 			// Add to new content system
 			CString csTitle = pContent->Title;
 			m_arrContent.add(csTitle, pContent, true);
-
-			// Add to legacy plot system (required for rendering)
-			auto pGraph = std::static_pointer_cast<CPageGraph>(pContent);
-			m_arrPlots.add(csTitle, *(pGraph->Plot), true);
 
 			continue;
 		}

@@ -17,6 +17,8 @@
 //
 /////////////////////////////////////////////////////////////////////////////
 #pragma once
+#include "MainFrm.h"
+#include "ImagePlus.h"
 #include <afxstr.h>
 #include <xmllite.h>
 
@@ -41,6 +43,9 @@ protected:
 
 	// Title of the content
 	CString m_csTitle;
+
+	// image of the content
+	shared_ptr<Gdiplus::Image> m_pImageContent;
 
 public:
 	// Content type property
@@ -73,6 +78,19 @@ public:
 	__declspec(property(get = GetTitle, put = SetTitle))
 		CString Title;
 
+	// image of the content
+	virtual shared_ptr<Gdiplus::Image> GetImageContent()
+	{
+		return m_pImageContent;
+	}
+	// image of the content
+	void SetImageContent(shared_ptr<Gdiplus::Image> value)
+	{
+		m_pImageContent = value;
+	}
+	// image of the content
+	__declspec(property(get = GetImageContent, put = SetImageContent))
+		shared_ptr<Gdiplus::Image> ImageContent;
 
 public:
 	/////////////////////////////////////////////////////////////////////////////
