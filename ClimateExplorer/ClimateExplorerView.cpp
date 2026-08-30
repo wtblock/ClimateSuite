@@ -715,22 +715,49 @@ void CClimateExplorerView::RenderImagePage
 			// find the content
 			shared_ptr<CPageContent> pContent = mapContent.find( csContent );
 
+			// type of content affect the rotation rules
+			CPageContent::CONTENT_TYPE eType = pContent->ContentType;
+
 			// request the content's image
 			shared_ptr<Gdiplus::Image> pImage = pContent->ImageContent;
+
+			// rotation depend on the aspect ratio
+			bool bPortrait = CHelper::GetPortrait(pImage);
 
 			// rotate depending on the layout
 			CString csLayout = page->Layout;
 			IMAGE_ROTATION ir = RotateNone;
-			if (csLayout != L"Half")
+
+			if (bPortrait)
 			{
-				bool bOdd = CHelper::GetOdd(pDoc->Page);
-				if (bOdd)
+				// half layouts are landscape
+				if (csLayout == L"Half")
 				{
-					ir = RotateCCW;
+					bool bOdd = CHelper::GetOdd(pDoc->Page);
+					if (bOdd)
+					{
+						ir = RotateCCW;
+					}
+					else
+					{
+						ir = RotateCW;
+					}
 				}
-				else
+			}
+			else // landscape
+			{
+				// full and quarter layouts are portrait
+				if (csLayout != L"Half")
 				{
-					ir = RotateCW;
+					bool bOdd = CHelper::GetOdd(pDoc->Page);
+					if (bOdd)
+					{
+						ir = RotateCCW;
+					}
+					else
+					{
+						ir = RotateCW;
+					}
 				}
 			}
 

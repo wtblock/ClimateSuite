@@ -589,7 +589,7 @@ public:
 		bool value = false;
 		pair<int, int> pairStart = m_pairSelection.first;
 		int nPage = pairStart.first;
-		value = nPage != -1;
+		value = nPage >= 1;
 		return value;
 	}
 	// is there a selection?

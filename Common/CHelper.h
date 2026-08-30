@@ -1000,6 +1000,60 @@ public:
 	}
 
 	/////////////////////////////////////////////////////////////////////////////
+	// calculate the aspect ratio of given bitmap or zero on failure
+	static inline float GetAspectRatio(shared_ptr<Bitmap> pBitmap)
+	{
+		float value = 0.0f;
+
+		// Get image dimensions
+		int imgWidth = pBitmap->GetWidth();
+		int imgHeight = pBitmap->GetHeight();
+
+		value = GetAspectRatio(imgWidth, imgHeight);
+		return value;
+	}
+
+	/////////////////////////////////////////////////////////////////////////////
+	// return true if the image is portrait and false for landscape
+	static inline bool GetPortrait(shared_ptr<Bitmap> pBitmap)
+	{
+		// Get image dimensions
+		int imgWidth = pBitmap->GetWidth();
+		int imgHeight = pBitmap->GetHeight();
+
+		bool value = imgWidth <= imgHeight;
+
+		return value;
+	}
+
+	/////////////////////////////////////////////////////////////////////////////
+	// calculate the aspect ratio of given bitmap or zero on failure
+	static inline float GetAspectRatio(shared_ptr<Image> pImage)
+	{
+		float value = 0.0f;
+
+		// Get image dimensions
+		int imgWidth = pImage->GetWidth();
+		int imgHeight = pImage->GetHeight();
+
+		value = GetAspectRatio(imgWidth, imgHeight);
+		return value;
+	}
+
+	/////////////////////////////////////////////////////////////////////////////
+	// return true if the image is portrait and false for landscape
+	static inline bool GetPortrait(shared_ptr<Image> pImage)
+	{
+		// Get image dimensions
+		int imgWidth = pImage->GetWidth();
+		int imgHeight = pImage->GetHeight();
+
+		bool value = imgWidth <= imgHeight;
+
+		return value;
+	}
+
+	/////////////////////////////////////////////////////////////////////////////
 	// given a rectangle of the destination and the rectangle of the source,
 	// calculate the drawing rectangle that accounts for aspect ratio
 	static inline CRect GetDrawingRectangle
