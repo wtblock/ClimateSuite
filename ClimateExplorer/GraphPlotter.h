@@ -91,7 +91,7 @@ protected:
 	// -------------------------------------------------------------
 	// Graph text properties
 	// -------------------------------------------------------------
-	CString             m_csGraphTitle;
+	CString             m_csContentTitle;
 	CString             m_csAxisLabelX;
 	CString             m_csAxisLabelY;
 
@@ -554,15 +554,15 @@ public:
 	/////////////////////////////////////////////////////////////////////////////
 	// 
 	// The title of the graph
-	CString GetGraphTitle();
+	CString GetContentTitle();
 	// The title of the graph
-	void SetGraphTitle(CString value)
+	void SetContentTitle(CString value)
 	{
-		m_csGraphTitle = value;
+		m_csContentTitle = value;
 	}
 	// The title of the graph
-	__declspec(property(get = GetGraphTitle, put = SetGraphTitle))
-		CString GraphTitle;
+	__declspec(property(get = GetContentTitle, put = SetContentTitle))
+		CString ContentTitle;
 
 
 	// The label of the values on the X axis

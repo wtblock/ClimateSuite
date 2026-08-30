@@ -12,6 +12,7 @@
 #include <propkey.h>
 #include <set>
 #include "PageGraph.h"
+#include "PageImage.h"
 
 /////////////////////////////////////////////////////////////////////////////
 #pragma comment(lib, "xmllite.lib")
@@ -107,15 +108,15 @@ void CClimateExplorerDoc::InitializeProperties()
 	Subtype = L"Maximum";
 	ThresholdText = L"90";
 
-	Units = L"degF";
 	Output = L"Plot";
+	ContentTitle = L"Title";
 	Layout = L"Half";
 	Placement = L"Append";
+	Units = L"degF";
 
 	// -------------------------------------------------------------
 	// Plot Text
 	// -------------------------------------------------------------
-	GraphTitle = L"Title";
 	AxisLabelX = L"Year";
 	AxisLabelY = L"Value";
 
@@ -310,6 +311,15 @@ BOOL CClimateExplorerDoc::SaveCEx(CString& csPath)
 BOOL CClimateExplorerDoc::SaveCE(const CString& csPath)
 {
 	BOOL value = FALSE;
+
+	// -------------------------------------------------------------
+	// Make sure we are not holding the zip file open
+	// -------------------------------------------------------------
+	shared_ptr<CZipReader> pZipReader = ZipReader;
+	if (pZipReader && pZipReader->IsOpen)
+	{
+		pZipReader->Close();
+	}
 
 	// -------------------------------------------------------------
 	// Create CE ZIP file using CZipWriter
@@ -659,6 +669,14 @@ CKeyedCollection<UINT, UINT>& CClimateExplorerDoc::GetExportPageNumbers()
 void CClimateExplorerDoc::CopyPlotPropertiesToDocument(CGraphPlotter* pPlot)
 {
 	// -------------------------------------------------------------
+	// Render properties
+	// -------------------------------------------------------------
+	Output = pPlot->Output;
+	ContentTitle = pPlot->ContentTitle;
+	Layout = pPlot->Layout;
+	Units = pPlot->Units;
+	
+	// -------------------------------------------------------------
 	// Query properties
 	// -------------------------------------------------------------
 	Pure = pPlot->Pure;
@@ -667,15 +685,12 @@ void CClimateExplorerDoc::CopyPlotPropertiesToDocument(CGraphPlotter* pPlot)
 	YearEnd = pPlot->YearEnd;
 	Subtype = pPlot->Subtype;
 	Threshold = pPlot->Threshold;
-	Units = pPlot->Units;
-	Output = pPlot->Output;
 	State = pPlot->State;
 	Location = pPlot->Location;
 
 	// -------------------------------------------------------------
 	// Appearance: Titles and labels
 	// -------------------------------------------------------------
-	GraphTitle = pPlot->GraphTitle;
 	AxisLabelX = pPlot->AxisLabelX;
 	AxisLabelY = pPlot->AxisLabelY;
 
@@ -719,10 +734,8 @@ void CClimateExplorerDoc::CopyPlotPropertiesToDocument(CGraphPlotter* pPlot)
 	TickLengthInches = pPlot->TickLengthInches;
 
 	// -------------------------------------------------------------
-	// Layout
+	// Trend lines
 	// -------------------------------------------------------------
-	Layout = pPlot->Layout;
-
 	TrendOneEnable = pPlot->TrendOneEnable;
 	TrendOneColor = pPlot->TrendOneColor;
 	TrendOneStyle = pPlot->TrendOneStyle;
@@ -746,6 +759,86 @@ void CClimateExplorerDoc::CopyPlotPropertiesToDocument(CGraphPlotter* pPlot)
 	pProperties->UpdatePropertiesFromDocument(this);
 
 } // CopyPlotPropertiesToDocument
+
+/////////////////////////////////////////////////////////////////////////////
+// set the image number of the given page at the 
+// beginning or ending of the selection
+void CClimateExplorerDoc::SetSelectLimit(int nPage, int nImage)
+{
+	pair<int, int>& pairStart = m_pairSelection.first;
+	pair<int, int>& pairEnd = m_pairSelection.second;
+
+	// deselection?
+	if (nPage == -1)
+	{
+		pairStart.first = nPage;
+		pairStart.second = nImage;
+		pairEnd.first = nPage;
+		pairEnd.second = nImage;
+		return;
+	}
+
+	bool bShiftDown = CHelper::ShiftKeyDown();
+	bool bExtend = false;
+
+	// can only extend the selection if there is a valid
+	// image already selected and the new selection follows
+	// the first selection
+	if (bShiftDown && pairStart.first != -1)
+	{
+		bExtend =
+			(nPage == pairStart.first && nImage > pairStart.second) ||
+			nPage > pairStart.first;
+	}
+	if (bExtend)
+	{
+		pairEnd.first = nPage;
+		pairEnd.second = nImage;
+	}
+	else
+	{
+		pairStart.first = nPage;
+		pairStart.second = nImage;
+		pairEnd.first = nPage;
+		pairEnd.second = nImage;
+		shared_ptr<CPageContent> pContent = SelectedContent[pairStart];
+		if (pContent != nullptr)
+		{
+			CPageContent::CONTENT_TYPE eType = pContent->ContentType;
+			switch (eType)
+			{
+			case CPageContent::ContentGraph:
+			{
+				CPageGraph* pGraph = (CPageGraph*)pContent.get();
+				shared_ptr<CGraphPlotter> pPlot = pGraph->Plot;
+				CopyPlotPropertiesToDocument(pPlot.get());
+				Output = L"Plot";
+				break;
+			}
+			case CPageContent::ContentImage:
+				Output = L"Image";
+				ImagePath = pContent->ContentPath;
+				ContentTitle = pContent->ContentTitle;
+				break;
+			case CPageContent::ContentMD:
+				Output = L"MD";
+				break;
+			case CPageContent::ContentMap:
+				Output = L"Map";
+				break;
+			case CPageContent::ContentHTML:
+				Output = L"HTML";
+				break;
+			}
+
+			// signal the properties panel of the change
+			CMainFrame* pFrame = (CMainFrame*)AfxGetMainWnd();
+			CPropertiesWnd* pProps = pFrame->PropertiesPane;
+			pProps->UpdatePropertiesFromDocument(this);
+			pProps->ChangeOutput(Output);
+		}
+	}
+} // SetSelectLimit
 
 /////////////////////////////////////////////////////////////////////////////
 BOOL CClimateExplorerDoc::ReadXml(CComPtr<IStream> pStream)
@@ -1180,6 +1273,111 @@ void CClimateExplorerDoc::OnCloseDocument()
 } // OnCloseDocument
 
 /////////////////////////////////////////////////////////////////////////////
+void CClimateExplorerDoc::ExecuteImage()
+{
+	CString csPath = ImagePath;
+	if (!::PathFileExists(csPath))
+	{
+		CString csMessage;
+		csMessage.Format(L"Image pathname does not exist:\n\t%s", csPath);
+		AfxMessageBox(csMessage);
+		return;
+	}
+
+	CClimateExplorerView* pView = ClimateExplorerView;
+	if (pView == nullptr)
+	{
+		return;
+	}
+
+	// selection if any
+	pair < pair<int, int>, pair<int, int> > pairSel = SelectedPairs;
+	pair<int, int> pairFirst = pairSel.first;
+
+	CString csPlacement = Placement;
+	const bool bSingleSelection = SingleSelection;
+
+	int nPages = Pages;
+		
+	// page index is zero based
+	int nPage = nPages - 1;
+	int nContent = pairFirst.second;
+
+	// replace a matching selection if it exists
+	bool bReplace = false;
+	if (csPlacement == L"Replace" && bSingleSelection == true)
+	{
+		nPage = pairFirst.first - 1;
+		bReplace = true;
+	}
+	else if (csPlacement == L"Insert" && bSingleSelection == true)
+	{
+		nPage = pairFirst.first - 1;
+		ShiftPlotsDown();
+	}
+
+	shared_ptr<CPage> pPage = m_arrPages.get(nPage);
+
+	// critical: reorganzes rectangle and margins
+	pPage->Page = nPage + 1;
+
+	CString csTitle = ContentTitle;
+
+	// we are replacing the selected item?
+	if (bReplace)
+	{
+		CString csReplace;
+		int nReplace = 0;
+		for (auto& node : pPage->Content.Items)
+		{
+			csReplace = node.first;
+			if (nReplace++ == nContent)
+			{
+				break;
+			}
+		}
+		if (pPage->Content.Exists[csReplace])
+		{
+			pPage->Content.remove(csReplace);
+		}
+	}
+
+	// a title cannot be duplicated on a page, so if it exists
+	// on the page, replace it by first removing the existing
+	// plot on the page
+	if (pPage->Content.Exists[csTitle])
+	{
+		pPage->Content.remove(csTitle);
+	}
+
+	if (pPage->PageIsFull)
+	{
+		pPage = shared_ptr<CPage>
+			(new CPage(nPages + 1, Layout, this, CPage::pageGraph));
+		m_arrPages.append(pPage);
+		Pages = (UINT)m_arrPages.Count;
+		nPages = Pages;
+		nPage = nPages - 1;
+	}
+
+	double dPageHeight = HeightOfPage;
+	Page = pPage->Page;
+	double dTop = dPageHeight * nPage;
+	pView->TopOfView = dTop;
+	pView->SetupScrollBars();
+	pView->Invalidate();
+
+	CRect rect = MarginRectangle;
+	pPage->Rect = rect;
+
+	pPage->AddImagePath(csPath);
+
+	// 5. Mark document modified (optional)
+	SetModifiedFlag(TRUE);
+
+} // ExecuteImage
+
+/////////////////////////////////////////////////////////////////////////////
 void CClimateExplorerDoc::ExecuteQuery(bool bProgress/* = true*/)
 {
 	CClimateExplorerView* pView = ClimateExplorerView;
@@ -1347,7 +1545,7 @@ void CClimateExplorerDoc::ExecuteQuery(bool bProgress/* = true*/)
 		// 4. Execute the query to generate output
 		ExecutePickerQuery();
 
-		CString csTitle, csState, csCity, csStation;
+		CString csState, csCity, csStation;
 		float fLatitude = 0, fLongitude = 0;
 		if (csScope == L"Location")
 		{
@@ -1371,7 +1569,6 @@ void CClimateExplorerDoc::ExecuteQuery(bool bProgress/* = true*/)
 		shared_ptr<CGraphPlotter> pPlot =
 			shared_ptr<CGraphPlotter>(new CGraphPlotter(this, Years, Values));
 
-		csTitle = pPlot->GraphTitle;
 		pPlot->Station = csStation;
 		pPlot->Latitude = fLatitude;
 		pPlot->Longitude = fLongitude;
@@ -1380,11 +1577,14 @@ void CClimateExplorerDoc::ExecuteQuery(bool bProgress/* = true*/)
 		
 		// page index is zero based
 		int nPage = nPages - 1;
+		int nContent = pairFirst.second;
 
 		// replace a matching selection if it exists
+		bool bReplace = false;
 		if (csPlacement == L"Replace" && bSingleSelection == true)
 		{
 			nPage = pairFirst.first - 1;
+			bReplace = true;
 		}
 		else if (csPlacement == L"Insert" && bSingleSelection == true)
 		{
@@ -1396,6 +1596,26 @@ void CClimateExplorerDoc::ExecuteQuery(bool bProgress/* = true*/)
 
 		// critical: reorganzes rectangle and margins
 		pPage->Page = nPage + 1;
+		CString csTitle = pPlot->ContentTitle;
+
+		// we are replacing the selected item?
+		if (bReplace)
+		{
+			CString csReplace;
+			int nReplace = 0;
+			for (auto& node : pPage->Content.Items)
+			{
+				csReplace = node.first;
+				if (nReplace++ == nContent)
+				{
+					break;
+				}
+			}
+			if (pPage->Content.Exists[csReplace])
+			{
+				pPage->Content.remove(csReplace);
+			}
+		}
 
 		// a title cannot be duplicated on a page, so if it exists
 		// on the page, replace it by first removing the existing
@@ -1450,7 +1670,15 @@ void CClimateExplorerDoc::ExecuteQuery(bool bProgress/* = true*/)
 /////////////////////////////////////////////////////////////////////////////
 void CClimateExplorerDoc::OnExecuteQuery()
 {
-	ExecuteQuery();
+	CString csOutput = Output;
+	if (csOutput == L"Image")
+	{
+		ExecuteImage();
+	}
+	else
+	{
+		ExecuteQuery();
+	}
 	AdjustForTOC();
 
 } // OnExecuteQuery

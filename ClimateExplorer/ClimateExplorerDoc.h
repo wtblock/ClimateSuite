@@ -228,17 +228,26 @@ protected:
 	// 4J. Threshold (90F, 95F, ... 125F) temperatures to count
 	int m_nThreshold;
 
-	// 5A. Units (degF, degC, raw)
-	CString m_csUnits;
-
-	// 5B. Output (Plot, Table, Map + Plot)
+	/////////////////////////////////////////////////////////////////////////////
+	// render properties
+	/////////////////////////////////////////////////////////////////////////////
+	// 5B. Output (Plot, Image, Map, MD, and HTML)
 	CString m_csOutput;
+
+	// title of the content
+	CString m_csContentTitle;
 
 	// 5C. Layout (Full, Half, Quarter)
 	CString m_csLayout;
 
 	// 5D. Placement (append, insert, or replace)
 	CString m_csPlacement;
+
+	// 5A. Units (degF, degC, raw)
+	CString m_csUnits;
+
+	// pathname of the image content
+	CString m_csImagePath;
 
 	/////////////////////////////////////////////////////////////////////////////
 	// graph properties
@@ -247,7 +256,6 @@ protected:
 	// -------------------------------------------------------------
 	// Graph text properties
 	// -------------------------------------------------------------
-	CString             m_csGraphTitle;
 	CString             m_csAxisLabelX;
 	CString             m_csAxisLabelY;
 
@@ -728,56 +736,7 @@ public:
 	}
 	// set the image number of the given page at the 
 	// beginning or ending of the selection
-	void SetSelectLimit(int nPage, int nImage)
-	{
-		pair<int, int>& pairStart = m_pairSelection.first;
-		pair<int, int>& pairEnd = m_pairSelection.second;
-
-		// deselection?
-		if (nPage == -1)
-		{
-			pairStart.first = nPage;
-			pairStart.second = nImage;
-			pairEnd.first = nPage;
-			pairEnd.second = nImage;
-			return;
-		}
-
-		bool bShiftDown = CHelper::ShiftKeyDown();
-		bool bExtend = false;
-
-		// can only extend the selection if there is a valid
-		// image already selected and the new selection follows
-		// the first selection
-		if (bShiftDown && pairStart.first != -1)
-		{
-			bExtend =
-				(nPage == pairStart.first && nImage > pairStart.second) ||
-				nPage > pairStart.first;
-		}
-		if (bExtend)
-		{
-			pairEnd.first = nPage;
-			pairEnd.second = nImage;
-		}
-		else
-		{
-			pairStart.first = nPage;
-			pairStart.second = nImage;
-			pairEnd.first = nPage;
-			pairEnd.second = nImage;
-			shared_ptr<CPageContent> pContent = SelectedContent[pairStart];
-			if (pContent != nullptr)
-			{
-				if (pContent->ContentType == CPageContent::ContentGraph)
-				{
-					CPageGraph* pGraph = (CPageGraph*)pContent.get();
-					shared_ptr<CGraphPlotter> pPlot = pGraph->Plot;
-					CopyPlotPropertiesToDocument(pPlot.get());
-				}
-			}
-		}
-	}
+	void SetSelectLimit(int nPage, int nImage);
 	// select an image on a given page number
 	__declspec(property(get = GetSelectLimit, put = SetSelectLimit))
 		int SelectLimit[];
@@ -1522,6 +1481,20 @@ public:
 	__declspec(property(get = GetPlacement, put = SetPlacement))
 		CString Placement;
 
+	// pathname of the image content
+	CString GetImagePath()
+	{
+		return m_csImagePath;
+	}
+	// pathname of the image content
+	void SetImagePath(CString value)
+	{
+		m_csImagePath = value;
+	}
+	// pathname of the image content
+	__declspec(property(get = GetImagePath, put = SetImagePath))
+		CString ImagePath;
+
 	// format the given value based on current units
 	CString GetFormatValue(double value)
 	{
@@ -1573,18 +1546,18 @@ public:
 	/////////////////////////////////////////////////////////////////////////////
 	
 	// The title of the graph
-	CString GetGraphTitle()
+	CString GetContentTitle()
 	{
-		return m_csGraphTitle;
+		return m_csContentTitle;
 	}
 	// The title of the graph
-	void SetGraphTitle(CString value)
+	void SetContentTitle(CString value)
 	{
-		m_csGraphTitle = value;
+		m_csContentTitle = value;
 	}
 	// The title of the graph
-	__declspec(property(get = GetGraphTitle, put = SetGraphTitle))
-		CString GraphTitle;
+	__declspec(property(get = GetContentTitle, put = SetContentTitle))
+		CString ContentTitle;
 
 	// The label of the values on the X axis
 	CString GetAxisLabelX()
@@ -2296,8 +2269,8 @@ protected:
 	void FormatStationCSV();
 
 	// -------------------------------------------------------------
-// Formatting helpers
-// -------------------------------------------------------------
+	// Formatting helpers
+	// -------------------------------------------------------------
 	CString FormatInt(int value)
 	{
 		CString cs;
@@ -2353,6 +2326,8 @@ protected:
 	}
 
 	void ExecuteQuery(bool bProgres = true);
+
+	void ExecuteImage();
 
 	void WriteHeaderElement(IXmlWriter* pWriter, LPCWSTR name, const CString& value)
 	{

@@ -92,10 +92,20 @@ protected:
 
 	CMFCPropertyGridProperty* m_pTableOfContents     = nullptr;
 
-	CMFCPropertyGridProperty* m_pPropQueryType       = nullptr;
-	CMFCPropertyGridProperty* m_pPropNaturalLanguage = nullptr;
-	CMFCPropertyGridProperty* m_pPropSQL             = nullptr;
+	// render properties
+	CMFCPropertyGridProperty* m_pPropOutput          = nullptr;
+	CMFCPropertyGridProperty* m_pPropContentTitle    = nullptr;
+	CMFCPropertyGridFileProperty* m_pPropImagePath   = nullptr;
+	CMFCPropertyGridProperty* m_pPropLayout          = nullptr;
+	CMFCPropertyGridProperty* m_pPropPlacement       = nullptr;
 	CMFCPropertyGridProperty* m_pPropUnits           = nullptr;
+
+	// Export Properties
+	CMFCPropertyGridFileProperty* m_pPropExportFolder = nullptr;
+
+	// Query Properties
+	CMFCPropertyGridProperty* m_pQueryGroup          = nullptr;
+
 	CMFCPropertyGridProperty* m_pPropPure            = nullptr;
 	CMFCPropertyGridProperty* m_pPropScope           = nullptr;
 	CMFCPropertyGridProperty* m_pPropState           = nullptr;
@@ -104,11 +114,10 @@ protected:
 	CMFCPropertyGridProperty* m_pPropYearEnd         = nullptr;
 	CMFCPropertyGridProperty* m_pPropType            = nullptr;
 	CMFCPropertyGridProperty* m_pPropThreshold       = nullptr;
-	CMFCPropertyGridProperty* m_pPropOutput          = nullptr;
-	CMFCPropertyGridProperty* m_pPropLayout          = nullptr;
-	CMFCPropertyGridProperty* m_pPropPlacement       = nullptr;
-												     
-	CMFCPropertyGridProperty* m_pPropGraphTitle      = nullptr;
+	
+	// Graph properties
+	CMFCPropertyGridProperty* m_pGraphGroup          = nullptr;
+
 	CMFCPropertyGridProperty* m_pPropAxisLabelX      = nullptr;
 	CMFCPropertyGridProperty* m_pPropAxisLabelY      = nullptr;
 												     
@@ -132,6 +141,9 @@ protected:
 	CMFCPropertyGridProperty* m_pPropRightPad        = nullptr;
 	CMFCPropertyGridProperty* m_pPropTopPad          = nullptr;
 	CMFCPropertyGridProperty* m_pPropBottomPad       = nullptr;
+
+	// Trend properties -- not storing individual properties
+	CMFCPropertyGridProperty* m_pTrendGroup          = nullptr;
 
 // public properties
 public:
@@ -158,6 +170,9 @@ public:
 
 // public methods
 public:
+	// change the output from an external event like a selection change
+	void ChangeOutput(CString value);
+
 	// enable / disable picker controls
 	void EnablePickers(BOOL bEnable = TRUE)
 	{
@@ -215,6 +230,8 @@ protected:
 	void InitRenderProperties();
 	void InitGraphProperties();
 	void InitTrendProperties();
+	void InitImageProperties();
+
 	void InitPropList();
 	void SetPropListFont();
 

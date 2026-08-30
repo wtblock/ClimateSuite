@@ -118,7 +118,7 @@ void CGraphPlotter::SetDefaults(CClimateExplorerDoc* pDoc)
 	// -------------------------------------------------------------
 	// Title and labels
 	// -------------------------------------------------------------
-	GraphTitle = pDoc->GraphTitle;
+	ContentTitle = pDoc->ContentTitle;
 	AxisLabelX = pDoc->AxisLabelX;
 	AxisLabelY = pDoc->AxisLabelY;
 
@@ -208,13 +208,13 @@ void CGraphPlotter::GetDefaults(CClimateExplorerDoc* pDoc)
 	pDoc->State = State;
 	pDoc->Location = Location;
 	pDoc->Layout = Layout;
-	pDoc->GraphTitle = GraphTitle;
+	pDoc->ContentTitle = ContentTitle;
 
 } // GetDefaults
 
 /////////////////////////////////////////////////////////////////////////////
 // The title of the graph
-CString CGraphPlotter::GetGraphTitle()
+CString CGraphPlotter::GetContentTitle()
 {
 	CString value;
 
@@ -288,11 +288,11 @@ CString CGraphPlotter::GetGraphTitle()
 		}
 	}
 
-	GraphTitle = value;
+	ContentTitle = value;
 
 	return value;
 
-} // GetGraphTitle
+} // GetContentTitle
 
 /////////////////////////////////////////////////////////////////////////////
 // BuildPickerSQL
@@ -2082,7 +2082,7 @@ void CGraphPlotter::DrawTitle
 		(REAL)verticalOffset
 	);
 
-	CString csTitle = GraphTitle;
+	CString csTitle = ContentTitle;
 
 	g.DrawString
 	(

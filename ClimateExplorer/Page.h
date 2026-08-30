@@ -7,6 +7,7 @@
 #include "CHelper.h"
 #include <xmllite.h>
 #include "PageContent.h"
+#include "PageImage.h"
 
 /////////////////////////////////////////////////////////////////////////////
 class CClimateExplorerDoc;
@@ -468,7 +469,7 @@ public:
 			{
 				shared_ptr<CPageContent> pContent = 
 					m_arrContent.Items.begin()->second;
-				value = pContent->Title;
+				value = pContent->ContentTitle;
 			}
 		}
 		return value;
@@ -509,6 +510,8 @@ public:
 
 	// add an image to the page
 	bool AddAnImage(shared_ptr<CGraphPlotter> pPlot);
+	// add an image to the page
+	bool AddImagePath(CString csPath);
 
 	// render the image rectangles
 	void RenderImageRectangles(CDC* pDC)

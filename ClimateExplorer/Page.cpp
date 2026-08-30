@@ -39,9 +39,30 @@ CPage::CPage
 
 /////////////////////////////////////////////////////////////////////////////
 // add an image to the page
+bool CPage::AddImagePath(CString csPath)
+{
+	CString csImage = m_pDoc->ContentTitle;
+	bool value = false;
+	if (PageIsFull)
+	{
+		return value;
+	}
+
+	shared_ptr<CPageImage> pImage = make_shared<CPageImage>(m_pDoc);
+	pImage->ContentTitle = csImage;
+	pImage->ContentPath = csPath;
+
+	// replaces an image if it exists
+	m_arrContent.add(csImage, pImage, true);
+
+	return value;
+} // AddImagePath
+
+/////////////////////////////////////////////////////////////////////////////
+// add an image to the page
 bool CPage::AddAnImage(shared_ptr<CGraphPlotter> pPlot)
 {
-	CString csImage = pPlot->GraphTitle;
+	CString csImage = pPlot->ContentTitle;
 	bool value = false;
 	if (PageIsFull)
 	{
@@ -52,7 +73,6 @@ bool CPage::AddAnImage(shared_ptr<CGraphPlotter> pPlot)
 	shared_ptr<CPageGraph> pGraph = make_shared<CPageGraph>(pPlot, m_pDoc);
 
 	// replaces an image if it exists
-	//m_arrPlots.add(csImage, pPlot, true);
 	m_arrContent.add(csImage, pGraph, true);
 
 	return value;
@@ -246,13 +266,23 @@ void CPage::ReadXml(IXmlReader* pReader)
 				pContent->ReadXml(pReader);
 
 				// Store it in the page’s content collection
-				m_arrContent.add(pContent->Title, pContent, true);
+				m_arrContent.add(pContent->ContentTitle, pContent, true);
 				
 				continue;
 			}
-
 			else if (wcscmp(pwszAttrValue, L"Picture") == 0)
-				PageType = pageImage;
+			{
+				// Create a CPageGraph that owns a CGraphPlotter
+				pContent = std::make_shared<CPageImage>(m_pDoc);
+
+				// Let the content read its XML subtree
+				pContent->ReadXml(pReader);
+
+				// Store it in the page’s content collection
+				m_arrContent.add(pContent->ContentTitle, pContent, true);
+
+				continue;
+			}
 
 			else if (wcscmp(pwszAttrValue, L"MD") == 0)
 				PageType = pageMD;
@@ -323,14 +353,24 @@ void CPage::ReadXml(IXmlReader* pReader)
 			pContent->ReadXml(pReader);
 
 			// Add to new content system
-			CString csTitle = pContent->Title;
+			CString csTitle = pContent->ContentTitle;
 			m_arrContent.add(csTitle, pContent, true);
 
 			continue;
 		}
 		else if (wcscmp(pwszLocalName, L"Picture") == 0)
 		{
-			pContent = std::make_shared<CPageImage>();
+			// Correct constructor
+			pContent = std::make_shared<CPageImage>(m_pDoc);
+
+			// Read picker + appearance + SQL
+			pContent->ReadXml(pReader);
+
+			// Add to new content system
+			CString csTitle = pContent->ContentTitle;
+			m_arrContent.add(csTitle, pContent, true);
+
+			continue;
 		}
 		else if (wcscmp(pwszLocalName, L"MD") == 0)
 		{
@@ -353,7 +393,7 @@ void CPage::ReadXml(IXmlReader* pReader)
 		if (pContent != nullptr)
 		{
 			pContent->ReadXml(pReader);
-			CString csTitle = pContent->Title;
+			CString csTitle = pContent->ContentTitle;
 			m_arrContent.add(csTitle, pContent, true);
 		}
 	}

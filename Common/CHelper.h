@@ -1921,6 +1921,61 @@ public:
 	static CString GetXPCommentFromFile(const CString& absPath);
 
 	/////////////////////////////////////////////////////////////////////////////
+	// copy a source image to a destination image
+	static Gdiplus::Image* CopyImage(Gdiplus::Image* pSrc)
+	{
+		if (!pSrc) return nullptr;
+
+		const UINT w = pSrc->GetWidth();
+		const UINT h = pSrc->GetHeight();
+
+		Gdiplus::Bitmap* pDst = new Gdiplus::Bitmap(w, h, pSrc->GetPixelFormat());
+		Gdiplus::Graphics g(pDst);
+
+		g.DrawImage(pSrc, 0, 0, w, h);
+		return pDst;
+	}
+
+	/////////////////////////////////////////////////////////////////////////////
+	// EncodeBitmapToJpegMemory
+	//
+	// Encodes a GDI+ Bitmap into a JPEG byte buffer entirely in memory.
+	//
+	// Purpose:
+	//   ClimateExplorer’s PDF export pipeline requires each rendered page to be
+	//   embedded as a JPEG *without* writing temporary files to disk. GDI+
+	//   normally saves images only to filenames or streams, so this helper
+	//   creates an in‑memory IStream, saves the Bitmap into it using the JPEG
+	//   encoder, and then copies the encoded bytes into a std::vector<BYTE>.
+	//
+	// Why this exists:
+	//   • PDF export needs raw JPEG bytes for AddPageFromJpegMemory().
+	//   • Avoids temporary JPEG files on disk (faster, cleaner, no I/O churn).
+	//   • Works uniformly for any DPI or page size.
+	//   • Allows configurable JPEG quality (default 90%).
+	//
+	// Behavior:
+	//   1. Locates the JPEG encoder CLSID.
+	//   2. Creates an in‑memory COM stream (HGLOBAL‑backed).
+	//   3. Saves the Bitmap into the stream using the specified quality.
+	//   4. Reads the encoded JPEG bytes into outBuffer.
+	//   5. Returns true on success.
+	//
+	// Used by:
+	//   • CClimateExplorerView::ExportDocument() when exporting PDF pages.
+	//   • CPdfWriter::AddPageFromJpegMemory() to embed page images directly.
+	//
+	// This routine is a key part of the high‑DPI, file‑free PDF export path.
+	/////////////////////////////////////////////////////////////////////////////
+	static bool EncodeBitmapToMemory
+	(
+		Gdiplus::Bitmap* bmp,
+		const WCHAR* mimeType,       // e.g. L"image/png", L"image/jpeg"
+		std::vector<BYTE>& outBuffer,
+		ULONG quality = 50           // used only for JPEG
+	);
+
+	/////////////////////////////////////////////////////////////////////////////
 	CHelper()
 	{
 	}

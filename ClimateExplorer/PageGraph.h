@@ -30,7 +30,8 @@ protected:
 	///////////////////////////////////////////////////////////////////////////
 	std::shared_ptr<CGraphPlotter> m_pPlot;
 
-	CString m_csTitle;
+	// Title of the content
+	CString m_csContentTitle;
 
 	CClimateExplorerDoc* m_pDoc;
 
@@ -52,22 +53,22 @@ public:
 		std::shared_ptr<CGraphPlotter> Plot;
 
 	// Title of the content
-	virtual CString GetTitle()
+	virtual CString GetContentTitle()
 	{
 		if (m_pPlot != nullptr)
 		{
-			m_csTitle = m_pPlot->GraphTitle;
+			m_csContentTitle = m_pPlot->ContentTitle;
 		}
-		return m_csTitle;
+		return m_csContentTitle;
 	}
 	// Title of the content
-	void SetTitle(CString value)
+	void SetContentTitle(CString value)
 	{
-		m_csTitle = value;
+		m_csContentTitle = value;
 	}
 	// Title of the content
-	__declspec(property(get = GetTitle, put = SetTitle))
-		CString Title;
+	__declspec(property(get = GetContentTitle, put = SetContentTitle))
+		CString ContentTitle;
 
 	// image of the content
 	virtual shared_ptr<Gdiplus::Image> GetImageContent();

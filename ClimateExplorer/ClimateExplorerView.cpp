@@ -848,100 +848,6 @@ void CClimateExplorerView::render
 } // render
 
 /////////////////////////////////////////////////////////////////////////////
-// EncodeBitmapToJpegMemory
-//
-// Encodes a GDI+ Bitmap into a JPEG byte buffer entirely in memory.
-//
-// Purpose:
-//   ClimateExplorer’s PDF export pipeline requires each rendered page to be
-//   embedded as a JPEG *without* writing temporary files to disk. GDI+
-//   normally saves images only to filenames or streams, so this helper
-//   creates an in‑memory IStream, saves the Bitmap into it using the JPEG
-//   encoder, and then copies the encoded bytes into a std::vector<BYTE>.
-//
-// Why this exists:
-//   • PDF export needs raw JPEG bytes for AddPageFromJpegMemory().
-//   • Avoids temporary JPEG files on disk (faster, cleaner, no I/O churn).
-//   • Works uniformly for any DPI or page size.
-//   • Allows configurable JPEG quality (default 90%).
-//
-// Behavior:
-//   1. Locates the JPEG encoder CLSID.
-//   2. Creates an in‑memory COM stream (HGLOBAL‑backed).
-//   3. Saves the Bitmap into the stream using the specified quality.
-//   4. Reads the encoded JPEG bytes into outBuffer.
-//   5. Returns true on success.
-//
-// Used by:
-//   • CClimateExplorerView::ExportDocument() when exporting PDF pages.
-//   • CPdfWriter::AddPageFromJpegMemory() to embed page images directly.
-//
-// This routine is a key part of the high‑DPI, file‑free PDF export path.
-/////////////////////////////////////////////////////////////////////////////
-bool EncodeBitmapToJpegMemory
-(
-	Gdiplus::Bitmap* bmp,
-	std::vector<BYTE>& outBuffer,
-	ULONG quality = 90
-)
-{
-	if (!bmp)
-		return false;
-
-	CLSID clsidEncoder;
-	UINT numEncoders = 0, size = 0;
-
-	Gdiplus::GetImageEncodersSize(&numEncoders, &size);
-	if (size == 0)
-		return false;
-
-	std::vector<BYTE> buffer(size);
-	Gdiplus::ImageCodecInfo* pInfo =
-		reinterpret_cast<Gdiplus::ImageCodecInfo*>(buffer.data());
-
-	Gdiplus::GetImageEncoders(numEncoders, size, pInfo);
-
-	for (UINT i = 0; i < numEncoders; i++)
-	{
-		if (wcscmp(pInfo[i].MimeType, L"image/jpeg") == 0)
-		{
-			clsidEncoder = pInfo[i].Clsid;
-			break;
-		}
-	}
-
-	// JPEG quality parameter
-	Gdiplus::EncoderParameters params;
-	params.Count = 1;
-	params.Parameter[0].Guid = Gdiplus::EncoderQuality;
-	params.Parameter[0].Type = Gdiplus::EncoderParameterValueTypeLong;
-	params.Parameter[0].NumberOfValues = 1;
-	params.Parameter[0].Value = &quality;
-
-	// Create memory stream
-	IStream* pStream = nullptr;
-	CreateStreamOnHGlobal(NULL, TRUE, &pStream);
-
-	// Encode into stream
-	bmp->Save(pStream, &clsidEncoder, &params);
-
-	// Extract bytes
-	STATSTG stat;
-	pStream->Stat(&stat, STATFLAG_NONAME);
-
-	outBuffer.resize((size_t)stat.cbSize.QuadPart);
-
-	LARGE_INTEGER zero = {};
-	pStream->Seek(zero, STREAM_SEEK_SET, NULL);
-
-	ULONG bytesRead = 0;
-	pStream->Read(outBuffer.data(), (ULONG)outBuffer.size(), &bytesRead);
-
-	pStream->Release();
-	return true;
-}
-
-/////////////////////////////////////////////////////////////////////////////
 // ExportDocument
 //
 // High‑DPI export engine for JPEG and PDF.
@@ -1120,7 +1026,10 @@ void CClimateExplorerView::ExportDocument()
 		if (bExportPDF)
 		{
 			std::vector<BYTE> jpegBuffer;
-			EncodeBitmapToJpegMemory(&bitmap, jpegBuffer, ulQuality);
+			CHelper::EncodeBitmapToMemory
+			(
+				&bitmap, L"image/jpeg", jpegBuffer, ulQuality
+			);
 
 			pdf.AddPageFromJpegMemory
 			(

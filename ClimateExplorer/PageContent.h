@@ -42,7 +42,10 @@ protected:
 	CONTENT_TYPE m_eContentType;
 
 	// Title of the content
-	CString m_csTitle;
+	CString m_csContentTitle;
+
+	// path of the content
+	CString m_csContentPath;
 
 	// image of the content
 	shared_ptr<Gdiplus::Image> m_pImageContent;
@@ -65,18 +68,32 @@ public:
 		CONTENT_TYPE ContentType;
 
 	// Title of the content
-	virtual CString GetTitle()
+	virtual CString GetContentTitle()
 	{
-		return m_csTitle;
+		return m_csContentTitle;
 	}
 	// Title of the content
-	void SetTitle(CString value)
+	void SetContentTitle(CString value)
 	{
-		m_csTitle = value;
+		m_csContentTitle = value;
 	}
 	// Title of the content
-	__declspec(property(get = GetTitle, put = SetTitle))
-		CString Title;
+	__declspec(property(get = GetContentTitle, put = SetContentTitle))
+		CString ContentTitle;
+
+	// path of the content
+	virtual CString GetContentPath()
+	{
+		return m_csContentPath;
+	}
+	// path of the content
+	void SetContentPath(CString value)
+	{
+		m_csContentPath = value;
+	}
+	// path of the content
+	__declspec(property(get = GetContentPath, put = SetContentPath))
+		CString ContentPath;
 
 	// image of the content
 	virtual shared_ptr<Gdiplus::Image> GetImageContent()

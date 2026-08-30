@@ -804,7 +804,7 @@ void CPageGraph::WritePickerXml(IXmlWriter* pWriter)
 	W(L"Station", m_pPlot->Station);
 	W(L"Latitude", FormatDouble(m_pPlot->Latitude));
 	W(L"Longitude", FormatDouble(m_pPlot->Longitude));
-	W(L"Title", m_pPlot->GraphTitle);
+	W(L"Title", m_pPlot->ContentTitle);
 
 	pWriter->WriteEndElement(); // </Picker>
 } // WritePickerXml

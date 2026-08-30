@@ -3,7 +3,7 @@
 /////////////////////////////////////////////////////////////////////////////
 #include "pch.h"
 #include "framework.h"
-
+#include "CHelper.h"
 #include "PropertiesWnd.h"
 #include "Resource.h"
 #include "MainFrm.h"
@@ -235,6 +235,15 @@ void CPropertiesWnd::PopulateThresholdForUnits()
 } // PopulateThresholdForUnits
 
 /////////////////////////////////////////////////////////////////////////////
+// change the output from an external event like a selection change
+void CPropertiesWnd::ChangeOutput(CString value)
+{
+	m_pPropOutput->SetValue(_variant_t(value));
+	OnPropertyChange((UINT_PTR)nullptr, (LONG_PTR)m_pPropOutput);
+
+} // ChangeOutput
+
+/////////////////////////////////////////////////////////////////////////////
 LRESULT CPropertiesWnd::OnPropertyChange
 (
 	WPARAM /*WP*/, // not used
@@ -319,7 +328,26 @@ LRESULT CPropertiesWnd::OnPropertyChange
 	{
 		if (csName == L"Export Folder")
 		{
-			pDoc->ExportFolder = CString(varIn);
+			CString csFolder = CString(varIn);
+			CString csRelative = CHelper::ToRelative(csFolder);
+			csRelative.TrimRight(L"\\");
+			csRelative += L"\\";
+
+			if (::PathFileExists(csRelative))
+			{
+				pDoc->ExportFolder = csRelative;
+				m_pPropExportFolder->SetValue(_variant_t(csRelative));
+			}
+			else
+			{
+				CString csMessage;
+				csMessage.Format
+				(
+					L"Pathname does not exist:\n%s",
+					csRelative
+				);
+				AfxMessageBox(csMessage);
+			}
 		}
 		else if (csName == L"Export Pages")
 		{
@@ -344,6 +372,86 @@ LRESULT CPropertiesWnd::OnPropertyChange
 				csQuality = L"75";
 			}
 			pDoc->ExportQuality = (UINT)_tstol(csQuality);
+		}
+	}
+	else if (csGroup == L"Render Properties")
+	{
+		if (csName == L"Output")
+		{
+			CString value = CString(varIn);
+			pDoc->Output = value;
+			value.MakeLower();
+			if (value == L"plot")
+			{
+				m_pTrendGroup->Show();
+				m_pGraphGroup->Show();
+				m_pQueryGroup->Show(); 
+			}
+			else
+			{
+				m_pTrendGroup->Show(FALSE);
+				m_pGraphGroup->Show(FALSE);
+				m_pQueryGroup->Show(FALSE);
+			}
+
+			// there will eventually be multiple paths for 
+			// different types: MD, MAP, and HTML
+			if (value == L"image")
+			{
+				m_pPropImagePath->Show();
+			}
+			else
+			{
+				m_pPropImagePath->Show(FALSE);
+			}
+		}
+		else if (csName == L"Content Title")
+		{
+			pDoc->ContentTitle = CString(varIn);
+		}
+		if (csName == L"Select an Image")
+		{
+			CString csPath = CString(varIn);
+			if (csPath != pDoc->ImagePath)
+			{
+				CString csRelative = CHelper::ToRelative(csPath);
+
+				if (::PathFileExists(csRelative))
+				{
+					pDoc->ImagePath = csRelative;
+					m_pPropImagePath->SetValue(_variant_t(csRelative));
+					CString csFile = CHelper::GetFileName(csPath);
+					CString csTitle = m_pPropContentTitle->GetValue().bstrVal;
+					if (csTitle.IsEmpty() || csTitle == L"Title")
+					{
+						m_pPropContentTitle->SetValue(_variant_t(csFile));
+						pDoc->ContentTitle = csFile;
+					}
+				}
+				else
+				{
+					CString csMessage;
+					csMessage.Format
+					(
+						L"Pathname does not exist:\n%s",
+						csRelative
+					);
+					AfxMessageBox(csMessage);
+				}
+			}
+		}
+		else if (csName == L"Layout")
+		{
+			pDoc->Layout = CString(varIn);
+		}
+		else if (csName == L"Placement")
+		{
+			pDoc->Placement = CString(varIn);
+		}
+		else if (csName == L"Units")
+		{
+			pDoc->Units = CString(varIn);
+			PopulateThresholdForUnits();
 		}
 	}
 	else if (csGroup == L"Query Properties")
@@ -393,7 +501,7 @@ LRESULT CPropertiesWnd::OnPropertyChange
 			}
 
 			CString csTitle = pDoc->Title;
-			m_pPropGraphTitle->SetValue(csTitle);
+			m_pPropContentTitle->SetValue(csTitle);
 
 			m_wndPropList.RedrawWindow();
 		}
@@ -402,7 +510,7 @@ LRESULT CPropertiesWnd::OnPropertyChange
 			HandleStateChanged(pProp);
 
 			CString csTitle = pDoc->Title;
-			m_pPropGraphTitle->SetValue(csTitle);
+			m_pPropContentTitle->SetValue(csTitle);
 
 			m_wndPropList.RedrawWindow();
 		}
@@ -411,7 +519,7 @@ LRESULT CPropertiesWnd::OnPropertyChange
 			pDoc->Location = CString(varIn);
 
 			CString csTitle = pDoc->Title;
-			m_pPropGraphTitle->SetValue(csTitle);
+			m_pPropContentTitle->SetValue(csTitle);
 
 			m_wndPropList.RedrawWindow();
 		}
@@ -498,7 +606,7 @@ LRESULT CPropertiesWnd::OnPropertyChange
 			}
 
 			CString csTitle = pDoc->Title;
-			m_pPropGraphTitle->SetValue(csTitle);
+			m_pPropContentTitle->SetValue(csTitle);
 
 			m_wndPropList.RedrawWindow();
 		}
@@ -507,50 +615,14 @@ LRESULT CPropertiesWnd::OnPropertyChange
 			pDoc->ThresholdText = CString(varIn);
 
 			CString csTitle = pDoc->Title;
-			m_pPropGraphTitle->SetValue(csTitle);
+			m_pPropContentTitle->SetValue(csTitle);
 
 			m_wndPropList.RedrawWindow();
 		}
 	}
-	else if (csGroup == L"Render Properties")
-	{
-		if (csName == L"Units")
-		{
-			pDoc->Units = CString(varIn);
-			PopulateThresholdForUnits();
-		}
-		else if (csName == L"Output")
-		{
-			CString value = CString(varIn);
-			pDoc->Output = value;
-			value.MakeLower();
-			if (value == L"table")
-			{
-				m_pPropLayout->SetValue(COleVariant(L"Full"));
-				pDoc->Layout = L"Full";
-				m_pPropLayout->Enable(FALSE);
-			}
-			else
-			{
-				m_pPropLayout->Enable(TRUE);
-			}
-		}
-		else if (csName == L"Layout")
-		{
-			pDoc->Layout = CString(varIn);
-		}
-		else if (csName == L"Placement")
-		{
-			pDoc->Placement = CString(varIn);
-		}
-	}
 	else if (csGroup == L"Graph Properties")
 	{
-		if (csName == L"Graph Title")
-		{
-			pDoc->GraphTitle = CString(varIn);
-		}
-		else if (csName == L"Axis Label X")
+		if (csName == L"Axis Label X")
 		{
 			pDoc->AxisLabelX = CString(varIn);
 		}
@@ -837,14 +909,24 @@ void CPropertiesWnd::UpdatePropertiesFromDocument(CClimateExplorerDoc* pDoc)
 				CString value = pDoc->Output;
 				pProp->SetValue(value);
 			}
+			else if (csName == L"Content Title")
+			{
+				CString value = pDoc->ContentTitle;
+				pProp->SetValue(value);
+			}
 			else if (csName == L"Layout")
 			{
 				CString value = pDoc->Layout;
 				pProp->SetValue(value);
 			}
-			else if (csName == L"Graph Title")
+			else if (csName == L"Units")
 			{
-				CString value = pDoc->GraphTitle;
+				CString value = pDoc->Units;
+				pProp->SetValue(value);
+			}
+			else if (csName == L"Select an Image")
+			{
+				CString value = pDoc->ImagePath;
 				pProp->SetValue(value);
 			}
 			else if (csName == L"Axis Label X")
@@ -1290,13 +1372,16 @@ void CPropertiesWnd::InitExportPageProperties()
 		L"will be exported."
 	);
 
-	CMFCPropertyGridFileProperty* pProp3 = new CMFCPropertyGridFileProperty
+	m_pPropExportFolder = new CMFCPropertyGridFileProperty
 	(
 		L"Export Folder",
-		L""
+		L".\\Books\\"
 	);
-	pProp3->SetDescription(L"The folder where exported documents are written to.");
-	pExportGroup->AddSubItem(pProp3);
+	m_pPropExportFolder->SetDescription
+	(
+		L"The folder where exported documents are written to."
+	);
+	pExportGroup->AddSubItem(m_pPropExportFolder);
 
 	pExportGroup->AddSubItem
 	(
@@ -1351,34 +1436,6 @@ void CPropertiesWnd::InitRenderProperties()
 	m_wndPropList.AddProperty(pRenderGroup);
 
 	// ---------------------------------------------------------------
-	// Units (degF, degC, raw)
-	// ---------------------------------------------------------------
-	CMFCPropertyGridProperty* pPropUnits =
-		new CMFCPropertyGridProperty
-		(
-			L"Units",
-			(_variant_t)L"degF",
-			L"Select the output units for the query:\n"
-			L"  • degF — Fahrenheit\n"
-			L"  • degC — Celsius\n"
-			L"  • raw — unconverted database values"
-		);
-
-	// Add dropdown options
-	pPropUnits->AddOption(L"degF");
-	pPropUnits->AddOption(L"degC");
-	pPropUnits->AddOption(L"raw");
-
-	// Default selection
-	pPropUnits->SetValue((_variant_t)L"degF");
-
-	// remember the property
-	m_pPropUnits = pPropUnits;
-
-	// Add to group
-	pRenderGroup->AddSubItem(pPropUnits);
-
-	// ---------------------------------------------------------------
 	// Output (Plot, Image...)
 	// ---------------------------------------------------------------
 	CMFCPropertyGridProperty* pPropOutput =
@@ -1411,8 +1468,38 @@ void CPropertiesWnd::InitRenderProperties()
 	pRenderGroup->AddSubItem(pPropOutput);
 
 	// ---------------------------------------------------------------
-	// Layout (Full, Half, Quarter)
+	// Title of the content drawn above the content
 	// ---------------------------------------------------------------
+	m_pPropContentTitle =
+		new CMFCPropertyGridProperty
+		(
+			L"Content Title",
+			(_variant_t)L"Title",
+			L"The title text placed at the top of the content."
+		);
+
+	// Add to group
+	pRenderGroup->AddSubItem(m_pPropContentTitle);
+
+	// CMFCPropertyGridProperty file filter
+	static TCHAR BASED_CODE szFilter[] = 
+		L"JPG Files(*.jpg)|*.jpg|"
+		L"JPEG Files(*.jpeg)|*.jpeg|"
+		L"PNG Files(*.png)|*.png|"
+		L"All Files(*.*)| *.*||";
+
+	m_pPropImagePath = new CMFCPropertyGridFileProperty
+	(
+		L"Select an Image", TRUE,
+		L"", L"jpg", 0, szFilter,
+		L"Relative path to the image to be used for Image outputs."
+	);
+
+	// hidden by default and enabled when the output is Image
+	m_pPropImagePath->Show(FALSE);
+
+	pRenderGroup->AddSubItem(m_pPropImagePath);
+	
 	CMFCPropertyGridProperty* pPropLayout =
 		new CMFCPropertyGridProperty
 		(
@@ -1436,7 +1523,7 @@ void CPropertiesWnd::InitRenderProperties()
 	m_pPropLayout = pPropLayout;
 
 	// Add to group
-	pRenderGroup->AddSubItem(pPropLayout);
+	pRenderGroup->AddSubItem(m_pPropLayout);
 
 	// ---------------------------------------------------------------
 	// Placement (append, insert, or replace)
@@ -1468,21 +1555,49 @@ void CPropertiesWnd::InitRenderProperties()
 	// Add to group
 	pRenderGroup->AddSubItem(pPropPlacement);
 
+	// ---------------------------------------------------------------
+	// Units (degF, degC, raw)
+	// ---------------------------------------------------------------
+	CMFCPropertyGridProperty* pPropUnits =
+		new CMFCPropertyGridProperty
+		(
+			L"Units",
+			(_variant_t)L"degF",
+			L"Select the output units for the query:\n"
+			L"  • degF — Fahrenheit\n"
+			L"  • degC — Celsius\n"
+			L"  • raw — unconverted database values"
+		);
+
+	// Add dropdown options
+	pPropUnits->AddOption(L"degF");
+	pPropUnits->AddOption(L"degC");
+	pPropUnits->AddOption(L"raw");
+
+	// Default selection
+	pPropUnits->SetValue((_variant_t)L"degF");
+
+	// remember the property
+	m_pPropUnits = pPropUnits;
+
+	// Add to group
+	pRenderGroup->AddSubItem(pPropUnits);
+
 } // InitRenderProperties
 
 /////////////////////////////////////////////////////////////////////////////
 void CPropertiesWnd::InitQueryProperties()
 {
-	CMFCPropertyGridProperty* pQueryGroup =
+	m_pQueryGroup =
 		new CMFCPropertyGridProperty(L"Query Properties");
 
-	pQueryGroup->SetDescription
+	m_pQueryGroup->SetDescription
 	(
 		L"Properties that define how the climate query is constructed."
 	);
 
 	// Add the group to the property list
-	m_wndPropList.AddProperty(pQueryGroup);
+	m_wndPropList.AddProperty(m_pQueryGroup);
 
 	// ---------------------------------------------------------------
 	// Pure (boolean)
@@ -1499,7 +1614,7 @@ void CPropertiesWnd::InitQueryProperties()
 	m_pPropPure = pPropPure;
 
 	// Add to group
-	pQueryGroup->AddSubItem(pPropPure);
+	m_pQueryGroup->AddSubItem(pPropPure);
 
 	// ---------------------------------------------------------------
 	// Scope (National, State, or Location)
@@ -1527,7 +1642,7 @@ void CPropertiesWnd::InitQueryProperties()
 	m_pPropScope = pPropScope;
 
 	// Add to group
-	pQueryGroup->AddSubItem(pPropScope);
+	m_pQueryGroup->AddSubItem(pPropScope);
 
 	// ---------------------------------------------------------------
 	// State (dropdown, initially empty)
@@ -1557,7 +1672,7 @@ void CPropertiesWnd::InitQueryProperties()
 	m_pPropState->Show(FALSE);
 
 	// Add to group
-	pQueryGroup->AddSubItem(m_pPropState);
+	m_pQueryGroup->AddSubItem(m_pPropState);
 
 	// ---------------------------------------------------------------
 	// Location (dropdown, initially empty)
@@ -1578,7 +1693,7 @@ void CPropertiesWnd::InitQueryProperties()
 	m_pPropLocation->Show(FALSE);
 
 	// Add to group
-	pQueryGroup->AddSubItem(m_pPropLocation);
+	m_pQueryGroup->AddSubItem(m_pPropLocation);
 
 	// ---------------------------------------------------------------
 	// Starting Year (integer)
@@ -1599,7 +1714,7 @@ void CPropertiesWnd::InitQueryProperties()
 	m_pPropYearStart = pPropStartYear;
 
 	// Add to group
-	pQueryGroup->AddSubItem(pPropStartYear);
+	m_pQueryGroup->AddSubItem(pPropStartYear);
 
 	// ---------------------------------------------------------------
 	// Ending Year (integer)
@@ -1620,7 +1735,7 @@ void CPropertiesWnd::InitQueryProperties()
 	m_pPropYearEnd = pPropEndYear;
 
 	// Add to group
-	pQueryGroup->AddSubItem(pPropEndYear);
+	m_pQueryGroup->AddSubItem(pPropEndYear);
 
 	// ---------------------------------------------------------------
 	// Subtype (Maximum, Minimum, Average, Threshold, or Stations)
@@ -1652,7 +1767,7 @@ void CPropertiesWnd::InitQueryProperties()
 	m_pPropType = pPropType;
 
 	// Add to group
-	pQueryGroup->AddSubItem(pPropType);
+	m_pQueryGroup->AddSubItem(pPropType);
 
 	// ---------------------------------------------------------------
 	// Threshold (dropdown)
@@ -1679,18 +1794,19 @@ void CPropertiesWnd::InitQueryProperties()
 	m_pPropThreshold = pPropThreshold;
 	m_pPropThreshold->Show(FALSE);
 
+	m_pQueryGroup->Show();
+
 	// Add to group
-	pQueryGroup->AddSubItem(pPropThreshold);
+	m_pQueryGroup->AddSubItem(pPropThreshold);
 
 } // InitQueryProperties
 
 /////////////////////////////////////////////////////////////////////////////
 void CPropertiesWnd::InitGraphProperties()
 {
-	CMFCPropertyGridProperty* pGraphGroup =
-		new CMFCPropertyGridProperty(L"Graph Properties");
+	m_pGraphGroup = new CMFCPropertyGridProperty(L"Graph Properties");
 
-	pGraphGroup->SetDescription
+	m_pGraphGroup->SetDescription
 	(
 		L"Properties of the graph being plotted."
 	);
@@ -1698,14 +1814,6 @@ void CPropertiesWnd::InitGraphProperties()
 	// -------------------------------------------------------------
 	// Graph text properties
 	// -------------------------------------------------------------
-	m_pPropGraphTitle =
-		new CMFCPropertyGridProperty
-		(
-			L"Graph Title",
-			(_variant_t)L"Title",
-			L"The title text placed at the top of the graph."
-		);
-
 	m_pPropAxisLabelX =
 		new CMFCPropertyGridProperty
 		(
@@ -1865,44 +1973,44 @@ void CPropertiesWnd::InitGraphProperties()
 	// -------------------------------------------------------------
 	// Add all properties to the group
 	// -------------------------------------------------------------
-	pGraphGroup->AddSubItem(m_pPropGraphTitle);
-	pGraphGroup->AddSubItem(m_pPropAxisLabelX);
-	pGraphGroup->AddSubItem(m_pPropAxisLabelY);
+	m_pGraphGroup->AddSubItem(m_pPropAxisLabelX);
+	m_pGraphGroup->AddSubItem(m_pPropAxisLabelY);
 
-	pGraphGroup->AddSubItem(m_pPropLineColor);
-	pGraphGroup->AddSubItem(m_pPropLineStyle);
-	pGraphGroup->AddSubItem(m_pPropLineWeight);
+	m_pGraphGroup->AddSubItem(m_pPropLineColor);
+	m_pGraphGroup->AddSubItem(m_pPropLineStyle);
+	m_pGraphGroup->AddSubItem(m_pPropLineWeight);
 
-	pGraphGroup->AddSubItem(m_pPropRunningAvgColor);
-	pGraphGroup->AddSubItem(m_pPropRunningAvgStyle);
-	pGraphGroup->AddSubItem(m_pPropRunningAvgWeight);
+	m_pGraphGroup->AddSubItem(m_pPropRunningAvgColor);
+	m_pGraphGroup->AddSubItem(m_pPropRunningAvgStyle);
+	m_pGraphGroup->AddSubItem(m_pPropRunningAvgWeight);
 
-	pGraphGroup->AddSubItem(m_pPropGridColor);
-	pGraphGroup->AddSubItem(m_pPropGridStyle);
-	pGraphGroup->AddSubItem(m_pPropGridWeight);
+	m_pGraphGroup->AddSubItem(m_pPropGridColor);
+	m_pGraphGroup->AddSubItem(m_pPropGridStyle);
+	m_pGraphGroup->AddSubItem(m_pPropGridWeight);
 
-	pGraphGroup->AddSubItem(m_pPropTitlePoints);
-	pGraphGroup->AddSubItem(m_pPropLabelPoints);
-	pGraphGroup->AddSubItem(m_pPropTickPoints);
+	m_pGraphGroup->AddSubItem(m_pPropTitlePoints);
+	m_pGraphGroup->AddSubItem(m_pPropLabelPoints);
+	m_pGraphGroup->AddSubItem(m_pPropTickPoints);
 
-	pGraphGroup->AddSubItem(m_pPropLeftPad);
-	pGraphGroup->AddSubItem(m_pPropRightPad);
-	pGraphGroup->AddSubItem(m_pPropTopPad);
-	pGraphGroup->AddSubItem(m_pPropBottomPad);
+	m_pGraphGroup->AddSubItem(m_pPropLeftPad);
+	m_pGraphGroup->AddSubItem(m_pPropRightPad);
+	m_pGraphGroup->AddSubItem(m_pPropTopPad);
+	m_pGraphGroup->AddSubItem(m_pPropBottomPad);
+
+	m_pGraphGroup->Show();
 
 	// -------------------------------------------------------------
 	// Add group to property list
 	// -------------------------------------------------------------
-	m_wndPropList.AddProperty(pGraphGroup);
+	m_wndPropList.AddProperty(m_pGraphGroup);
 } // InitGraphProperties
 
 /////////////////////////////////////////////////////////////////////////////
 void CPropertiesWnd::InitTrendProperties()
 {
-	CMFCPropertyGridProperty* pTrendGroup =
-		new CMFCPropertyGridProperty(L"Trending Properties");
+	m_pTrendGroup = new CMFCPropertyGridProperty(L"Trending Properties");
 
-	pTrendGroup->SetDescription
+	m_pTrendGroup->SetDescription
 	(
 		L"Properties of the trending curves (T1, T2, and T3) being plotted."
 	);
@@ -1953,11 +2061,11 @@ void CPropertiesWnd::InitTrendProperties()
 	pPropYearT1->EnableSpinControl(TRUE, 1853, 3000);
 
 	// add the properties to the group
-	pTrendGroup->AddSubItem(pPropEnableT1);
-	pTrendGroup->AddSubItem(pPropColorT1);
-	pTrendGroup->AddSubItem(pPropStyleT1);
-	pTrendGroup->AddSubItem(pPropWeightT1);
-	pTrendGroup->AddSubItem(pPropYearT1);
+	m_pTrendGroup->AddSubItem(pPropEnableT1);
+	m_pTrendGroup->AddSubItem(pPropColorT1);
+	m_pTrendGroup->AddSubItem(pPropStyleT1);
+	m_pTrendGroup->AddSubItem(pPropWeightT1);
+	m_pTrendGroup->AddSubItem(pPropYearT1);
 
 	// -------------------------------------------------------------
 	// Trend Two Curve properties
@@ -2004,11 +2112,11 @@ void CPropertiesWnd::InitTrendProperties()
 	pPropYearT2->EnableSpinControl(TRUE, 1853, 3000);
 
 	// add the properties to the group
-	pTrendGroup->AddSubItem(pPropEnableT2);
-	pTrendGroup->AddSubItem(pPropColorT2);
-	pTrendGroup->AddSubItem(pPropStyleT2);
-	pTrendGroup->AddSubItem(pPropWeightT2);
-	pTrendGroup->AddSubItem(pPropYearT2);
+	m_pTrendGroup->AddSubItem(pPropEnableT2);
+	m_pTrendGroup->AddSubItem(pPropColorT2);
+	m_pTrendGroup->AddSubItem(pPropStyleT2);
+	m_pTrendGroup->AddSubItem(pPropWeightT2);
+	m_pTrendGroup->AddSubItem(pPropYearT2);
 
 	// -------------------------------------------------------------
 	// Trend Three Curve properties
@@ -2056,17 +2164,26 @@ void CPropertiesWnd::InitTrendProperties()
 	pPropYearT3->EnableSpinControl(TRUE, 1853, 3000);
 
 	// add the properties to the group
-	pTrendGroup->AddSubItem(pPropEnableT3);
-	pTrendGroup->AddSubItem(pPropColorT3);
-	pTrendGroup->AddSubItem(pPropStyleT3);
-	pTrendGroup->AddSubItem(pPropWeightT3);
-	pTrendGroup->AddSubItem(pPropYearT3);
+	m_pTrendGroup->AddSubItem(pPropEnableT3);
+	m_pTrendGroup->AddSubItem(pPropColorT3);
+	m_pTrendGroup->AddSubItem(pPropStyleT3);
+	m_pTrendGroup->AddSubItem(pPropWeightT3);
+	m_pTrendGroup->AddSubItem(pPropYearT3);
+
+	m_pTrendGroup->Show();
+	m_pTrendGroup->Expand();
+	m_pTrendGroup->Enable();
 
 	// -------------------------------------------------------------
 	// Add group to property list
 	// -------------------------------------------------------------
-	m_wndPropList.AddProperty(pTrendGroup);
+	m_wndPropList.AddProperty(m_pTrendGroup);
 } // InitTrendProperties
+
+/////////////////////////////////////////////////////////////////////////////
+void CPropertiesWnd::InitImageProperties()
+{
+} // InitImageProperties
 
 /////////////////////////////////////////////////////////////////////////////
 void CPropertiesWnd::InitPropList()
@@ -2109,6 +2226,11 @@ void CPropertiesWnd::InitPropList()
 	// Trending Properties
 	// ===============================================
 	InitTrendProperties();
+
+	// ===============================================
+	// Image Properties 
+	// ===============================================
+	InitImageProperties();
 
 } // InitPropList
 
