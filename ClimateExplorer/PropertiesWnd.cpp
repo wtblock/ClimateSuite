@@ -409,7 +409,11 @@ LRESULT CPropertiesWnd::OnPropertyChange
 		{
 			pDoc->ContentTitle = CString(varIn);
 		}
-		if (csName == L"Select an Image")
+		else if (csName == L"Title Font Size (pt)")
+		{
+			pDoc->TitleFontSizePoints = int(varIn);
+		}
+		else if (csName == L"Select an Image")
 		{
 			CString csPath = CString(varIn);
 			if (csPath != pDoc->ImagePath)
@@ -675,10 +679,6 @@ LRESULT CPropertiesWnd::OnPropertyChange
 		{
 			pDoc->GridLineThicknessInches = double(varIn);
 		}
-		else if (csName == L"Title Font Size (pt)")
-		{
-			pDoc->TitleFontSizePoints = int(varIn);
-		}
 		else if (csName == L"Axis Label Font Size (pt)")
 		{
 			pDoc->AxisLabelFontSizePoints = int(varIn);
@@ -914,6 +914,11 @@ void CPropertiesWnd::UpdatePropertiesFromDocument(CClimateExplorerDoc* pDoc)
 				CString value = pDoc->ContentTitle;
 				pProp->SetValue(value);
 			}
+			else if (csName == L"Title Font Size (pt)")
+			{
+				long value = pDoc->TitleFontSizePoints;
+				pProp->SetValue(_variant_t(value));
+			}
 			else if (csName == L"Layout")
 			{
 				CString value = pDoc->Layout;
@@ -985,11 +990,6 @@ void CPropertiesWnd::UpdatePropertiesFromDocument(CClimateExplorerDoc* pDoc)
 			else if (csName == L"Grid Line Thickness (in)")
 			{
 				double value = pDoc->GridLineThicknessInches;
-				pProp->SetValue(_variant_t(value));
-			}
-			else if (csName == L"Title Font Size (pt)")
-			{
-				long value = pDoc->TitleFontSizePoints;
 				pProp->SetValue(_variant_t(value));
 			}
 			else if (csName == L"Axis Label Font Size (pt)")
@@ -1481,6 +1481,17 @@ void CPropertiesWnd::InitRenderProperties()
 	// Add to group
 	pRenderGroup->AddSubItem(m_pPropContentTitle);
 
+	m_pPropTitlePoints =
+		new CMFCPropertyGridProperty
+		(
+			L"Title Font Size (pt)",
+			(_variant_t)long(14),
+			L"Font size in points of the title text."
+		);
+
+	// Add to group
+	pRenderGroup->AddSubItem(m_pPropTitlePoints);
+
 	// CMFCPropertyGridProperty file filter
 	static TCHAR BASED_CODE szFilter[] = 
 		L"JPG Files(*.jpg)|*.jpg|"
@@ -1911,14 +1922,6 @@ void CPropertiesWnd::InitGraphProperties()
 	// -------------------------------------------------------------
 	// Text sizes (points)
 	// -------------------------------------------------------------
-	m_pPropTitlePoints =
-		new CMFCPropertyGridProperty
-		(
-			L"Title Font Size (pt)",
-			(_variant_t)long(14),
-			L"Font size in points of the title text."
-		);
-
 	m_pPropLabelPoints =
 		new CMFCPropertyGridProperty
 		(
@@ -1988,7 +1991,6 @@ void CPropertiesWnd::InitGraphProperties()
 	m_pGraphGroup->AddSubItem(m_pPropGridStyle);
 	m_pGraphGroup->AddSubItem(m_pPropGridWeight);
 
-	m_pGraphGroup->AddSubItem(m_pPropTitlePoints);
 	m_pGraphGroup->AddSubItem(m_pPropLabelPoints);
 	m_pGraphGroup->AddSubItem(m_pPropTickPoints);
 

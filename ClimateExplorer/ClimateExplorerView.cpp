@@ -11,7 +11,7 @@
 #include "ImagePlus.h"
 #include "PdfWriter.h"
 #include "GraphPlotter.h"
-#include "Color.h"
+#include "ColorPlus.h"
 
 /////////////////////////////////////////////////////////////////////////////
 #ifdef _DEBUG
@@ -51,7 +51,6 @@ END_MESSAGE_MAP()
 /////////////////////////////////////////////////////////////////////////////
 CClimateExplorerView::CClimateExplorerView() noexcept
 {	
-	m_pTestImage = nullptr;
 }
 
 /////////////////////////////////////////////////////////////////////////////
@@ -110,11 +109,12 @@ void CClimateExplorerView::RenderMargins
 	const int nBottomOfView = InchesToLogical(dBottomOfView);
 	pDC->SetWindowOrg(nLeftOfView, nTopOfView);
 
+	CColorPlus* pCP = theApp.ColorPlus;
 	int nMode = pDC->SetBkMode(TRANSPARENT);
 	const double dLineWidth = 0.02;
 	const int nLineWidth = InchesToLogical(dLineWidth);
-	CPen penBorder(PS_SOLID, nLineWidth, CColor::black);
-	CPen penRect(PS_DOT, 0, CColor::red);
+	CPen penBorder(PS_SOLID, nLineWidth, pCP->RGBByName[L"Black"]);
+	CPen penRect(PS_DOT, 0, pCP->RGBByName[L"Red"]);
 	CPen* pPen = pDC->SelectObject(&penBorder);
 	CBrush* pOldBrush = (CBrush*)pDC->SelectStockObject(NULL_BRUSH);
 
@@ -488,54 +488,230 @@ void CClimateExplorerView::RenderTableOfContentsPage
 } // RenderTableOfContentsPage
 
 /////////////////////////////////////////////////////////////////////////////
+// title height in logical pixels
+int CClimateExplorerView::GetTitleHeight()
+{
+	CClimateExplorerDoc* pDoc = GetDocument();
+	int nLogicalDPI = pDoc->Map;
+	int nPoints = pDoc->TitleFontSizePoints;
+	int value = ::MulDiv(nPoints, nLogicalDPI, 72);
+	return value;
+
+} // GetTitleHeight
+
+/////////////////////////////////////////////////////////////////////////////
+CRect CClimateExplorerView::ComputeImageRect
+(
+	shared_ptr<Image>& pImage,
+	const CRect* pRect,
+	IMAGE_ROTATION ir
+)
+{
+	shared_ptr<Bitmap> pBitmap = static_pointer_cast<Bitmap>(pImage);
+	if (!pBitmap || !pRect)
+		return CRect(0, 0, 0, 0);
+
+	// Apply rotation before computing dimensions
+	if (ir == RotateCW)
+		pBitmap->RotateFlip(Rotate90FlipNone);
+	else if (ir == RotateCCW)
+		pBitmap->RotateFlip(Rotate270FlipNone);
+
+	int imgWidth = pBitmap->GetWidth();
+	int imgHeight = pBitmap->GetHeight();
+	CSize size = pRect->Size();
+	float fImageAspect = CHelper::GetAspectRatio(imgWidth, imgHeight);
+
+	int nLeft = pRect->left;
+	int nTop = pRect->top;
+
+	int drawWidth = size.cx;
+	int drawHeight = static_cast<int>(drawWidth / fImageAspect);
+
+	if (drawHeight > size.cy)
+	{
+		drawHeight = size.cy;
+		drawWidth = static_cast<int>(drawHeight * fImageAspect);
+		nLeft += (size.cx - drawWidth) / 2;
+	}
+	else
+	{
+		nTop += (size.cy - drawHeight) / 2;
+	}
+
+	return CRect(CPoint(nLeft, nTop), CSize(drawWidth, drawHeight));
+} // ComputeImageRect
+
+/////////////////////////////////////////////////////////////////////////////
+// make room for the title when drawing images
+void CClimateExplorerView::AdjustRectForTitle
+(
+	CRect& rect, int titleHeight, IMAGE_ROTATION ir
+)
+{
+	switch (ir)
+	{
+	case RotateNone:
+		rect.top += titleHeight;
+		break;
+
+	case RotateCW:
+		rect.right -= titleHeight;
+		break;
+
+	case RotateCCW:
+		rect.left += titleHeight;
+		break;
+	}
+} // AdjustRectForTitle
+
+/////////////////////////////////////////////////////////////////////////////
+// draw the title on images and account for rotation and available space
+void CClimateExplorerView::DrawTitle
+(
+	CDC* pDC,
+	const CString& title,
+	const CRect& rectBounding,
+	int titleHeight,
+	IMAGE_ROTATION ir
+)
+{
+	if (title.IsEmpty() || !pDC)
+		return;
+
+	int nDC = pDC->SaveDC();
+
+	CFont font;
+	pDC->SetBkMode(TRANSPARENT);
+	pDC->SetTextColor(RGB(0, 0, 0)); 
+
+	int midY = rectBounding.top + rectBounding.Height() / 2;
+	int midX = rectBounding.left + rectBounding.Width() / 2;
+
+	CRect rect;
+	pDC->DrawText
+	(
+		title, rect, 
+		DT_CALCRECT | DT_LEFT | DT_TOP | DT_SINGLELINE
+	);
+	int nWidth = rect.Width();
+	int nHeight = rect.Height();
+
+	CRect rc = rectBounding;
+
+	if (ir == RotateCW)
+	{
+		BuildFont(L"Arial", false, false, titleHeight, false, font, 90.0);
+		pDC->SelectObject(&font);
+
+		CRect rect;
+		pDC->DrawText
+		(
+			title, rect, 
+			DT_CALCRECT | DT_LEFT | DT_TOP | DT_SINGLELINE
+		);
+		int nWidth = rect.Width();
+		int nHeight = rect.Height();
+
+		rc.left = rectBounding.right;
+		rc.top = midY - nWidth / 2;
+		rc.right = rc.left + nWidth;
+		rc.bottom = rc.top + nHeight;
+	}
+	else if (ir == RotateCCW)
+	{
+		BuildFont(L"Arial", false, false, titleHeight, false, font, -90.0);
+		pDC->SelectObject(&font);
+
+		CRect rect;
+		pDC->DrawText
+		(
+			title, rect, 
+			DT_CALCRECT | DT_LEFT | DT_TOP | DT_SINGLELINE
+		);
+		int nWidth = rect.Width();
+		int nHeight = rect.Height();
+
+		rc.left = rectBounding.left;
+		rc.top = midY + nWidth / 2;
+		rc.right = rc.left + nWidth;
+		rc.bottom = rc.top + nHeight;
+	}
+	else if (ir == RotateNone)
+	{
+		BuildFont(L"Arial", false, false, titleHeight, false, font);
+		pDC->SelectObject(&font);
+
+		CRect rect;
+		pDC->DrawText
+		(
+			title, rect, 
+			DT_CALCRECT | DT_LEFT | DT_TOP | DT_SINGLELINE
+		);
+		int nWidth = rect.Width();
+		int nHeight = rect.Height();
+
+		rc.left = midX - nWidth / 2;
+		rc.top = rectBounding.top;
+		rc.right = rc.left + nWidth;
+		rc.bottom = rc.top + nHeight;
+	}
+	
+	pDC->DrawText
+	(
+		title, rc, 
+		DT_NOCLIP | DT_LEFT | DT_VCENTER | DT_SINGLELINE
+	);
+
+	pDC->RestoreDC(nDC);
+} // DrawTitle
+
+/////////////////////////////////////////////////////////////////////////////
 // DrawImage
 //
 // Draws an image inside a rectangle while preserving aspect ratio.
 //
 // Steps:
-//   1. Compute aspect ratio.
-//   2. Fit image inside rectangle.
-//   3. Center image.
-//   4. Use CImagePlus to draw using StretchDIBits.
-//
-// Reason:
-//   GDI+ Graphics::DrawImage does NOT honor mapping mode.
-//   CImagePlus ensures identical layout across screen, printer, and export.
+//   1. Clone image so rotation does NOT modify shared_ptr<Image>.
+//   2. Compute aspect ratio.
+//   3. Fit image inside rectangle.
+//   4. Center image.
+//   5. Use CImagePlus to draw using StretchDIBits.
 /////////////////////////////////////////////////////////////////////////////
-void CClimateExplorerView::DrawImage
+CRect CClimateExplorerView::DrawImage
 (
-	CDC* pDC, 
-	shared_ptr<Image>& pImage, 
+	CDC* pDC,
+	shared_ptr<Image>& pImage,
 	const CRect* pRect,
 	bool bSelected,
 	IMAGE_ROTATION ir
 )
 {
-	if (!pImage || !pDC)
-		return;
+	CRect rect(0, 0, 0, 0);
+	if (!pImage || !pDC || !pRect)
+		return rect;
 
-	// Cast shared_ptr<Image> to shared_ptr<Bitmap>
-	shared_ptr<Bitmap> pBitmap = static_pointer_cast<Bitmap>(pImage);
+	// Clone the source image so rotation does NOT affect m_pImageContent
+	Gdiplus::Image* pRawClone = pImage->Clone();
+	if (!pRawClone)
+		return rect;
 
+	shared_ptr<Image>  pClone(pRawClone);
+	shared_ptr<Bitmap> pBitmap = static_pointer_cast<Bitmap>(pClone);
 	if (!pBitmap)
-		return;
+		return rect;
 
-	// Apply rotation before computing dimensions
+	// Apply rotation to the CLONE only
 	if (ir == RotateCW)
-	{
 		pBitmap->RotateFlip(Rotate90FlipNone);
-	}
 	else if (ir == RotateCCW)
-	{
 		pBitmap->RotateFlip(Rotate270FlipNone);
-	}
 
-	// Get original image dimensions
+	// Get image dimensions after rotation
 	int imgWidth = pBitmap->GetWidth();
 	int imgHeight = pBitmap->GetHeight();
 	CSize size = pRect->Size();
-	const float fImageAspect =
-		CHelper::GetAspectRatio(imgWidth, imgHeight);
+	const float fImageAspect = CHelper::GetAspectRatio(imgWidth, imgHeight);
 
 	int nLeft = pRect->left;
 	int nTop = pRect->top;
@@ -561,72 +737,12 @@ void CClimateExplorerView::DrawImage
 	// being concerned about the resolution of these devices.
 	CImagePlus GDI(pBitmap);
 	CPoint ptDest(nLeft, nTop);
-	CSize sizeDest(drawWidth, drawHeight);
-	CRect rectDest(ptDest, sizeDest);
+	CSize  sizeDest(drawWidth, drawHeight);
+	CRect  rectDest(ptDest, sizeDest);
 	GDI.Draw(pDC, rectDest);
 
-	// --- Draw transparent selection overlay -------------------------------
-	// Only draw if this image is selected
 	if (bSelected)
 	{
-		/*
-		// Create a memory DC and a 32-bit DIB section for alpha blending
-		CDC dcMem;
-		dcMem.CreateCompatibleDC(pDC);
-
-		BITMAPINFO bmi = {};
-		bmi.bmiHeader.biSize = sizeof(BITMAPINFOHEADER);
-		bmi.bmiHeader.biWidth = rectDest.Width();
-		bmi.bmiHeader.biHeight = -rectDest.Height();   // top-down DIB
-		bmi.bmiHeader.biPlanes = 1;
-		bmi.bmiHeader.biBitCount = 32;
-		bmi.bmiHeader.biCompression = BI_RGB;
-
-		void* pBits = nullptr;
-		HBITMAP hBmp = CreateDIBSection(dcMem, &bmi, DIB_RGB_COLORS, &pBits, nullptr, 0);
-		HBITMAP hOldBmp = (HBITMAP)dcMem.SelectObject(hBmp);
-
-		// Fill the DIB with a semi-transparent color (e.g., blue tint)
-		const BYTE alpha = 80;        // 0=transparent, 255=opaque
-		const BYTE r = 0;
-		const BYTE g = 0;
-		const BYTE b = 255;
-
-		DWORD* pPixel = (DWORD*)pBits;
-		int total = rectDest.Width() * rectDest.Height();
-		for (int i = 0; i < total; ++i)
-		{
-			pPixel[i] = (alpha << 24) | (r << 16) | (g << 8) | b;
-		}
-
-		// Alpha blend onto the destination DC
-		BLENDFUNCTION bf = {};
-		bf.BlendOp = AC_SRC_OVER;
-		bf.BlendFlags = 0;
-		bf.SourceConstantAlpha = 255;     // use per-pixel alpha
-		bf.AlphaFormat = AC_SRC_ALPHA;
-
-		pDC->AlphaBlend
-		(
-			rectDest.left,
-			rectDest.top,
-			rectDest.Width(),
-			rectDest.Height(),
-			&dcMem,
-			0,
-			0,
-			rectDest.Width(),
-			rectDest.Height(),
-			bf
-		);
-
-		// Cleanup
-		dcMem.SelectObject(hOldBmp);
-		if (hBmp != 0)
-		{
-			DeleteObject(hBmp);
-		}
-		*/
 		int nDC = pDC->SaveDC();
 		CPen pen(PS_DOT, 100, RGB(255, 128, 0));
 		pDC->SelectObject(&pen);
@@ -634,8 +750,58 @@ void CClimateExplorerView::DrawImage
 		pDC->RoundRect(rectDest, CPoint(100, 100));
 		pDC->RestoreDC(nDC);
 	}
-	
+
+	return rectDest;
 } // DrawImage
+
+/////////////////////////////////////////////////////////////////////////////
+void CClimateExplorerView::DrawImageWithTitle
+(
+	CDC* pDC,
+	shared_ptr<CPageContent> pContent,
+	shared_ptr<Image>& pImage,
+	const CRect* pRect,
+	bool bSelected,
+	IMAGE_ROTATION ir
+)
+{
+	// the type of content
+	CPageContent::CONTENT_TYPE eContent = pContent->ContentType;
+
+	// Plot: no title, no rotation
+	if (eContent == CPageContent::ContentGraph)
+	{
+		DrawImage(pDC, pImage, pRect, bSelected, ir);
+		return;
+	}
+
+	if (!pDC || !pImage || !pRect)
+		return;
+
+	int titleHeight = GetTitleHeight();
+
+	//
+	// 1. Title band = full bounding rectangle
+	//
+	CRect rectTitleBand = *pRect;
+
+	//
+	// 2. Image box = bounding rectangle minus title band
+	//
+	CRect rectImageBox = *pRect;
+	AdjustRectForTitle(rectImageBox, titleHeight, ir);
+
+	//
+	// 3. Draw the image inside rectImageBox
+	//
+	CRect rectDest = DrawImage(pDC, pImage, &rectImageBox, bSelected, ir);
+
+	//
+	// 4. Draw the title inside content rectangle
+	//
+	CString csTitle = pContent->ContentTitle;
+	DrawTitle(pDC, csTitle, *pRect, titleHeight, ir);
+} // DrawImageWithTitle
 
 /////////////////////////////////////////////////////////////////////////////
 // RenderImagePage
@@ -654,6 +820,7 @@ void CClimateExplorerView::RenderImagePage
 )
 {
 	CClimateExplorerDoc* pDoc = GetDocument();
+
 	const UINT nPage = pDoc->Page;
 	const UINT nPages = pDoc->Pages;
 	const bool bEven = CHelper::GetEven(nPage);
@@ -762,7 +929,10 @@ void CClimateExplorerView::RenderImagePage
 			}
 
 			// draw the image returned from the content
-			DrawImage(pDC, pImage, &imageRect, bSelected, ir);
+			DrawImageWithTitle
+			(
+				pDC, pContent, pImage, &imageRect, bSelected, ir
+			);
 
 			// render the margins around the images on the page
 			RenderMargins
@@ -864,12 +1034,6 @@ void CClimateExplorerView::render
 			pDC, dLeftOfView, dTopOfView, dRightOfView, dBottomOfView
 		);
 	}
-
-	//CMainFrame* pMainFrame = static_cast<CMainFrame*>(AfxGetMainWnd());
-	//if (pMainFrame)
-	//{
-	//	pMainFrame->PropertiesPane->UpdatePropertiesFromDocument(static_cast<CClimateExplorerDoc*>(pDoc));
-	//}
 
 	pDoc->Page = nSavedPage;
 } // render

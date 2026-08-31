@@ -3,6 +3,7 @@
 /////////////////////////////////////////////////////////////////////////////
 #pragma once
 #include "BaseView.h"
+#include "PageContent.h"
 #include "ImagePlus.h"
 
 /////////////////////////////////////////////////////////////////////////////
@@ -114,9 +115,27 @@ public:
 	__declspec(property(get = GetLongitude, put = SetLongitude))
 		float Longitude;
 
+	// title height in logical pixels
+	int GetTitleHeight();
+	// title height in logical pixels
+	__declspec(property(get = GetTitleHeight))
+		int TitleHeight;
+
 // protected methods
 protected:
-	CImagePlus* m_pTestImage;   // temporary test image
+	// make room for the title when drawing images
+	void AdjustRectForTitle
+	(
+		CRect& rect, int titleHeight, IMAGE_ROTATION ir
+	);
+
+	// draw the title on images and account for rotation and available space
+	void DrawTitle
+	(
+		CDC* pDC, const CString& title,
+		const CRect& rectImage, int titleHeight,
+		IMAGE_ROTATION ir
+	);
 
 // public methods
 public:
@@ -207,6 +226,15 @@ public:
 	);
 
 	/////////////////////////////////////////////////////////////////////////////
+	// change the image rectangle to make room for the title if necessary
+	CRect CClimateExplorerView::ComputeImageRect
+	(
+		shared_ptr<Image>& pImage,
+		const CRect* pRect,
+		IMAGE_ROTATION ir
+	);
+
+	/////////////////////////////////////////////////////////////////////////////
 	// DrawImage
 	//
 	// Draws a single image inside its assigned rectangle.
@@ -216,11 +244,22 @@ public:
 	//   • Centers image within rectangle.
 	//   • Uses CImagePlus to honor GDI mapping mode across devices.
 	/////////////////////////////////////////////////////////////////////////////
-	void DrawImage
+	CRect DrawImage
 	(
 		CDC* pDC, 
 		shared_ptr<Image>& pImage, 
 		const CRect* pRect, 
+		bool bSelected,
+		IMAGE_ROTATION ir = RotateNone
+	);
+
+	/////////////////////////////////////////////////////////////////////////////
+	void CClimateExplorerView::DrawImageWithTitle
+	(
+		CDC* pDC,
+		shared_ptr<CPageContent> pContent,
+		shared_ptr<Image>& pImage,
+		const CRect* pRect,
 		bool bSelected,
 		IMAGE_ROTATION ir = RotateNone
 	);

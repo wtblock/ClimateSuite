@@ -95,6 +95,7 @@ protected:
 	// render properties
 	CMFCPropertyGridProperty* m_pPropOutput          = nullptr;
 	CMFCPropertyGridProperty* m_pPropContentTitle    = nullptr;
+	CMFCPropertyGridProperty* m_pPropTitlePoints     = nullptr;
 	CMFCPropertyGridFileProperty* m_pPropImagePath   = nullptr;
 	CMFCPropertyGridProperty* m_pPropLayout          = nullptr;
 	CMFCPropertyGridProperty* m_pPropPlacement       = nullptr;
@@ -133,7 +134,6 @@ protected:
 	CMFCPropertyGridProperty* m_pPropGridStyle       = nullptr;
 	CMFCPropertyGridProperty* m_pPropGridWeight      = nullptr;
 												     
-	CMFCPropertyGridProperty* m_pPropTitlePoints     = nullptr;
 	CMFCPropertyGridProperty* m_pPropLabelPoints     = nullptr;
 	CMFCPropertyGridProperty* m_pPropTickPoints      = nullptr;
 												     

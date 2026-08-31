@@ -1453,6 +1453,40 @@ public:
 	__declspec(property(get = GetOutput, put = SetOutput))
 		CString Output;
 
+	// The title of the graph
+	CString GetContentTitle()
+	{
+		return m_csContentTitle;
+	}
+	// The title of the graph
+	void SetContentTitle(CString value)
+	{
+		if (value == m_csContentTitle)
+		{
+			return;
+		}
+		m_csContentTitle = value;
+	}
+	// The title of the graph
+	__declspec(property(get = GetContentTitle, put = SetContentTitle))
+		CString ContentTitle;
+
+	// font size in points for drawing the title
+	long GetTitleFontSizePoints()
+	{
+		return m_nTitleFontSizePoints;
+	}
+
+	// font size in points for drawing the title
+	void SetTitleFontSizePoints(long value)
+	{
+		m_nTitleFontSizePoints = value;
+	}
+
+	// font size in points for drawing the title
+	__declspec(property(get = GetTitleFontSizePoints, put = SetTitleFontSizePoints))
+		long TitleFontSizePoints;
+
 	// Layout (Full, Half, Quarter)
 	CString GetLayout()
 	{
@@ -1545,20 +1579,6 @@ public:
 	// Graphing data
 	/////////////////////////////////////////////////////////////////////////////
 	
-	// The title of the graph
-	CString GetContentTitle()
-	{
-		return m_csContentTitle;
-	}
-	// The title of the graph
-	void SetContentTitle(CString value)
-	{
-		m_csContentTitle = value;
-	}
-	// The title of the graph
-	__declspec(property(get = GetContentTitle, put = SetContentTitle))
-		CString ContentTitle;
-
 	// The label of the values on the X axis
 	CString GetAxisLabelX()
 	{
@@ -1824,22 +1844,6 @@ public:
 
 	__declspec(property(get = GetGridLineThicknessInches, put = SetGridLineThicknessInches))
 		double GridLineThicknessInches;
-
-	// -------------------------------------------------------------
-	// TitleFontSizePoints
-	// -------------------------------------------------------------
-	long GetTitleFontSizePoints()
-	{
-		return m_nTitleFontSizePoints;
-	}
-
-	void SetTitleFontSizePoints(long value)
-	{
-		m_nTitleFontSizePoints = value;
-	}
-
-	__declspec(property(get = GetTitleFontSizePoints, put = SetTitleFontSizePoints))
-		long TitleFontSizePoints;
 
 	// -------------------------------------------------------------
 	// AxisLabelFontSizePoints
