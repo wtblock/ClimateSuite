@@ -169,6 +169,40 @@ protected:
 
 // public properties
 public:
+	// access the underlying Gdiplus::Bitmap
+	shared_ptr<Bitmap> GetBitmapPlus()
+	{
+		return m_pImage;
+	}
+
+	// access the underlying Gdiplus::Bitmap
+	void SetBitmapPlus(shared_ptr<Bitmap> value)
+	{
+		m_pImage = value;
+	}
+
+	// access the underlying Gdiplus::Bitmap
+	__declspec(property(get = GetBitmapPlus, put = SetBitmapPlus))
+		shared_ptr<Bitmap> BitmapPlus;
+
+	// access the underlying Gdiplus::Image
+	shared_ptr<Image> GetImagePlus()
+	{
+		// cast shared_ptr<Bitmap> → shared_ptr<Image>
+		return static_pointer_cast<Image>(m_pImage);
+	}
+
+	// access the underlying Gdiplus::Image
+	void SetImagePlus(shared_ptr<Image> value)
+	{
+		// cast shared_ptr<Image> → shared_ptr<Bitmap>
+		m_pImage = static_pointer_cast<Bitmap>(value);
+	}
+
+	// access the underlying Gdiplus::Image
+	__declspec(property(get = GetImagePlus, put = SetImagePlus))
+		shared_ptr<Image> ImagePlus;
+
 	/////////////////////////////////////////////////////////////////////////////
 	// Height / Width
 	//
@@ -314,6 +348,24 @@ protected:
 // public methods
 public:
 	/////////////////////////////////////////////////////////////////////////////
+	// Open(path)
+	//
+	// Loads an image from a file using Bitmap::FromFile.
+	// Replaces any existing image.
+	// Returns true on success.
+	/////////////////////////////////////////////////////////////////////////////
+	bool Open(LPCTSTR lpszPathName);
+
+	/////////////////////////////////////////////////////////////////////////////
+	// Open(stream)
+	//
+	// Loads an image from an IStream using Bitmap::FromStream.
+	// Replaces any existing image.
+	// Returns true on success.
+	/////////////////////////////////////////////////////////////////////////////
+	bool Open(IStream* pStream);
+
+	/////////////////////////////////////////////////////////////////////////////
 	// Save(path)
 	//
 	// Saves the image using the encoder determined by file extension.
@@ -442,6 +494,10 @@ public:
 		m_pImage = value;
 	}
 
+	// starting with an empty image
+	CImagePlus()
+	{
+	}
 };
 
 /////////////////////////////////////////////////////////////////////////////

@@ -97,6 +97,7 @@ protected:
 	CMFCPropertyGridProperty* m_pPropContentTitle    = nullptr;
 	CMFCPropertyGridProperty* m_pPropTitlePoints     = nullptr;
 	CMFCPropertyGridFileProperty* m_pPropImagePath   = nullptr;
+	CMFCPropertyGridFileProperty* m_pPropMdPath      = nullptr;
 	CMFCPropertyGridProperty* m_pPropLayout          = nullptr;
 	CMFCPropertyGridProperty* m_pPropPlacement       = nullptr;
 	CMFCPropertyGridProperty* m_pPropUnits           = nullptr;

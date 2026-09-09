@@ -7,6 +7,9 @@
 #include <vector>
 
 /////////////////////////////////////////////////////////////////////////////
+class CClimateExplorerDoc;
+
+/////////////////////////////////////////////////////////////////////////////
 // CPageMD
 //
 // Shell wrapper for Markdown content. This class will eventually handle:
@@ -22,29 +25,35 @@
 /////////////////////////////////////////////////////////////////////////////
 class CPageMD : public CPageContent
 {
+// protected data
 protected:
 	///////////////////////////////////////////////////////////////////////////
-	// m_csMarkdown
+	// pointer back to the hosting document
 	///////////////////////////////////////////////////////////////////////////
-	CString m_csMarkdown;
+	CClimateExplorerDoc* m_pDoc;
 
+	CString m_csMarkdown;   // raw markdown text
+
+// public properties
 public:
-	///////////////////////////////////////////////////////////////////////////
-	// Markdown property
-	///////////////////////////////////////////////////////////////////////////
+	// image of the content
+	virtual shared_ptr<Gdiplus::Image> GetImageContent();
+
 	CString GetMarkdown()
 	{
 		return m_csMarkdown;
 	}
 
-	void SetMarkdown(CString value)
+	void SetMarkdown(const CString& value)
 	{
 		m_csMarkdown = value;
+		m_pImageContent.reset(); // force re-render
 	}
 
 	__declspec(property(get = GetMarkdown, put = SetMarkdown))
 		CString Markdown;
 
+// public override methods
 public:
 	///////////////////////////////////////////////////////////////////////////
 	// WriteXml
@@ -72,7 +81,9 @@ public:
 	CPageMD()
 	{
 		ContentType = ContentMD;
+		m_pDoc = nullptr;
 	}
+	CPageMD(CClimateExplorerDoc* pDoc);
 
 	virtual ~CPageMD()
 	{

@@ -404,6 +404,16 @@ LRESULT CPropertiesWnd::OnPropertyChange
 			{
 				m_pPropImagePath->Show(FALSE);
 			}
+
+			// enable/disable MD path
+			if (value == L"md")
+			{
+				m_pPropMdPath->Show();
+			}
+			else
+			{
+				m_pPropMdPath->Show(FALSE);
+			}
 		}
 		else if (csName == L"Content Title")
 		{
@@ -424,6 +434,37 @@ LRESULT CPropertiesWnd::OnPropertyChange
 				{
 					pDoc->ImagePath = csRelative;
 					m_pPropImagePath->SetValue(_variant_t(csRelative));
+					CString csFile = CHelper::GetFileName(csPath);
+					CString csTitle = m_pPropContentTitle->GetValue().bstrVal;
+					if (csTitle.IsEmpty() || csTitle == L"Title")
+					{
+						m_pPropContentTitle->SetValue(_variant_t(csFile));
+						pDoc->ContentTitle = csFile;
+					}
+				}
+				else
+				{
+					CString csMessage;
+					csMessage.Format
+					(
+						L"Pathname does not exist:\n%s",
+						csRelative
+					);
+					AfxMessageBox(csMessage);
+				}
+			}
+		}
+		else if (csName == L"Select a Markdown")
+		{
+			CString csPath = CString(varIn);
+			if (csPath != pDoc->MdPath)
+			{
+				CString csRelative = CHelper::ToRelative(csPath);
+
+				if (::PathFileExists(csRelative))
+				{
+					pDoc->MdPath = csRelative;
+					m_pPropMdPath->SetValue(_variant_t(csRelative));
 					CString csFile = CHelper::GetFileName(csPath);
 					CString csTitle = m_pPropContentTitle->GetValue().bstrVal;
 					if (csTitle.IsEmpty() || csTitle == L"Title")
@@ -932,6 +973,11 @@ void CPropertiesWnd::UpdatePropertiesFromDocument(CClimateExplorerDoc* pDoc)
 			else if (csName == L"Select an Image")
 			{
 				CString value = pDoc->ImagePath;
+				pProp->SetValue(value);
+			}
+			else if (csName == L"Select a Markdown")
+			{
+				CString value = pDoc->MdPath;
 				pProp->SetValue(value);
 			}
 			else if (csName == L"Axis Label X")
@@ -1510,6 +1556,23 @@ void CPropertiesWnd::InitRenderProperties()
 	m_pPropImagePath->Show(FALSE);
 
 	pRenderGroup->AddSubItem(m_pPropImagePath);
+	
+	// CMFCPropertyGridProperty file filter
+	static TCHAR BASED_CODE szMdFilter[] = 
+		L"MD Files(*.md)|*.md|"
+		L"All Files(*.*)| *.*||";
+
+	m_pPropMdPath = new CMFCPropertyGridFileProperty
+	(
+		L"Select a Markdown", TRUE,
+		L"", L"md", 0, szMdFilter,
+		L"Relative path to the markdown to be used for output."
+	);
+
+	// hidden by default and enabled when the output is Image
+	m_pPropMdPath->Show(FALSE);
+
+	pRenderGroup->AddSubItem(m_pPropMdPath);
 	
 	CMFCPropertyGridProperty* pPropLayout =
 		new CMFCPropertyGridProperty

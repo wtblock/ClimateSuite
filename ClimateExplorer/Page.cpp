@@ -59,6 +59,27 @@ bool CPage::AddImagePath(CString csPath)
 } // AddImagePath
 
 /////////////////////////////////////////////////////////////////////////////
+// add a markdwon to the page
+bool CPage::AddMdPath(CString csPath)
+{
+	CString csTitle = m_pDoc->ContentTitle;
+	bool value = false;
+	if (PageIsFull)
+	{
+		return value;
+	}
+
+	shared_ptr<CPageMD> pMD = make_shared<CPageMD>(m_pDoc);
+	pMD->ContentTitle = csTitle;
+	pMD->ContentPath = csPath;
+
+	// replaces a markdown if it exists
+	m_arrContent.add(csTitle, pMD, true);
+
+	return value;
+} // AddMdPath
+
+/////////////////////////////////////////////////////////////////////////////
 // add an image to the page
 bool CPage::AddAnImage(shared_ptr<CGraphPlotter> pPlot)
 {

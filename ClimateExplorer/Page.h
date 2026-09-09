@@ -513,6 +513,9 @@ public:
 	// add an image to the page
 	bool AddImagePath(CString csPath);
 
+	// add a markdown to the page
+	bool AddMdPath(CString csPath);
+
 	// render the image rectangles
 	void RenderImageRectangles(CDC* pDC)
 	{

@@ -1350,13 +1350,29 @@ public:
 	*/
 
 	/////////////////////////////////////////////////////////////////////////////
-		// Reads text files in various encodings and returns a vector of strings
-		// for each line of text read
-		// Parameter csCCS allowed values are: 
-		//		UNICODE, 
-		//		UTF-8, and
-		//		UTF-16LE
-		// If no value is specified for csCCS, ReadText uses ANSI encoding.	
+	static inline double ComputeLineHeightInches(const Gdiplus::Font& font)
+	{
+		Gdiplus::FontFamily family;
+		font.GetFamily(&family);
+
+		REAL emHeight = family.GetEmHeight(font.GetStyle());
+		REAL lineSpacing = family.GetLineSpacing(font.GetStyle());
+		REAL fontSizePts = font.GetSize();   // points
+
+		// Convert to inches: points / 72
+		double fLineHeightInches = (lineSpacing / emHeight) * (fontSizePts / 72.0);
+
+		return fLineHeightInches;
+	}
+
+	/////////////////////////////////////////////////////////////////////////////
+	// Reads text files in various encodings and returns a vector of strings
+	// for each line of text read
+	// Parameter csCCS allowed values are: 
+	//		UNICODE, 
+	//		UTF-8, and
+	//		UTF-16LE
+	// If no value is specified for csCCS, ReadText uses ANSI encoding.	
 	static inline vector<CString> ReadText
 	(
 		CString csPath, CString csCCS = L"UTF-8"
@@ -1385,6 +1401,83 @@ public:
 
 		return value;
 	}
+
+	/////////////////////////////////////////////////////////////////////////////
+	// DetectEncoding
+	// ----------------
+	// Examines the first few bytes of a text file to determine its encoding.
+	// Supports all formats Notepad can save:
+	//
+	//   • UTF-8 with BOM      (EF BB BF)
+	//   • UTF-16 LE           (FF FE)
+	//   • UTF-16 BE           (FE FF)
+	//   • UTF-8 without BOM   (no signature)
+	//   • ANSI                (no signature)
+	//
+	// If no BOM is present, UTF-8 is returned as the safest default.
+	// This function does NOT read the entire file — only the first 2–3 bytes.
+	/////////////////////////////////////////////////////////////////////////////
+	static CString DetectEncoding(const CString& csPath)
+	{
+		CFile file;
+		if (!file.Open(csPath, CFile::modeRead | CFile::typeBinary))
+			return L"UTF-8";   // Safe fallback
+
+		BYTE bom[3] = { 0 };
+		UINT nRead = file.Read(bom, 3);
+
+		// UTF-8 BOM
+		if (nRead >= 3 &&
+			bom[0] == 0xEF &&
+			bom[1] == 0xBB &&
+			bom[2] == 0xBF)
+		{
+			return L"UTF-8";
+		}
+
+		// UTF-16 LE
+		if (nRead >= 2 &&
+			bom[0] == 0xFF &&
+			bom[1] == 0xFE)
+		{
+			return L"UTF-16LE";
+		}
+
+		// UTF-16 BE
+		if (nRead >= 2 &&
+			bom[0] == 0xFE &&
+			bom[1] == 0xFF)
+		{
+			return L"UTF-16BE";
+		}
+
+		// No BOM → treat as UTF-8 (ANSI is rare; UTF-8 is safe default)
+		return L"UTF-8";
+	}
+
+	/////////////////////////////////////////////////////////////////////////////
+	// ReadTextAuto
+	// ----------------
+	// Automatically detects the encoding of the specified text file using
+	// DetectEncoding(), then calls ReadText() with the correct CCS parameter.
+	//
+	// This allows the caller to read ANY Notepad-saved file without knowing
+	// its encoding in advance:
+	//
+	//   • UTF-8
+	//   • UTF-8 with BOM
+	//   • UTF-16 LE
+	//   • UTF-16 BE
+	//   • ANSI
+	//
+	// Returns a vector<CString> where each entry is one decoded line of text.
+	/////////////////////////////////////////////////////////////////////////////
+	static inline vector<CString> ReadTextAuto(const CString& csPath)
+	{
+		CString csEncoding = DetectEncoding(csPath);
+		return ReadText(csPath, csEncoding);
+	}
+
 
 	/////////////////////////////////////////////////////////////////////////////
 	// returns a vector of all words separated by spaces (default) in the given

@@ -3,7 +3,7 @@
 /////////////////////////////////////////////////////////////////////////////
 #include "pch.h"
 #include "PageImage.h"
-#include "PlusGDI.h"
+#include "ImagePlus.h"
 #include "ClimateExplorerDoc.h"
 #include "MainFrm.h"
 
@@ -256,11 +256,10 @@ void CPageImage::ReadXml(IXmlReader* pReader)
 	{
 		if (::PathFileExists(csExternalPath))
 		{
-			CPlusGDI gdi;
+			CImagePlus gdi;
 			if (gdi.Open(csExternalPath))
 			{
-				Gdiplus::Image* pImage = CHelper::CopyImage(gdi.GetImage());
-				m_pImageContent = shared_ptr<Gdiplus::Image>(pImage);
+				m_pImageContent = gdi.ImagePlus;
 				return;
 			}
 		}
@@ -277,23 +276,19 @@ shared_ptr<Gdiplus::Image> CPageImage::GetImageContent()
 
 	if (value == nullptr)
 	{
-		CPlusGDI gdi;
+		CImagePlus gdi;
 
 		CString csPath = ContentPath;
 		if (::PathFileExists(csPath))
 		{
 			if (gdi.Open(csPath))
 			{
-				Gdiplus::Image* pImage = CHelper::CopyImage(gdi.GetImage());
-				value = shared_ptr<Gdiplus::Image>(pImage);
-				m_pImageContent = value;
+				m_pImageContent = gdi.ImagePlus;
 			}
 		}
 	}
 	
-	int imgWidth = value->GetWidth();
-	int imgHeight = value->GetHeight();
-	return value;
+	return m_pImageContent;
 } // GetImageContent
 
 /////////////////////////////////////////////////////////////////////////////

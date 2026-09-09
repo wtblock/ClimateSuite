@@ -822,6 +822,8 @@ void CClimateExplorerDoc::SetSelectLimit(int nPage, int nImage)
 				break;
 			case CPageContent::ContentMD:
 				Output = L"MD";
+				MdPath = pContent->ContentPath;
+				ContentTitle = pContent->ContentTitle;
 				break;
 			case CPageContent::ContentMap:
 				Output = L"Map";
@@ -1275,11 +1277,18 @@ void CClimateExplorerDoc::OnCloseDocument()
 /////////////////////////////////////////////////////////////////////////////
 void CClimateExplorerDoc::ExecuteImage()
 {
+	CString csOutput = Output;
+
 	CString csPath = ImagePath;
+	if (csOutput == L"MD")
+	{
+		csPath = MdPath;
+	}
+
 	if (!::PathFileExists(csPath))
 	{
 		CString csMessage;
-		csMessage.Format(L"Image pathname does not exist:\n\t%s", csPath);
+		csMessage.Format(L"Pathname does not exist:\n\t%s", csPath);
 		AfxMessageBox(csMessage);
 		return;
 	}
@@ -1370,7 +1379,14 @@ void CClimateExplorerDoc::ExecuteImage()
 	CRect rect = MarginRectangle;
 	pPage->Rect = rect;
 
-	pPage->AddImagePath(csPath);
+	if (csOutput == L"MD")
+	{
+		pPage->AddMdPath(csPath);
+	}
+	else
+	{
+		pPage->AddImagePath(csPath);
+	}
 
 	// 5. Mark document modified (optional)
 	SetModifiedFlag(TRUE);
@@ -1671,7 +1687,7 @@ void CClimateExplorerDoc::ExecuteQuery(bool bProgress/* = true*/)
 void CClimateExplorerDoc::OnExecuteQuery()
 {
 	CString csOutput = Output;
-	if (csOutput == L"Image")
+	if (csOutput == L"Image" || csOutput == L"MD")
 	{
 		ExecuteImage();
 	}

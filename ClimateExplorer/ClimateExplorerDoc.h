@@ -249,6 +249,9 @@ protected:
 	// pathname of the image content
 	CString m_csImagePath;
 
+	// pathname of the markdown content
+	CString m_csMdPath;
+
 	/////////////////////////////////////////////////////////////////////////////
 	// graph properties
 	/////////////////////////////////////////////////////////////////////////////
@@ -1528,6 +1531,20 @@ public:
 	// pathname of the image content
 	__declspec(property(get = GetImagePath, put = SetImagePath))
 		CString ImagePath;
+
+	// pathname of the markdown content
+	CString GetMdPath()
+	{
+		return m_csMdPath;
+	}
+	// pathname of the markdown content
+	void SetMdPath(CString value)
+	{
+		m_csMdPath = value;
+	}
+	// pathname of the markdown content
+	__declspec(property(get = GetMdPath, put = SetMdPath))
+		CString MdPath;
 
 	// format the given value based on current units
 	CString GetFormatValue(double value)

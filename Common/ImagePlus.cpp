@@ -125,6 +125,68 @@ bool CImagePlus::GetFormatIDByExt(LPCWSTR pExt, UINT& nImageFormatID)
 } // GetFormatIDByExt
 
 /////////////////////////////////////////////////////////////////////////////
+// Open(path)
+//
+// Loads an image from a file using Bitmap::FromFile.
+// Replaces any existing image.
+// Returns true on success.
+/////////////////////////////////////////////////////////////////////////////
+bool CImagePlus::Open(LPCTSTR lpszPathName)
+{
+	// release existing image
+	m_pImage.reset();
+
+	// load new image
+	Bitmap* pBitmap = Bitmap::FromFile(lpszPathName, FALSE);
+	if (pBitmap == NULL)
+	{
+		return false;
+	}
+
+	Status status = pBitmap->GetLastStatus();
+	if (status != Ok)
+	{
+		delete pBitmap;
+		return false;
+	}
+
+	// wrap in shared_ptr
+	m_pImage = shared_ptr<Bitmap>(pBitmap);
+
+	return true;
+} // Open
+
+/////////////////////////////////////////////////////////////////////////////
+// Open(stream)
+//
+// Loads an image from an IStream using Bitmap::FromStream.
+// Replaces any existing image.
+// Returns true on success.
+/////////////////////////////////////////////////////////////////////////////
+bool CImagePlus::Open(IStream* pStream)
+{
+	// release existing image
+	m_pImage.reset();
+
+	Bitmap* pBitmap = Bitmap::FromStream(pStream);
+	if (pBitmap == NULL)
+	{
+		return false;
+	}
+
+	Status status = pBitmap->GetLastStatus();
+	if (status != Ok)
+	{
+		delete pBitmap;
+		return false;
+	}
+
+	m_pImage = shared_ptr<Bitmap>(pBitmap);
+
+	return true;
+} // Open
+
+/////////////////////////////////////////////////////////////////////////////
 // Save
 //
 // Saves the wrapped GDI+ Bitmap to disk using the encoder determined

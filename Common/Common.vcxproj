@@ -167,8 +167,14 @@
     <ClInclude Include="framework.h" />
     <ClInclude Include="ImagePlus.h" />
     <ClInclude Include="KeyedCollection.h" />
+    <ClInclude Include="MarkdownBitmapRenderer.h" />
+    <ClInclude Include="MarkdownParser.h" />
+    <ClInclude Include="MarkdownRenderer.h" />
+    <ClInclude Include="md4c.h" />
     <ClInclude Include="miniz.h" />
     <ClInclude Include="NaturalLanguage.h" />
+    <ClInclude Include="Paragraph.h" />
+    <ClInclude Include="ParagraphToken.h" />
     <ClInclude Include="pch.h" />
     <ClInclude Include="PdfWriter.h" />
     <ClInclude Include="PlusGDI.h" />
@@ -194,6 +200,19 @@
     <ClCompile Include="ColorPlus.cpp" />
     <ClCompile Include="Common.cpp" />
     <ClCompile Include="ImagePlus.cpp" />
+    <ClCompile Include="MarkdownBitmapRenderer.cpp" />
+    <ClCompile Include="MarkdownParser.cpp" />
+    <ClCompile Include="MarkdownRenderer.cpp" />
+    <ClCompile Include="md4c.c">
+      <CompileAs Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">CompileAsC</CompileAs>
+      <CompileAs Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">CompileAsC</CompileAs>
+      <CompileAs Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">CompileAsC</CompileAs>
+      <CompileAs Condition="'$(Configuration)|$(Platform)'=='Release|x64'">CompileAsC</CompileAs>
+      <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">NotUsing</PrecompiledHeader>
+      <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">NotUsing</PrecompiledHeader>
+      <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">NotUsing</PrecompiledHeader>
+      <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Release|x64'">NotUsing</PrecompiledHeader>
+    </ClCompile>
     <ClCompile Include="miniz.c">
       <CompileAs Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">CompileAsC</CompileAs>
       <CompileAs Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">CompileAsC</CompileAs>
@@ -205,6 +224,8 @@
       <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Release|x64'">NotUsing</PrecompiledHeader>
     </ClCompile>
     <ClCompile Include="NaturalLanguage.cpp" />
+    <ClCompile Include="Paragraph.cpp" />
+    <ClCompile Include="ParagraphToken.cpp" />
     <ClCompile Include="pch.cpp">
       <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">Create</PrecompiledHeader>
       <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">Create</PrecompiledHeader>
