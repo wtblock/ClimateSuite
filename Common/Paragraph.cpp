@@ -227,11 +227,17 @@ void CParagraph::ExpandTokens()
 			// list marker tokens are a single word with a 
 			// reserved length
 			bool bListMarker = token->ListMarker;
+			int nListDepth = token->ListDepth;
+			double dMarkerLength = MarkerLength;
 
 			// if it is not a list marker, calculate the length
 			if (bListMarker)
 			{
-				pNew->Length = MarkerLength;
+				if (nListDepth > 1)
+				{
+					dMarkerLength *= nListDepth;
+				}
+				pNew->Length = dMarkerLength;
 
 				// only the first token is a list marker
 				token->ListMarker = false;
@@ -569,6 +575,116 @@ bool CParagraph::DrawLine
 
 	return value;
 } // DrawLine
+
+/////////////////////////////////////////////////////////////////////////////
+// DrawImage
+//
+// Draws an image at the current position, scaled to fit content width.
+// No spacing is applied here; spacing is handled by OnImage().
+//
+/////////////////////////////////////////////////////////////////////////////
+void CParagraph::DrawImage
+(
+	Graphics* pGraphics, const CString& csPath
+)
+{
+	m_pGraphics = pGraphics;
+
+	// load image
+	Image image(csPath);
+
+	//
+	// natural size in pixels
+	//
+	const int nNaturalWidth = image.GetWidth();
+	const int nNaturalHeight = image.GetHeight();
+
+	//
+	// content width in inches (page width minus left margin)
+	//
+	const double fContentWidthInches =
+		double(MarginInches.Width) - MarginInches.X;
+
+	//
+	// Compute natural size in inches using image DPI
+	//
+	REAL imgDpiX = image.GetHorizontalResolution();
+	REAL imgDpiY = image.GetVerticalResolution();
+
+	double fNaturalWidthInches = (double)nNaturalWidth / imgDpiX;
+	double fNaturalHeightInches = (double)nNaturalHeight / imgDpiY;
+
+	//
+	// Scale to fit content width
+	//
+	double fScaleWidth = 1.0;
+	if (fNaturalWidthInches > fContentWidthInches)
+	{
+		fScaleWidth = fContentWidthInches / fNaturalWidthInches;
+	}
+
+	//
+	// Scale to fit remaining page height
+	//
+	double pageBottomInches = MarginInches.Y + MarginInches.Height;
+	double availableHeightInches = pageBottomInches - YInches;
+
+	double fScaleHeight = 1.0;
+	if (fNaturalHeightInches > availableHeightInches)
+	{
+		fScaleHeight = availableHeightInches / fNaturalHeightInches;
+	}
+
+	//
+	// Final scale preserves aspect ratio
+	//
+	double fScale = min(fScaleWidth, fScaleHeight);
+
+	//
+	// Final draw size
+	//
+	double fDrawWidthInches = fNaturalWidthInches * fScale;
+	double fDrawHeightInches = fNaturalHeightInches * fScale;
+
+	//
+	// convert to pixels
+	//
+	const int nDrawWidth = ToPixelsX(fDrawWidthInches);
+	const int nDrawHeight = ToPixelsY(fDrawHeightInches);
+
+	//
+	// compute position with indentation
+	//
+	double fContentLeftInches = MarginInches.X;
+
+	// compute centered X position
+	double fCenteredXInches =
+		fContentLeftInches + (fContentWidthInches - fDrawWidthInches) / 2;
+
+	// apply indentation (blockquote, list depth)
+	//fCenteredXInches += ComputeIndentInches();
+
+	int nX = ToPixelsX(fCenteredXInches);
+	int nY = ToPixelsY(YInches);
+
+	//
+	// draw
+	//
+	m_pGraphics->DrawImage
+	(
+		&image,
+		nX,
+		nY,
+		nDrawWidth,
+		nDrawHeight
+	);
+
+	//
+	// advance vertical position
+	//
+	YInches += fDrawHeightInches;
+
+} // DrawImage
 
 /////////////////////////////////////////////////////////////////////////////
 

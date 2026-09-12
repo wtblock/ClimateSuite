@@ -121,7 +121,6 @@ public:
 
 // protected methods
 protected:
-protected:
 	ConflictRule ResolveConflict
 	(
 		MD_BLOCKTYPE eBlock,

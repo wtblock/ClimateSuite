@@ -26,10 +26,13 @@ protected:
 	bool            m_bEmphasis;         // italic
 	bool            m_bInlineCode;       // inline code span
 	bool            m_bBlockQuote;       // inside blockquote?
+	bool            m_bUnorderedList;    // inside unordered list?
 	bool            m_bListItem;         // inside a list?
 	bool            m_bListMarker;       // is this the list marker?
 	bool            m_bEndOfLine;        // last token in a line
 	int             m_nBlockQuoteDepth;  // depth of blockquote nesting
+	int             m_nListDepth;        // depth of list nesting
+	int             m_nOrderedListCounter; // number of the list item
 	int             m_nParagraphLine;    // line number within paragraph
 
 // public properties
@@ -185,6 +188,21 @@ public:
 		bool BlockQuote;
 
 	///////////////////////////////////////////////////////////////////////////
+	// Unordered list
+	///////////////////////////////////////////////////////////////////////////
+	bool GetUnorderedList(void) const
+	{
+		return m_bUnorderedList;
+	}
+
+	void SetUnorderedList(bool bUnorderedList)
+	{
+		m_bUnorderedList = bUnorderedList;
+	}
+	__declspec(property(get = GetUnorderedList, put = SetUnorderedList))
+		bool UnorderedList;
+
+	///////////////////////////////////////////////////////////////////////////
 	// List item
 	///////////////////////////////////////////////////////////////////////////
 	bool GetListItem(void) const
@@ -213,6 +231,37 @@ public:
 	}
 	__declspec(property(get = GetBlockQuoteDepth, put = SetBlockQuoteDepth))
 		int BlockQuoteDepth;
+
+	///////////////////////////////////////////////////////////////////////////
+	// List Depth
+	///////////////////////////////////////////////////////////////////////////
+	int GetListDepth(void) const
+	{
+		return m_nListDepth;
+	}
+
+	void SetListDepth(int nDepth)
+	{
+		m_nListDepth = nDepth;
+	}
+	__declspec(property(get = GetListDepth, put = SetListDepth))
+		int ListDepth;
+
+	///////////////////////////////////////////////////////////////////////////
+	// Ordered List Counter
+	///////////////////////////////////////////////////////////////////////////
+	int GetOrderedListCounter(void) const
+	{
+		return m_nOrderedListCounter;
+	}
+
+	void SetOrderedListCounter(int nDepth)
+	{
+		m_nOrderedListCounter = nDepth;
+	}
+	__declspec
+		(property(get = GetOrderedListCounter, put = SetOrderedListCounter))
+		int OrderedListCounter;
 
 	///////////////////////////////////////////////////////////////////////////
 	// List Marker
@@ -284,8 +333,11 @@ public:
 		m_bEmphasis = false;
 		m_bInlineCode = false;
 		m_bBlockQuote = false;
+		m_bUnorderedList = false;
 		m_bListItem = false;
 		m_nBlockQuoteDepth = 0;
+		m_nListDepth = 0;
+		m_nOrderedListCounter = 0;
 		m_bListMarker = false;
 		m_bEndOfLine = false;
 		m_nParagraphLine = 1;
@@ -303,8 +355,11 @@ public:
 		Emphasis = pToken->Emphasis;
 		InlineCode = pToken->InlineCode;
 		BlockQuote = pToken->BlockQuote;
+		UnorderedList = pToken->UnorderedList;
 		ListItem = pToken->ListItem;
 		BlockQuoteDepth = pToken->BlockQuoteDepth;
+		ListDepth = pToken->ListDepth;
+		OrderedListCounter = pToken->OrderedListCounter;
 		ListMarker = pToken->ListMarker;
 		EndOfLine = pToken->EndOfLine;
 		ParagraphLine = pToken->ParagraphLine;

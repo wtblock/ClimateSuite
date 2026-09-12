@@ -55,168 +55,6 @@ double CMarkdownBitmapRenderer::ComputeIndentInches()
 } // ComputeIndentInches
 
 /////////////////////////////////////////////////////////////////////////////
-// DrawImage
-//
-// Draws an image at the current position, scaled to fit content width.
-// No spacing is applied here; spacing is handled by OnImage().
-//
-/////////////////////////////////////////////////////////////////////////////
-void CMarkdownBitmapRenderer::DrawImage
-(
-	const CString& csPath
-)
-{
-	Graphics* pGraphics = GetGraphics();
-	if (!pGraphics)
-	{
-		return;
-	}
-
-	// load image
-	Image image(csPath);
-	if (image.GetLastStatus() != Ok)
-	{
-		delete pGraphics;
-		return;
-	}
-
-	//
-	// natural size in pixels
-	//
-	const int nNaturalWidth = image.GetWidth();
-	const int nNaturalHeight = image.GetHeight();
-
-	//
-	// content width in inches (page width minus left margin)
-	//
-	const double fContentWidthInches =
-		double(MarginInches.Width) - MarginInches.X;
-
-	//
-	// convert natural width to inches
-	//
-	const double fNaturalWidthInches =
-		(double)nNaturalWidth / Dpi;
-
-	double fScale = 1.0;
-
-	//
-	// scale down if too wide
-	//
-	if (fNaturalWidthInches > fContentWidthInches)
-	{
-		fScale = fContentWidthInches / fNaturalWidthInches;
-	}
-
-	//
-	// final size in inches
-	//
-	const double fDrawWidthInches = fNaturalWidthInches * fScale;
-	const double fDrawHeightInches =
-		((double)nNaturalHeight / Dpi) * fScale;
-
-	//
-	// convert to pixels
-	//
-	const int nDrawWidth = ToPixelsX(fDrawWidthInches);
-	const int nDrawHeight = ToPixelsY(fDrawHeightInches);
-
-	//
-	// compute position with indentation
-	//
-	const double fIndentInches = ComputeIndentInches();
-	const int nX = ToPixelsX(XInches + fIndentInches);
-	const int nY = ToPixelsY(YInches);
-
-	//
-	// draw
-	//
-	pGraphics->DrawImage
-	(
-		&image,
-		nX,
-		nY,
-		nDrawWidth,
-		nDrawHeight
-	);
-
-	delete pGraphics;
-
-	//
-	// advance vertical position
-	//
-	YInches += fDrawHeightInches;
-
-	//
-	// update pixel coordinates
-	//
-	X = ToPixelsX(XInches);
-	Y = ToPixelsY(YInches);
-} // DrawImage
-
-/////////////////////////////////////////////////////////////////////////////
-// DrawInlineCodeBackground
-//
-// Draws a light background behind inline code text.
-// Called from DrawWrappedText() before drawing the text.
-//
-/////////////////////////////////////////////////////////////////////////////
-void CMarkdownBitmapRenderer::DrawInlineCodeBackground
-(
-	const CString& text,
-	const Font& font,
-	Color colorFG,
-	Color colorBG
-)
-{
-	Graphics* pGraphics = GetGraphics();
-	if (!pGraphics)
-	{
-		return;
-	}
-
-	// measure the text
-	double fWidthInches = 0.0;
-	double fHeightInches = 0.0;
-
-	if (!MeasureString(text, font, fWidthInches, fHeightInches))
-	{
-		delete pGraphics;
-		return;
-	}
-
-	// padding around inline code
-	const double fPadX = 0.05;
-	const double fPadY = 0.02;
-
-	double fLeftInches = XInches /*+ fIndentInches*/ - fPadX;
-	double fTopInches = YInches - fPadY;
-
-	double fWidth = fWidthInches + (2 * fPadX);
-	double fHeight = fHeightInches + (2 * fPadY);
-
-	Gdiplus::RectF rcInches
-	(
-		(REAL)fLeftInches,
-		(REAL)fTopInches,
-		(REAL)fWidth,
-		(REAL)fHeight
-	);
-
-	Gdiplus::RectF rcPixels = ToPixelRect(rcInches);
-
-	// background
-	SolidBrush brush(colorBG); // GitHub inline code bg
-	pGraphics->FillRectangle(&brush, rcPixels);
-
-	// border
-	Pen pen(colorFG, 1.0f); // GitHub inline code border
-	pGraphics->DrawRectangle(&pen, rcPixels);
-
-	delete pGraphics;
-} // DrawInlineCodeBackground
-
-/////////////////////////////////////////////////////////////////////////////
 // DrawCodeBlockBackground
 //
 // Draws a light gray background behind a code block.
@@ -400,118 +238,6 @@ void CMarkdownBitmapRenderer::DrawListMarker(const CString& csMarker)
 	// Wrapped text begins at ComputeIndentInches().
 	//
 } // DrawListMarker
-
-/////////////////////////////////////////////////////////////////////////////
-// DrawWrappedText
-//
-// Draws text with automatic line wrapping based on remaining width.
-//
-/////////////////////////////////////////////////////////////////////////////
-void CMarkdownBitmapRenderer::DrawWrappedText
-(
-	const CString& csText,
-	const Gdiplus::Font& font,
-	double fIndentInches,
-	bool bAdvanceLine/* = true*/
-)
-{
-	Graphics* pGraphics = GetGraphics();
-	if (!pGraphics)
-	{
-		return;
-	}
-
-	CString csRemaining = csText;
-
-	while (!csRemaining.IsEmpty())
-	{
-		// compute remaining width on this line based on XInches
-		double fRemainingWidthInches = 
-			RemainingLineWidthInches() - fIndentInches;
-		if (fRemainingWidthInches < 0.0)
-		{
-			fRemainingWidthInches = 0.0;
-		}
-
-		CString csLine;
-		CString csNext;
-
-		// split text into line + remainder
-		bool bFits = SplitTextToFit
-		(
-			csRemaining,
-			font,
-			fRemainingWidthInches,
-			csLine,
-			csNext
-		);
-
-		if (!bFits)
-		{
-			//
-			// Nothing fits on this line.
-			// Draw nothing, advance to next line, and continue.
-			//
-			NewLine();
-			csRemaining = csNext;   // usually the full text
-			continue;
-		}
-
-		// draw the line
-		{
-			// compute pixel position
-			const int nX = ToPixelsX(XInches + fIndentInches);
-			const int nY = ToPixelsY(YInches);
-
-			// origin point in pixels
-			Gdiplus::PointF ptOrigin
-			(
-				(REAL)nX,
-				(REAL)nY
-			);
-
-			Color textColor =
-				(InLink && !InlineCode) ?
-				Color::Blue :
-				Color::Black;
-			SolidBrush brush(textColor);
-
-			// *** NEW ORDER ***
-			// 1. Inline code background first
-			//if (InlineCode)
-			//{
-			//	DrawInlineCodeBackground(csLine, font, fIndentInches);
-			//}
-
-			// 2. Blockquote bar second
-			if (InBlockQuote)
-			{
-				DrawBlockQuoteBar(font, fIndentInches);
-			}
-
-			// 3. Text last
-			pGraphics->DrawString
-			(
-				csLine,
-				csLine.GetLength(),
-				&font,
-				ptOrigin,
-				&brush
-			);
-		}
-
-		// advance to next line
-		if (CHelper::NearlyEqual(fRemainingWidthInches, 0.0))
-		{
-			NewLine();
-		}
-
-		// continue with remainder
-		csRemaining = csNext;
-	}
-
-	delete pGraphics;
-} // DrawWrappedText
 
 /////////////////////////////////////////////////////////////////////////////
 // SplitTextToFit
@@ -866,166 +592,38 @@ void CMarkdownBitmapRenderer::NewLine
 } // NewLine
 
 /////////////////////////////////////////////////////////////////////////////
-void CMarkdownBitmapRenderer::DrawRightAlignedMarker
-(
-	Graphics* pGraphics,
-	const CString& csMarker,
-	const Gdiplus::Font& font,
-	double fMarkerColumnWidthInches,
-	double fColumnLeftInches,
-	double fYInches
-)
-{
-	// Measure marker width
-	double fMarkerWidthInches = 0.0;
-	double fMarkerHeightInches = 0.0;
-	MeasureString(csMarker, font, fMarkerWidthInches, fMarkerHeightInches);
-
-	// Compute left origin so marker is right-aligned
-	double fLeftInches = 
-		fColumnLeftInches + (fMarkerColumnWidthInches - fMarkerWidthInches);
-
-	// Convert to pixels
-	int nX = ToPixelsX(fLeftInches);
-	int nY = ToPixelsY(fYInches);
-
-	PointF ptOrigin((REAL)nX, (REAL)nY);
-	SolidBrush brush(Color::Black);
-
-	pGraphics->DrawString
-	(
-		csMarker,
-		csMarker.GetLength(),
-		&font,
-		ptOrigin,
-		&brush
-	);
-} // DrawRightAlignedMarker
-
-/////////////////////////////////////////////////////////////////////////////
-// DrawSegmetText
+// DrawParagraph
 //
 // Draws segments of paragraph text.
 //
 /////////////////////////////////////////////////////////////////////////////
-double CMarkdownBitmapRenderer::DrawSegmentText
-(
-	shared_ptr<CParagraphToken> pSeg
-)
+double CMarkdownBitmapRenderer::DrawParagraph()
 {
-	double value = RemainingLineWidthInches();
-	Graphics* pGraphics = GetGraphics();
-	if (!pGraphics)
+	Gdiplus::Graphics* pGraphics = GetGraphics();
+
+	double dLeft = MarginInches.X;
+	double dRight = dLeft + MarginInches.Width;
+	double dY = YInches;
+
+	double fLineHeight = 0;
+	double fParagraphSpacing = 0;
+
+	while (DrawLine)
 	{
-		return value;
-	}
+		DrawLine = m_paragraph.DrawLine(pGraphics, dLeft, dRight, dY);
+		fLineHeight = ComputeLineHeightInches(*CurrentFont);
+		fParagraphSpacing = fLineHeight * 0.60;
 
-	CString csText = pSeg->Text;
-	shared_ptr<Gdiplus::Font> pFont = pSeg->Font;
-	bool bBackground = pSeg->Background;
-	Color colorFG = pSeg->ColorFG;
-	Color colorBG = pSeg->ColorBG;
-	bool bBlockQuote = pSeg->BlockQuote;
-	int nBlockQuoteDepth = pSeg->BlockQuoteDepth;
-	int nParagraphLine = pSeg->ParagraphLine;
-	bool bListMarker = pSeg->ListMarker;
+		YInches += fParagraphSpacing;
+		dY = YInches;
 
-	if (bBlockQuote &&nParagraphLine > 1)
-	{
-		NewLine();
-	}
-
-	double fX = XInches;
-	double fY = YInches;
-
-	if (bBlockQuote)
-	{
-		if (CHelper::NearlyEqual(fX, 0.0))
-		{
-			for (int n = 1; n <= nBlockQuoteDepth; n++)
-			{
-				double dOffset = fX;
-				dOffset += 0.4 * n;
-				XInches = dOffset;
-				DrawBlockQuoteBar(*CurrentFont, dOffset);
-			}
-			fX = XInches;
-		}
-	}
-
-	int nToken = 1;
-	int nStart = 0;
-	CString csToken = csText.Tokenize(L" ", nStart);
-	bool bMarker = false;
-	while (!csToken.IsEmpty())
-	{
-		double fWidth = 0, fHeight = 0;
-		if (bListMarker && nToken++ == 1)
-		{
-			fWidth = m_paragraph.MarkerLength;
-			DrawRightAlignedMarker
-			(
-				pGraphics,
-				csToken,
-				*CurrentFont.get(),
-				fWidth,
-				fX,
-				fY
-			);
-			bMarker = true;
-		}
-		else
-		{
-			MeasureString(csToken + L" ", *pFont.get(), fWidth, fHeight);
-		}
-
-		// start a new line?
-		if (fWidth > value)
-		{
-			NewLine();
-			fX = ComputeIndentInches();
-			XInches = fX;
-			value = RemainingLineWidthInches();
-		}
-
-		if (bBackground)
-		{
-			DrawInlineCodeBackground(csToken, *pFont.get(), colorFG, colorBG);
-		}
-
-		// compute pixel position
-		const int nX = ToPixelsX(fX);
-		const int nY = ToPixelsY(YInches);
-
-		// origin point in pixels
-		Gdiplus::PointF ptOrigin((REAL)nX, (REAL)nY);
-
-		SolidBrush brush(Color::Black);
-
-		if (!bMarker)
-		{
-			pGraphics->DrawString
-			(
-				csToken,
-				csToken.GetLength(),
-				pFont.get(),
-				ptOrigin,
-				&brush
-			);
-		}
-
-		bMarker = false;
-
-		fX += fWidth;
-		XInches = fX;
-		value = RemainingLineWidthInches();
-
-		csToken = csText.Tokenize(L" ", nStart);
 	}
 
 	delete pGraphics;
-	return value;
-} // DrawSegmentText
+
+	return fParagraphSpacing;
+
+} // DrawParagraph
 
 /////////////////////////////////////////////////////////////////////////////
 // DrawText
@@ -1047,101 +645,80 @@ void CMarkdownBitmapRenderer::DrawText(const CString& text)
 
 	CString csText(text);
 
-	// links use underline + blue color
-	if (InLink)
+	CString csListMarker = ListMarker;
+	if (InListItem && !csListMarker.IsEmpty())
 	{
-		int style = CurrentFont->GetStyle() | FontStyleUnderline;
-		Gdiplus::FontFamily ff;
-		CurrentFont->GetFamily(&ff);
-		REAL fSize = CurrentFont->GetSize();
-		Gdiplus::Font linkFont
-		(
-			&ff, fSize, style, UnitPoint
-		);
+		csText.Format(L"%s %s", csListMarker, text);
+		ListMarker = L"";
+	}
+	int nParagraphLine = ParagraphLine;
 
-		DrawWrappedText(csText, linkFont, fIndentInches);
-		delete pGraphics;
-		return;
+	int nStyle = CurrentFont->GetStyle();
+	Color colorFG = Color::Black;
+	Color colorBG = Color::White;
+	bool bBackground = false;
+	Gdiplus::FontFamily ff;
+	CurrentFont->GetFamily(&ff);
+	REAL fSize = CurrentFont->GetSize();
+	shared_ptr<Gdiplus::Font> pFont;
+
+	if (Emphasis)
+		nStyle |= FontStyleItalic;
+
+	if (Strong)
+		nStyle |= FontStyleBold;
+
+	if (InlineCode)
+	{
+		bBackground = true;
+		colorFG = Color::Silver;
+		colorBG = Color::Silver;
+		nStyle = FontStyleRegular;
+		fSize = 12.0f;
+		pFont = make_shared<Gdiplus::Font>
+			(L"Consolas", fSize, nStyle, UnitPoint);
+	}
+	else
+	{
+		pFont = make_shared<Gdiplus::Font>
+			(&ff, fSize, nStyle, UnitPoint);
 	}
 
-	if (InParagraph)
+	int nBlockQuoteDepth = 0;
+	bool bBlockQuote = false;
+	if (InBlockQuote)
 	{
-		CString csListMarker = ListMarker;
-		if (InListItem && !csListMarker.IsEmpty())
-		{
-			csText.Format(L"%s %s", csListMarker, text);
-			ListMarker = L"";
-		}
-		int nParagraphLine = ParagraphLine;
-
-		int nStyle = CurrentFont->GetStyle();
-		Color colorFG = Color::Black;
-		Color colorBG = Color::White;
-		bool bBackground = false;
-		Gdiplus::FontFamily ff;
-		CurrentFont->GetFamily(&ff);
-		REAL fSize = CurrentFont->GetSize();
-		shared_ptr<Gdiplus::Font> pFont;
-
-		if (Emphasis)
-			nStyle |= FontStyleItalic;
-
-		if (Strong)
-			nStyle |= FontStyleBold;
-
-		if (InlineCode)
-		{
-			bBackground = true;
-			colorFG = Color::Silver;
-			colorBG = Color::Silver;
-			nStyle = FontStyleRegular;
-			fSize = 12.0f;
-			pFont = make_shared<Gdiplus::Font>
-				(L"Consolas", fSize, nStyle, UnitPoint);
-		}
-		else
-		{
-			pFont = make_shared<Gdiplus::Font>
-				(&ff, fSize, nStyle, UnitPoint);
-		}
-
-		int nBlockQuoteDepth = 0;
-		bool bBlockQuote = false;
-		if (InBlockQuote)
-		{
-			bBlockQuote = true;
-			nBlockQuoteDepth = BlockQuoteDepth;
-		}
-
-		double fWidth = 0, fHeight = 0;
-		MeasureString(csText, *pFont, fWidth, fHeight);
-		shared_ptr<CParagraphToken> pToken = 
-			make_shared<CParagraphToken>();
-		pToken->Text = csText;
-		pToken->Font = pFont;
-		pToken->Length = fWidth;
-		pToken->Background = bBackground;
-		pToken->ColorFG = colorFG;
-		pToken->ColorBG = colorBG;
-		pToken->BlockQuote = bBlockQuote;
-		pToken->BlockQuoteDepth = nBlockQuoteDepth;
-		pToken->ParagraphLine = nParagraphLine++;
-		pToken->ListMarker = !csListMarker.IsEmpty();
-		pToken->ListItem = InListItem;
-		pToken->InlineCode = InlineCode;
-		pToken->Emphasis = Emphasis;
-		pToken->Strong = Strong;
-		ParagraphLine = nParagraphLine;
-		m_paragraph.Append(pToken);
-
-		delete pGraphics;
-		return;
+		bBlockQuote = true;
+		nBlockQuoteDepth = BlockQuoteDepth;
 	}
 
-	// normal text uses CurrentFont
-	DrawWrappedText(csText, *CurrentFont, fIndentInches);
+	double fWidth = 0, fHeight = 0;
+	MeasureString(csText, *pFont, fWidth, fHeight);
+	shared_ptr<CParagraphToken> pToken =
+		make_shared<CParagraphToken>();
+	pToken->Text = csText;
+	pToken->Font = pFont;
+	pToken->Length = fWidth;
+	pToken->Background = bBackground;
+	pToken->ColorFG = colorFG;
+	pToken->ColorBG = colorBG;
+	pToken->BlockQuote = bBlockQuote;
+	pToken->BlockQuoteDepth = nBlockQuoteDepth;
+	pToken->ListDepth = ListDepth;
+	pToken->ParagraphLine = nParagraphLine++;
+	pToken->ListMarker = !csListMarker.IsEmpty();
+	pToken->UnorderedList = InUnorderedList;
+	pToken->OrderedListCounter = OrderedListCounter;
+	pToken->ListItem = InListItem;
+	pToken->InlineCode = InlineCode;
+	pToken->Emphasis = Emphasis;
+	pToken->Strong = Strong;
+	ParagraphLine = nParagraphLine;
+	m_paragraph.Append(pToken);
+	DrawLine = true;
 
 	delete pGraphics;
+
 } // DrawText
 
 /////////////////////////////////////////////////////////////////////////////
@@ -1152,12 +729,15 @@ void CMarkdownBitmapRenderer::DrawText(const CString& text)
 /////////////////////////////////////////////////////////////////////////////
 void CMarkdownBitmapRenderer::OnParagraphStart()
 {
-	// switch to paragraph font
-	CurrentFont = FontParagraph;
+	if (!InListItem)
+	{
+		// switch to paragraph font
+		CurrentFont = FontParagraph;
 
-	// ensure X is at left margin
-	XInches = MarginInches.X;
-	X = ToPixelsX(XInches);
+		// ensure X is at left margin
+		XInches = MarginInches.X;
+		X = ToPixelsX(XInches);
+	}
 
 	InParagraph = true;
 	ParagraphLine = 1;
@@ -1177,51 +757,7 @@ void CMarkdownBitmapRenderer::OnParagraphEnd()
 	InParagraph = false;
 	ParagraphLine = 0;
 
-	//// base indentation in inches
-	//double fIndentInches = ComputeIndentInches();
-	//CString csSpace(L" ");
-	//double fWidth = 0, fHeight = 0;
-	//MeasureString(csSpace, *CurrentFont, fWidth, fHeight);
-
-	//long lSegments = m_paragraph.Count;
-	//for (auto& node : m_paragraph.Items)
-	//{
-	//	CString csSegment = node->Text;
-	//	double dX = XInches;
-
-	//	// remove the previous space is the segment is a lone comma
-	//	if (csSegment.Left(1) == L",")
-	//	{
-	//		dX -= fWidth;
-	//		XInches = dX;
-	//	}
-	//	shared_ptr<Gdiplus::Font> pFont = node->Font;
-	//	double fLen = node->Length;
-	//	double dRemaining = DrawSegmentText(node);
-	//}
-
-	Gdiplus::Graphics* pGraphics = GetGraphics();
-
-	double dLeft = MarginInches.X;
-	double dRight = dLeft + MarginInches.Width;
-	double dY = YInches;
-
-	bool bDrawLine = false;
-	double fLineHeight =0;
-	double fParagraphSpacing = 0;
-
-	do
-	{
-		bDrawLine = m_paragraph.DrawLine(pGraphics, dLeft, dRight, dY);
-		fLineHeight = ComputeLineHeightInches(*FontParagraph);
-		fParagraphSpacing = fLineHeight * 0.60;
-
-		YInches += fParagraphSpacing;
-		dY = YInches;
-
-	} while (bDrawLine == true);
-
-	delete pGraphics;
+	double fParagraphSpacing = DrawParagraph();
 
 	if (InBlockQuote)
 	{
@@ -1256,50 +792,27 @@ void CMarkdownBitmapRenderer::OnImage
 	//
 	// GitHub-style spacing before image
 	//
-	YInches += 0.06;
 	NewLine();      // ensure clean block start
+
+	m_paragraph.MarginInches = MarginInches;
+	m_paragraph.XInches = XInches;
+	m_paragraph.YInches = YInches;
 
 	//
 	// Draw the image (no spacing inside DrawImage)
 	//
-	DrawImage(csPath);
+	Graphics* pGraphics = GetGraphics();
+	m_paragraph.DrawImage(pGraphics, csPath);
+	delete pGraphics;
 
 	//
 	// GitHub-style spacing after image
 	//
-	YInches += 0.06;
+	YInches = m_paragraph.YInches;
+	XInches = m_paragraph.XInches;
+
 	NewLine();
 } // OnImage
-
-/////////////////////////////////////////////////////////////////////////////
-// OnHorizontalRule
-//
-// Draws a horizontal rule with normalized spacing and thickness.
-//
-/////////////////////////////////////////////////////////////////////////////
-void CMarkdownBitmapRenderer::OnHorizontalRule()
-{
-	NewLine();
-
-	const double fLeftInches = MarginInches.X;
-	const double fRightInches = MarginInches.X + MarginInches.Width;
-
-	const int x1 = ToPixelsX(fLeftInches);
-	const int x2 = ToPixelsX(fRightInches);
-	const int y = ToPixelsY(YInches);
-
-	Graphics* pGraphics = GetGraphics();
-	if (pGraphics != nullptr)
-	{
-		int nThickness = ToPixelsY(0.02);
-		Gdiplus::REAL fThick = (Gdiplus::REAL)nThickness;
-		Gdiplus::Pen pen(Color::Silver, fThick);
-		pGraphics->DrawLine(&pen, x1, y, x2, y);
-		delete pGraphics;
-	}
-
-	NewLine();
-} // OnHorizontalRule
 
 /////////////////////////////////////////////////////////////////////////////
 // OnHeadingStart
@@ -1344,8 +857,8 @@ void CMarkdownBitmapRenderer::OnHeadingStart(int level)
 /////////////////////////////////////////////////////////////////////////////
 void CMarkdownBitmapRenderer::OnHeadingEnd()
 {
-	// compute heading line height
-	double fLineHeight = ComputeLineHeightInches(*CurrentFont);
+	// compute heading line height and draw the heading
+	double fLineHeight = DrawParagraph();
 
 	// draw underline for H1/H2
 	if (HeadingLevel == 1 || HeadingLevel == 2)
@@ -1360,7 +873,7 @@ void CMarkdownBitmapRenderer::OnHeadingEnd()
 		int x2 = ToPixelsX(fRightInches);
 
 		// underline must use the *current baseline*
-		int y = ToPixelsY(YInches + fLineHeight);
+		int y = ToPixelsY(YInches + fLineHeight * 0.65);
 
 		Graphics* pGraphics = GetGraphics();
 		if (pGraphics)
@@ -1371,23 +884,10 @@ void CMarkdownBitmapRenderer::OnHeadingEnd()
 		}
 	}
 
+	CurrentFont = FontParagraph;
 	NewLine();
 
-	//// proportional spacing after heading
-	//double fAfterInches = 0.0;
-
-	//switch (HeadingLevel)
-	//{
-	//case 1: fAfterInches = fLineHeight * 0.20; break;
-	//case 2: fAfterInches = fLineHeight * 0.15; break;
-	//default: fAfterInches = fLineHeight * 0.10; break;
-	//}
-
-	//YInches += fAfterInches;
-	//Y = ToPixelsY(YInches);
-
 	HeadingLevel = 0;
-	CurrentFont = FontParagraph;
 } // OnHeadingEnd
 
 /////////////////////////////////////////////////////////////////////////////
@@ -1400,8 +900,10 @@ void CMarkdownBitmapRenderer::OnUnorderedListStart()
 /////////////////////////////////////////////////////////////////////////////
 void CMarkdownBitmapRenderer::OnUnorderedListEnd()
 {
-	InUnorderedList = false;
-	ListDepth = ListDepth - 1;
+	int nListDepth = ListDepth;
+	nListDepth--;
+	InUnorderedList = nListDepth > 0;
+	ListDepth = nListDepth;
 }
 
 /////////////////////////////////////////////////////////////////////////////
@@ -1429,19 +931,10 @@ void CMarkdownBitmapRenderer::OnListItemStart
 )
 {
 	// reset X to left margin
-	XInches = MarginInches.X;
+	XInches = MarginInches.X + ListDepth * 0.4;
 	X = ToPixelsX(XInches);
 
 	CurrentFont = FontParagraph;
-
-	double fLineHeight = ComputeLineHeightInches(*CurrentFont);
-
-	// spacing between list items
-	YInches += fLineHeight / 2;
-
-	// update pixel coordinates
-	X = ToPixelsX(XInches);
-	Y = ToPixelsY(YInches);
 
 	// mark state
 	InListItem = true;
@@ -1459,14 +952,7 @@ void CMarkdownBitmapRenderer::OnListItemStart
 	}
 
 	ListMarker = csActualMarker;
-	OnParagraphStart();
 
-	// draw the bullet or number
-	//DrawListMarker(csActualMarker);
-
-	// *** IMPORTANT ***
-	// No indentation logic here.
-	// Indentation is now computed exclusively by ComputeIndentInches().
 } // OnListItemStart
 
 /////////////////////////////////////////////////////////////////////////////
@@ -1479,26 +965,16 @@ void CMarkdownBitmapRenderer::OnListItemEnd
 (
 )
 {
-	OnParagraphEnd();
 
-	// end list-item indentation
-	InListItem = false;
-	ListMarker = L"";
-
-
-	double fLineHeight = ComputeLineHeightInches(*CurrentFont);
-
-	// spacing between list items
-	//YInches += fLineHeight / 4;
+	double fLineHeight = DrawParagraph();
 
 	// update pixel coordinates
 	X = ToPixelsX(XInches);
 	Y = ToPixelsY(YInches);
 
-	// *** IMPORTANT ***
-	// No indentation logic here.
-	// No XInches resets.
-	// Indentation is now computed exclusively by ComputeIndentInches().
+	// end list-item indentation
+	InListItem = false;
+	ListMarker = L"";
 } // OnListItemEnd
 
 /////////////////////////////////////////////////////////////////////////////
@@ -1522,7 +998,6 @@ void CMarkdownBitmapRenderer::OnBlockQuoteStart()
 
 	InBlockQuote = true;
 
-	// bars are drawn per line in DrawWrappedText()
 } // OnBlockQuoteStart
 
 /////////////////////////////////////////////////////////////////////////////
@@ -1681,90 +1156,6 @@ void CMarkdownBitmapRenderer::OnLinkEnd()
 }
 
 /////////////////////////////////////////////////////////////////////////////
-// OnHeading1
-/////////////////////////////////////////////////////////////////////////////
-void CMarkdownBitmapRenderer::OnHeading1(const CString& text)
-{
-	YInches += 0.15;
-	Y = ToPixelsY(YInches);
-
-	DrawWrappedText(text, *Heading1Font, ComputeIndentInches(), false);
-
-	YInches += 0.20;
-	Y = ToPixelsY(YInches);
-}
-
-/////////////////////////////////////////////////////////////////////////////
-// OnHeading2
-/////////////////////////////////////////////////////////////////////////////
-void CMarkdownBitmapRenderer::OnHeading2(const CString& text)
-{
-	YInches += 0.12;
-	Y = ToPixelsY(YInches);
-
-	DrawWrappedText(text, *Heading2Font, ComputeIndentInches(), false);
-
-	YInches += 0.15;
-	Y = ToPixelsY(YInches);
-}
-
-/////////////////////////////////////////////////////////////////////////////
-// OnHeading3
-/////////////////////////////////////////////////////////////////////////////
-void CMarkdownBitmapRenderer::OnHeading3(const CString& text)
-{
-	YInches += 0.10;
-	Y = ToPixelsY(YInches);
-
-	DrawWrappedText(text, *Heading3Font, ComputeIndentInches(), false);
-
-	YInches += 0.12;
-	Y = ToPixelsY(YInches);
-}
-
-/////////////////////////////////////////////////////////////////////////////
-// OnHeading4
-/////////////////////////////////////////////////////////////////////////////
-void CMarkdownBitmapRenderer::OnHeading4(const CString& text)
-{
-	YInches += 0.08;
-	Y = ToPixelsY(YInches);
-
-	DrawWrappedText(text, *Heading4Font, ComputeIndentInches(), false);
-
-	YInches += 0.10;
-	Y = ToPixelsY(YInches);
-}
-
-/////////////////////////////////////////////////////////////////////////////
-// OnHeading5
-/////////////////////////////////////////////////////////////////////////////
-void CMarkdownBitmapRenderer::OnHeading5(const CString& text)
-{
-	YInches += 0.06;
-	Y = ToPixelsY(YInches);
-
-	DrawWrappedText(text, *Heading5Font, ComputeIndentInches(), false);
-
-	YInches += 0.08;
-	Y = ToPixelsY(YInches);
-}
-
-/////////////////////////////////////////////////////////////////////////////
-// OnHeading6
-/////////////////////////////////////////////////////////////////////////////
-void CMarkdownBitmapRenderer::OnHeading6(const CString& text)
-{
-	YInches += 0.06;
-	Y = ToPixelsY(YInches);
-
-	DrawWrappedText(text, *Heading6Font, ComputeIndentInches(), false);
-
-	YInches += 0.06;
-	Y = ToPixelsY(YInches);
-}
-
-/////////////////////////////////////////////////////////////////////////////
 // TABLE RENDERING
 /////////////////////////////////////////////////////////////////////////////
 
@@ -1799,6 +1190,9 @@ void CMarkdownBitmapRenderer::OnTableStart()
 
 	YInches += TableSpacingBeforeInches;
 	NewLine();
+
+	TableTopYInches = YInches;
+
 } // OnTableStart
 
 
@@ -2560,79 +1954,83 @@ void CMarkdownBitmapRenderer::DrawTableCell
 		pGraphics->FillPath(&roundedBrush, &path);
 	}
 
-	//
-	// --- PER-CELL BORDER OVERRIDES ---
-	//
-	CellBorder border;
+	// Borders are drawn at row/table level for perfect alignment.
+	// No per-cell border drawing here.
 
-	// default GitHub-style horizontal borders
-	border.DrawTop = true;
-	border.DrawBottom = true;
-	border.DrawLeft = false;
-	border.DrawRight = false;
-	border.Color = Gdiplus::Color(0xD0, 0xD7, 0xDE);
-	border.Thickness = 1.0f;
+	////
+	//// --- PER-CELL BORDER OVERRIDES ---
+	////
+	//CellBorder border;
 
-	// override?
-	auto itBorder = m_mapCellBorder.find({ CurrentRowIndex, nColumnIndex });
-	if (itBorder != m_mapCellBorder.end())
-	{
-		border = itBorder->second;
-	}
+	//// default GitHub-style horizontal borders
+	//border.DrawTop = true;
+	//border.DrawBottom = true;
+	//border.DrawLeft = false;
+	//border.DrawRight = false;
+	//border.Color = Gdiplus::Color(0xD0, 0xD7, 0xDE);
+	//border.Thickness = 1.0f;
 
-	Pen pen(border.Color, border.Thickness);
+	//// override?
+	//auto itBorder = m_mapCellBorder.find({ CurrentRowIndex, nColumnIndex });
+	//if (itBorder != m_mapCellBorder.end())
+	//{
+	//	border = itBorder->second;
+	//}
 
-	// top
-	if (border.DrawTop)
-	{
-		pGraphics->DrawLine
-		(
-			&pen,
-			rcCellPixels.X,
-			rcCellPixels.Y,
-			rcCellPixels.X + rcCellPixels.Width,
-			rcCellPixels.Y
-		);
-	}
+	//Pen pen(border.Color, border.Thickness);
 
-	// bottom
-	if (border.DrawBottom)
-	{
-		pGraphics->DrawLine
-		(
-			&pen,
-			rcCellPixels.X,
-			rcCellPixels.Y + rcCellPixels.Height,
-			rcCellPixels.X + rcCellPixels.Width,
-			rcCellPixels.Y + rcCellPixels.Height
-		);
-	}
+	//// top
+	//if (border.DrawTop)
+	//{
+	//	pGraphics->DrawLine
+	//	(
+	//		&pen,
+	//		rcCellPixels.X,
+	//		rcCellPixels.Y,
+	//		rcCellPixels.X + rcCellPixels.Width,
+	//		rcCellPixels.Y
+	//	);
+	//}
 
-	// left
-	if (border.DrawLeft)
-	{
-		pGraphics->DrawLine
-		(
-			&pen,
-			rcCellPixels.X,
-			rcCellPixels.Y,
-			rcCellPixels.X,
-			rcCellPixels.Y + rcCellPixels.Height
-		);
-	}
+	//// bottom
+	//if (border.DrawBottom)
+	//{
+	//	pGraphics->DrawLine
+	//	(
+	//		&pen,
+	//		rcCellPixels.X,
+	//		rcCellPixels.Y + rcCellPixels.Height,
+	//		rcCellPixels.X + rcCellPixels.Width,
+	//		rcCellPixels.Y + rcCellPixels.Height
+	//	);
+	//}
 
-	// right
-	if (border.DrawRight)
-	{
-		pGraphics->DrawLine
-		(
-			&pen,
-			rcCellPixels.X + rcCellPixels.Width,
-			rcCellPixels.Y,
-			rcCellPixels.X + rcCellPixels.Width,
-			rcCellPixels.Y + rcCellPixels.Height
-		);
-	}
+	// REMOVE left/right borders — vertical borders are drawn globally
+	//// left
+	//if (border.DrawLeft)
+	//{
+	//	pGraphics->DrawLine
+	//	(
+	//		&pen,
+	//		rcCellPixels.X,
+	//		rcCellPixels.Y,
+	//		rcCellPixels.X,
+	//		rcCellPixels.Y + rcCellPixels.Height
+	//	);
+	//}
+
+	//// right
+	//if (border.DrawRight)
+	//{
+	//	pGraphics->DrawLine
+	//	(
+	//		&pen,
+	//		rcCellPixels.X + rcCellPixels.Width,
+	//		rcCellPixels.Y,
+	//		rcCellPixels.X + rcCellPixels.Width,
+	//		rcCellPixels.Y + rcCellPixels.Height
+	//	);
+	//}
 
 
 	//
@@ -2810,6 +2208,31 @@ void CMarkdownBitmapRenderer::DrawTableRow
 		}
 	}
 
+	Graphics* pGraphics = GetGraphics();
+	if (pGraphics)
+	{
+		Pen pen(Color(0xD0, 0xD7, 0xDE), 1.0f);
+
+		double fRowLeftInches = MarginInches.X + ComputeIndentInches();
+		double fRowRightInches = fRowLeftInches;
+
+		for (double w : vecColumnWidthsInches)
+			fRowRightInches += w;
+
+		int yTop = ToPixelsY(YInches);
+		int yBottom = ToPixelsY(YInches + fMaxHeightInches);
+		int xLeft = ToPixelsX(fRowLeftInches);
+		int xRight = ToPixelsX(fRowRightInches);
+
+		// top border of the row
+		pGraphics->DrawLine(&pen, xLeft, yTop, xRight, yTop);
+
+		// bottom border of the row
+		pGraphics->DrawLine(&pen, xLeft, yBottom, xRight, yBottom);
+
+		delete pGraphics;
+	}
+
 	// --- SECOND PASS: draw each cell at correct Y ---
 	fLeftInches = MarginInches.X + ComputeIndentInches();
 
@@ -2856,16 +2279,50 @@ void CMarkdownBitmapRenderer::RenderTable()
 	if (m_vecAllRows.empty())
 		return;
 
-	// measure columns
+	// --- Measure columns in inches ---
 	MeasureTableColumns(m_vecAllRows, m_vecColumnWidthsInches);
 
-	// draw header row (index 0)
+	// --- Compute column boundaries in inches ---
+	std::vector<double> vecColXInches;
+	vecColXInches.resize(m_vecColumnWidthsInches.size() + 1);
+
+	double x = MarginInches.X + ComputeIndentInches();
+	vecColXInches[0] = x;
+
+	for (size_t i = 0; i < m_vecColumnWidthsInches.size(); ++i)
+	{
+		x += m_vecColumnWidthsInches[i];
+		vecColXInches[i + 1] = x;
+	}
+
+	// --- Convert boundaries to pixels once ---
+	m_vecColumnX.resize(vecColXInches.size());
+	for (size_t i = 0; i < vecColXInches.size(); ++i)
+		m_vecColumnX[i] = ToPixelsX(vecColXInches[i]);
+
+	// --- Draw header row ---
 	DrawTableRow(m_vecAllRows[0], m_vecColumnWidthsInches, true, 0);
 
-	// draw body rows
+	// --- Draw body rows ---
 	for (size_t i = 1; i < m_vecAllRows.size(); ++i)
-	{
 		DrawTableRow(m_vecAllRows[i], m_vecColumnWidthsInches, false, (int)i);
+
+	// --- Draw vertical borders using shared boundaries ---
+	Graphics* pGraphics = GetGraphics();
+	if (pGraphics)
+	{
+		Pen pen(Color(0xD0, 0xD7, 0xDE), 1.0f);
+
+		int topY = ToPixelsY(TableTopYInches);
+		int bottomY = ToPixelsY(YInches);
+
+		for (size_t i = 0; i < m_vecColumnX.size(); ++i)
+		{
+			int x = m_vecColumnX[i];
+			pGraphics->DrawLine(&pen, x, topY, x, bottomY);
+		}
+
+		delete pGraphics;
 	}
 } // RenderTable
 

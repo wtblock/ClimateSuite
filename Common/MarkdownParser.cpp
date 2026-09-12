@@ -340,6 +340,22 @@ int CMarkdownParser::EnterSpanCallback
 		pRenderer->OnInlineCodeStart();
 		break;
 
+	case MD_SPAN_IMG:
+	{
+		MD_SPAN_IMG_DETAIL* pImg =
+			static_cast<MD_SPAN_IMG_DETAIL*>(detail);
+
+		// image path (URL)
+		CString csPath(pImg->src.text, (int)pImg->src.size);
+
+		// alt text is delivered as nested MD_TEXT_NORMAL events
+		// so for now we pass an empty string
+		CString csAlt;
+
+		pRenderer->OnImage(csPath, csAlt);
+		break;
+	}
+
 	default:
 		break;
 	}
@@ -457,8 +473,39 @@ int CMarkdownParser::TextCallback
 	switch (type)
 	{
 	case MD_TEXT_NORMAL:
-		pRenderer->OnText(csText);
+	{
+		// Detect simple Markdown image: ![alt](path)
+		// Example: "![Alt text](.\images\COP Meetings vs. CO2.jpg)"
+		CString csTrimmed = csText;
+		csTrimmed.Trim();
+
+		if (csTrimmed.GetLength() > 0 &&
+			csTrimmed[0] == L'!' &&
+			csTrimmed.Find(L"![") == 0 &&
+			csTrimmed.Find(L"](") > 0 &&
+			csTrimmed.Right(1) == L")")
+		{
+			int nAltStart = csTrimmed.Find(L"[") + 1;
+			int nAltEnd = csTrimmed.Find(L"](");
+			int nPathStart = nAltEnd + 2; // skip "]("
+			int nPathEnd = csTrimmed.ReverseFind(L')');
+
+			CString csAlt = csTrimmed.Mid(nAltStart, nAltEnd - nAltStart);
+			CString csPath = csTrimmed.Mid(nPathStart, nPathEnd - nPathStart);
+
+			csAlt.Trim();
+			csPath.Trim();
+
+			// Dispatch to renderer as an image
+			pRenderer->OnImage(csPath, csAlt);
+		}
+		else
+		{
+			// Normal text
+			pRenderer->OnText(csText);
+		}
 		break;
+	}
 
 	case MD_TEXT_CODE:
 		pRenderer->OnInlineCodeText(csText);
@@ -478,69 +525,5 @@ int CMarkdownParser::TextCallback
 
 	return 0;
 } // TextCallback
-
-/////////////////////////////////////////////////////////////////////////////
-// TextCallback  (DEBUG: force raw text rendering)
-/////////////////////////////////////////////////////////////////////////////
-//int CMarkdownParser::TextCallback
-//(
-//	MD_TEXTTYPE       type,
-//	const MD_CHAR* text,
-//	MD_SIZE           size,
-//	void* userdata
-//)
-//{
-//	CMarkdownParser* pParser =
-//		static_cast<CMarkdownParser*>(userdata);
-//
-//	if (!pParser || !pParser->Renderer)
-//		return -1;
-//
-//	CMarkdownRenderer* pRenderer =
-//		pParser->Renderer.get();
-//
-//	CString csText;
-//
-//	if (text != NULL && size > 0)
-//	{
-//		CStringA csA(text, (int)size);
-//		csText = CString(csA);
-//	}
-//
-//	// If there's no text, nothing to draw.
-//	if (csText.IsEmpty())
-//		return 0;
-//
-//	//
-//	// DEBUG: bypass all conflict rules and inline spacing.
-//	// Render raw text directly to the bitmap renderer.
-//	//
-//	CMarkdownBitmapRenderer* pBitmapRenderer =
-//		dynamic_cast<CMarkdownBitmapRenderer*>(pRenderer);
-//
-//	if (pBitmapRenderer != nullptr)
-//	{
-//		// Known, simple font for testing.
-//		Gdiplus::Font font
-//		(
-//			L"Segoe UI",
-//			10.0f,
-//			Gdiplus::FontStyleRegular,
-//			Gdiplus::UnitPoint
-//		);
-//
-//		// No indent for this test.
-//		const double fIndentInches = 0.0;
-//
-//		pBitmapRenderer->DrawWrappedText
-//		(
-//			csText,
-//			font,
-//			fIndentInches
-//		);
-//	}
-//
-//	return 0;
-//} // TextCallback
 
 /////////////////////////////////////////////////////////////////////////////

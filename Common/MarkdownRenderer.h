@@ -244,6 +244,7 @@ public:
 	virtual void OnLinkEnd() {}
 
 	virtual void OnText(const CString& /*text*/) {}
+	virtual void OnImage(const CString& path, const CString& alt) {}
 	virtual void OnInlineCodeText(const CString& /*text*/) {}
 	virtual void OnHtmlText(const CString& /*text*/) {}
 	virtual void OnEntityText(const CString& /*text*/) {}

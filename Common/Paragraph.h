@@ -24,6 +24,9 @@ protected:
 
 	double m_dDpi;
 
+	double m_fXInches;
+	double m_fYInches;
+
 	Graphics* m_pGraphics;
 
 	bool m_bExpanded;
@@ -31,6 +34,8 @@ protected:
 	double m_dMarkerLength;
 
 	double m_dListIndent;
+
+	Gdiplus::RectF m_rcMarginInches;
 
 // public properties
 public:
@@ -80,6 +85,32 @@ public:
 	__declspec(property(get = GetDpi, put = SetDpi))
 		double Dpi;
 
+	double GetXInches()
+	{
+		return m_fXInches;
+	}
+
+	void SetXInches(double value)
+	{
+		m_fXInches = value;
+	}
+
+	__declspec(property(get = GetXInches, put = SetXInches))
+		double XInches;
+
+	double GetYInches()
+	{
+		return m_fYInches;
+	}
+
+	void SetYInches(double value)
+	{
+		m_fYInches = value;
+	}
+
+	__declspec(property(get = GetYInches, put = SetYInches))
+		double YInches;
+
 	// length of list marker in inches
 	double GetMarkerLength()
 	{
@@ -101,6 +132,19 @@ public:
 	// indentation of wrapped list lines
 	__declspec(property(get = GetListIndent))
 		double ListIndent;
+
+	Gdiplus::RectF GetMarginInches()
+	{
+		return m_rcMarginInches;
+	}
+
+	void SetMarginInches(const Gdiplus::RectF& value)
+	{
+		m_rcMarginInches = value;
+	}
+
+	__declspec(property(get = GetMarginInches, put = SetMarginInches))
+		Gdiplus::RectF MarginInches;
 
 	// dots per inch
 	bool GetExpanded()
@@ -198,6 +242,11 @@ protected:
 
 // public methods
 public:
+	void DrawImage
+	(
+		Graphics* pGraphics, const CString& csPath
+	);
+
 	bool DrawLine
 	(
 		Graphics* pGraphics, double dStart, double dEnd, double dY
@@ -225,9 +274,13 @@ public:
 public:
 	CParagraph()
 	{
-		m_dDpi = 1000;
+		Dpi = 1000;
+
+		XInches = 0.0;
+		YInches = 0.0;
+
 		m_pGraphics = nullptr;
-		m_bExpanded = false;
+		Expanded = false;
 	}
 	~CParagraph()
 	{

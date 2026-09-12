@@ -21,6 +21,7 @@ protected:
 	shared_ptr<Bitmap> m_pBitmap;
 
 	CParagraph m_paragraph;
+	bool m_bDrawLine;
 
 	// dots per inch
 	double m_dDpi;
@@ -99,11 +100,17 @@ protected:
 	// Computed column widths (in inches)
 	std::vector<double> m_vecColumnWidthsInches;
 
+	// pixel X positions for column boundaries
+	std::vector<int> m_vecColumnX;
+
 	// Number of columns in the current table
 	int m_nTableColumnCount;
 
 	// current row index of the table
 	int m_nCurrentRowIndex = 0;
+
+	// top of table in inches
+	double m_dTableTopYInches;
 
 	// Spacing above and below the table (GitHub-style)
 	double m_fTableSpacingBeforeInches;
@@ -254,6 +261,19 @@ public:
 
 	__declspec(property(get = GetYInches, put = SetYInches))
 		double YInches;
+
+	bool GetDrawLine()
+	{
+		return m_bDrawLine;
+	}
+
+	void SetDrawLine(bool value)
+	{
+		m_bDrawLine = value;
+	}
+
+	__declspec(property(get = GetDrawLine, put = SetDrawLine))
+		bool DrawLine;
 
 	bool GetEmphasis()
 	{
@@ -683,20 +703,28 @@ public:
 	__declspec(property(get = GetTableCellPadBottomInches, put = SetTableCellPadBottomInches))
 		double TableCellPadBottomInches;
 
+	// top of table in inches
+	double GetTableTopYInches()
+	{
+		return m_dTableTopYInches;
+	}
+
+	// top of table in inches
+	void SetTableTopYInches(double value)
+	{
+		m_dTableTopYInches = value;
+	}
+
+	// top of table in inches
+	__declspec(property(get = GetTableTopYInches, put = SetTableTopYInches))
+		double TableTopYInches;
+
 
 // protected methods
 protected:
 	void InitHeadingFonts();
-	void DrawRightAlignedMarker
-	(
-		Graphics* pGraphics,
-		const CString& csMarker,
-		const Gdiplus::Font& font,
-		double fMarkerColumnWidthInches,
-		double fColumnLeftInches,
-		double fYInches
-	);
-	double DrawSegmentText(shared_ptr<CParagraphToken> pSeg);
+	double DrawParagraph();
+
 	void DrawInlineCodeBackground
 	(
 		const CString& text,
@@ -721,7 +749,6 @@ public:
 	void DrawText(const CString& text);
 	void NewLine();
 
-	void OnHorizontalRule();
 	void OnImage
 	(
 		const CString& csPath,
@@ -764,13 +791,6 @@ public:
 	void OnInlineCodeText(const CString& text);
 	void OnHtmlText(const CString& text);
 	void OnEntityText(const CString& text);
-
-	void OnHeading1(const CString& text);
-	void OnHeading2(const CString& text);
-	void OnHeading3(const CString& text);
-	void OnHeading4(const CString& text);
-	void OnHeading5(const CString& text);
-	void OnHeading6(const CString& text);
 
 	//
 	// TABLE RENDERING (Step 64)
@@ -949,11 +969,6 @@ public:
 	
 	void RenderTable();
 
-	void DrawImage
-	(
-		const CString& csPath
-	);
-
 	void DrawCodeBlockBackground
 	(
 		double fTopInches,
@@ -967,14 +982,6 @@ public:
 	void DrawListMarker
 	(
 		const CString& csMarker
-	);
-
-	void DrawWrappedText
-	(
-		const CString& csText,
-		const Gdiplus::Font& font,
-		double fIndentInches, 
-		bool bAdvanceLine = true
 	);
 
 	bool SplitTextToFit
@@ -1032,7 +1039,7 @@ public:
 	CMarkdownBitmapRenderer()
 	{
 		RenderedImage = NULL;
-
+		DrawLine = false;
 
 		Dpi = 1000.0;
 
@@ -1090,6 +1097,9 @@ public:
 		TableCellPadRightInches = 0.06;
 		TableCellPadTopInches = 0.04;
 		TableCellPadBottomInches = 0.04;
+
+		// top of table in inches
+		TableTopYInches = 0;
 
 		//
 		// TABLE ALIGNMENT (Step 65)
