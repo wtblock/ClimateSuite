@@ -183,6 +183,9 @@
     <ClInclude Include="SmartArray.h" />
     <ClInclude Include="sqlite3.h" />
     <ClInclude Include="StationYear.h" />
+    <ClInclude Include="TableCell.h" />
+    <ClInclude Include="TableMD.h" />
+    <ClInclude Include="TableRow.h" />
     <ClInclude Include="targetver.h" />
     <ClInclude Include="ThreadHelp.h" />
     <ClInclude Include="VariantVector.h" />
@@ -243,6 +246,9 @@
       <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Release|x64'">NotUsing</PrecompiledHeader>
     </ClCompile>
     <ClCompile Include="StationYear.cpp" />
+    <ClCompile Include="TableCell.cpp" />
+    <ClCompile Include="TableMD.cpp" />
+    <ClCompile Include="TableRow.cpp" />
     <ClCompile Include="ThreadHelp.cpp" />
     <ClCompile Include="VariantVector.cpp" />
     <ClCompile Include="ZipReader.cpp" />

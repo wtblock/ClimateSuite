@@ -114,6 +114,15 @@
     <ClInclude Include="ParagraphToken.h">
       <Filter>Header Files</Filter>
     </ClInclude>
+    <ClInclude Include="TableMD.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="TableCell.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="TableRow.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="Common.cpp">
@@ -201,6 +210,15 @@
       <Filter>Source Files</Filter>
     </ClCompile>
     <ClCompile Include="ParagraphToken.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="TableMD.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="TableCell.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="TableRow.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
   </ItemGroup>

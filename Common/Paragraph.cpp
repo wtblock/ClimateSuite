@@ -410,7 +410,7 @@ CSmartArray<CParagraphToken> CParagraph::GetLine
 		CString csText = token->Text;
 		double dLen = token->Length;
 
-		// if the word's lenght overflows the line length, we are done
+		// if the word's length overflows the line length, we are done
 		// with this line
 		if (dLen + dLine > dStop)
 		{
