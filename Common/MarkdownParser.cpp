@@ -99,23 +99,9 @@ bool CMarkdownParser::Parse()
 	if (Markdown.IsEmpty())
 		return false;
 
-	// convert CString → UTF‑8
-	CStringW csInput = Markdown;
-
-	// compute required UTF‑8 byte count
-	int nBytes = WideCharToMultiByte
-	(
-		CP_UTF8, 0, csInput, -1, NULL, 0, NULL, NULL
-	);
-
-	std::string utf8;
-	utf8.resize(nBytes);
-
-	// convert UTF‑16 → UTF‑8
-	WideCharToMultiByte
-	(
-		CP_UTF8, 0, csInput, -1, &utf8[0], nBytes, NULL, NULL
-	);
+	// convert CString → UTF‑8 for MD4C code
+	CString csInput = Markdown;
+	std::string utf8 = CHelper::Utf16ToUtf8(csInput);
 
 	const char* pszText = utf8.c_str();
 	size_t nLength = utf8.size() - 1;   // exclude null terminator
@@ -452,24 +438,11 @@ int CMarkdownParser::TextCallback
 	// MD4C gives you: const MD_CHAR* text, MD_SIZE size (UTF‑8 bytes)
 	CString csText;
 
+	// restore the text from MD4C UTF-8 to C++ UTF-16
 	if (text != NULL && size > 0)
 	{
-		int nChars = MultiByteToWideChar
-		(
-			CP_UTF8, 0, text, (int)size, NULL, 0
-		);
-
-		csText.GetBufferSetLength(nChars);
-
-		MultiByteToWideChar
-		(
-			CP_UTF8, 0, text, (int)size, csText.GetBuffer(), nChars
-		);
-
-		csText.ReleaseBuffer(nChars);
-
-		// now csText is proper UTF‑16
-		// safe to assign to CParagraphToken::Text and pass to DrawText
+		csText = CHelper::Utf8ToUtf16(text, size);
+		
 	}
 
 	//

@@ -2123,6 +2123,45 @@ public:
 	);
 
 	/////////////////////////////////////////////////////////////////////////////
+	// Convert UTF‑16 CString → UTF‑8 std::string
+	static inline std::string Utf16ToUtf8(const CString& csInput)
+	{
+		int nBytes = WideCharToMultiByte
+		(
+			CP_UTF8, 0, csInput, -1, NULL, 0, NULL, NULL
+		);
+		std::string sOutput;
+		sOutput.resize(nBytes);
+
+		WideCharToMultiByte
+		(
+			CP_UTF8, 0, csInput, -1, &sOutput[0], nBytes, NULL, NULL
+		);
+		return sOutput;
+	}
+
+	/////////////////////////////////////////////////////////////////////////////
+	// Convert UTF‑8 bytes → UTF‑16 CStringW
+	static inline CString Utf8ToUtf16(const char* pszUtf8, size_t nLength)
+	{
+		int nChars = MultiByteToWideChar
+		(
+			CP_UTF8, 0, pszUtf8, (int)nLength, NULL, 0
+		);
+
+		CString csOutput;
+		LPWSTR pBuffer = csOutput.GetBuffer(nChars);
+
+		MultiByteToWideChar
+		(
+			CP_UTF8, 0, pszUtf8, (int)nLength, pBuffer, nChars
+		);
+		csOutput.ReleaseBuffer(nChars);
+
+		return csOutput;
+	}
+
+	/////////////////////////////////////////////////////////////////////////////
 	CHelper()
 	{
 	}
