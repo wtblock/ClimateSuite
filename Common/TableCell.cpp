@@ -155,25 +155,50 @@ void CTableCell::Draw()
 	SolidBrush brush(bg);
 	m_pGraphics->FillRectangle(&brush, rcPixels);
 
-	// border
-	Pen pen(ColorFG, BorderWidth);
-	m_pGraphics->DrawRectangle(&pen, rcPixels);
-
+	// body text of the table
 	shared_ptr<Gdiplus::Font> pFont = CellFont;
+
+	// create a heading font based on the body font
+	int nStyle = pFont->GetStyle();
+	Gdiplus::FontFamily ff;
+	pFont->GetFamily(&ff);
+	REAL fSize = pFont->GetSize();
+	nStyle |= FontStyleBold;
+	shared_ptr<Gdiplus::Font> pHeadingFont = make_shared<Gdiplus::Font>
+		(&ff, fSize, nStyle, UnitPoint);
+
 	double dLineHeight = ComputeLineHeightInches(pFont);
 
 	long lLines = Lines;
 	vector<CString>* pLines = WrappedText;
 
-	double dPad = TextLength(L"A");
+	double dPad = Pad / 2;
 
 	// array of text lines
 	double dTop = Top;
 	for (auto& csLine : *pLines)
 	{
+		bool bHeading = Heading;
+
 		// Convert to pixels
 		int nX = ToPixelsX(Left + dPad);
 		int nY = ToPixelsY(dTop);
+
+		switch (Justify)
+		{
+		case eJustifyCenter:
+		{
+			nX = ToPixelsX(Left + (Width - Length) / 2);
+			break;
+		}
+		case eJustifyRight:
+		{
+			// bold fonts for headings need to adjust starting point
+			double dRightPad = bHeading ? dPad * 2 : dPad;
+			nX = ToPixelsX(Left + Width - dRightPad - Length);
+			break;
+		}
+		}
 
 		PointF ptOrigin((REAL)nX, (REAL)nY);
 		SolidBrush brush(Color::Black);
@@ -182,7 +207,7 @@ void CTableCell::Draw()
 		(
 			csLine,
 			csLine.GetLength(),
-			pFont.get(),
+			bHeading ? pHeadingFont.get() : pFont.get(),
 			ptOrigin,
 			&brush
 		);

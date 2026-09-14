@@ -650,6 +650,13 @@ void CMarkdownBitmapRenderer::DrawText(const CString& text)
 		{
 			m_table.Clear();
 			InTable = true;
+			InTableHeading = true;
+		}
+
+		if (m_table.HeadingSeparator(csRow))
+		{
+			InTableHeading = false;
+			return;
 		}
 
 		long lRow = m_table.Add();
@@ -663,6 +670,7 @@ void CMarkdownBitmapRenderer::DrawText(const CString& text)
 			long lCell = pRow->Add();
 			shared_ptr<CTableCell> pCell = pRow->Cell[lCell];
 			pCell->Text = csCell;
+			pCell->Heading = InTableHeading;
 			csCell = csRow.Tokenize(L"|", nStart);
 		}
 		return;
@@ -789,14 +797,27 @@ void CMarkdownBitmapRenderer::OnParagraphEnd()
 	if (InTable)
 	{
 		CurrentFont = FontParagraph;
+
+		// pass in some common properties needed by the table
 		Graphics* pGraphics = GetGraphics();
 		shared_ptr<Gdiplus::Font> pFont = CurrentFont;
 		m_table.TableGraphics = pGraphics;
 		m_table.TableFont = pFont;
-		m_table.Left = XInches;
 		m_table.Top = YInches;
+		m_table.JustifyCells();
+
+		// center the table on the page by default
+		double dTableWidth = m_table.Width;
+		double dPageWidth = MarginInches.Width;
+		double dDelta = dPageWidth - dTableWidth;
+		m_table.Left = XInches + dDelta / 2;
+
+		// draw the table
 		m_table.Draw();
+
+		// clean up
 		InTable = false;
+		InTableHeading = false;
 		delete pGraphics;
 		return;
 	}

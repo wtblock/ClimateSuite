@@ -88,6 +88,8 @@ protected:
 	// True while inside a table
 	bool m_bInTable;
 
+	// True until the heading divider is encountered
+	bool m_bInTableHeading;
 
 
 // public properties
@@ -482,6 +484,20 @@ public:
 	__declspec(property(get = GetInTable, put = SetInTable))
 		bool InTable;
 
+	// InTableHeading
+	bool GetInTableHeading() const
+	{
+		return m_bInTableHeading;
+	}
+
+	void SetInTableHeading(bool value)
+	{
+		m_bInTableHeading = value;
+	}
+
+	__declspec(property(get = GetInTableHeading, put = SetInTableHeading))
+		bool InTableHeading;
+
 
 
 // protected methods
@@ -683,6 +699,7 @@ public:
 		// TABLE RENDERING (Step 64)
 		//
 		InTable = false;
+		InTableHeading = false;
 
 		// create 1x1 white pixel
 		WhitePixel = 

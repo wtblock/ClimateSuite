@@ -16,6 +16,9 @@ public:
 
 // protected data
 protected:
+	// column justification
+	vector<CTableCell::JUSTIFY> m_arrJustify;
+
 	// collection of table rows that make up a table
 	CSmartArray<CTableRow> m_arrRows;
 
@@ -400,15 +403,34 @@ protected:
 
 // public methods
 public:
+	// test for a heading separator and process column justification
+	bool HeadingSeparator(CString csRow);
+
+	// adds a justification enumeration to the column array
+	void AddJustify(CTableCell::JUSTIFY eJustify)
+	{
+		m_arrJustify.push_back(eJustify);
+	}
+
+	// using the justification array, pass on the justification
+	// to all of the cells
+	void JustifyCells()
+	{
+		for (auto& row : m_arrRows.Items)
+		{
+			long lColumns = Columns;
+			for (long lCol = 0; lCol < lColumns; lCol++)
+			{
+				shared_ptr<CTableCell> pCell = row->Cell[lCol];
+				pCell->Justify = m_arrJustify[lCol];
+			}
+		}
+	}
+
 	// add a row to the table and return its index
 	long Add()
 	{
 		long value = m_arrRows.add();
-		if (value == 0)
-		{
-			shared_ptr<CTableRow> pRow = Row[value];
-			pRow->Heading = true;
-		}
 		return value;
 	}
 
@@ -420,12 +442,50 @@ public:
 			row->Draw();
 		}
 
+		// center the table
+
 		Gdiplus::RectF rcInches(Left, Top, Width, Height);
 		Gdiplus::RectF rcPixels = ToPixelRect(rcInches);
 
 		// border
 		Pen pen(ColorFG, BorderWidth * 3);
 		m_pGraphics->DrawRectangle(&pen, rcPixels);
+
+		// draw the grid vertical lines
+		long lCols = Columns;
+		for (long lCol = 1; lCol < lCols; lCol++)
+		{
+			Pen pen(ColorFG, BorderWidth * 2);
+			PointF pt1, pt2;
+			pt1.X = rcPixels.X + rcPixels.Width / lCols * lCol;
+			pt1.Y = rcPixels.Y;
+			pt2.X = rcPixels.X + rcPixels.Width / lCols * lCol;
+			pt2.Y = rcPixels.Y + rcPixels.Height;
+			m_pGraphics->DrawLine(&pen, pt1, pt2);
+		}
+
+		// draw the grid horizontal lines
+		long lRows = Rows;
+		for (long lRow = 1; lRow < lRows; lRow++)
+		{
+			shared_ptr<CTableRow> pRow = Row[lRow];
+
+			// don't divide the heading rows horizontally
+			bool bHeading = pRow->Heading;
+			if (bHeading)
+			{
+				continue;
+			}
+
+			// horizontal lines of the table's body cells
+			Pen pen(ColorFG, BorderWidth * 2);
+			PointF pt1, pt2;
+			pt1.X = rcPixels.X;
+			pt1.Y = rcPixels.Y + rcPixels.Height / lRows * lRow;
+			pt2.X = rcPixels.X + rcPixels.Width;
+			pt2.Y = rcPixels.Y + rcPixels.Height / lRows * lRow;
+			m_pGraphics->DrawLine(&pen, pt1, pt2);
+		}
 	}
 
 	// clear the table

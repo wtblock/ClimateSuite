@@ -273,19 +273,27 @@ public:
 	__declspec(property(get = GetHeight, put = SetHeight))
 		double Height;
 
-	// heading cells are the first row
+	// heading cells are the first rows before heading separator
 	bool GetHeading()
 	{
+		bool value = false;
+		long lCount = Count;
+		if (lCount > 0)
+		{
+			shared_ptr<CTableCell> pCell = Cell[0];
+			value = pCell->Heading;
+			Heading = value;
+		}
 		return m_bHeading;
 	}
 
-	// heading cells are the first row
+	// heading cells are the first rows before heading separator
 	void SetHeading(bool value)
 	{
 		m_bHeading = value;
 	}
 
-	// heading cells are the first row
+	// heading cells are the first rows before heading separator
 	__declspec(property(get = GetHeading, put = SetHeading))
 		bool Heading;
 
@@ -348,6 +356,32 @@ public:
 	// background color for heading row
 	__declspec(property(get = GetColorHeadingBG, put = SetColorHeadingBG))
 		Color ColorHeadingBG;
+
+	// justification of the cell
+	CTableCell::JUSTIFY GetJustify(long lCell)
+	{
+		CTableCell::JUSTIFY value = CTableCell::eJustifyLeft;
+		long lColumns = Count;
+		if (0 <= lCell && lCell < lColumns)
+		{
+			value = Cell[lCell]->Justify;
+		}
+		return value;
+	}
+
+	// justification of the cell
+	void SetJustify(long lCell, CTableCell::JUSTIFY value)
+	{
+		long lColumns = Count;
+		if (0 <= lCell && lCell < lColumns)
+		{
+			Cell[lCell]->Justify = value;
+		}
+	}
+
+	// justification of the cell
+	__declspec(property(get = GetJustify, put = SetJustify))
+		CTableCell::JUSTIFY Justify[];
 
 
 // protected methods

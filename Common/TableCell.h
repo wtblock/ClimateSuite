@@ -18,6 +18,14 @@ public:
 	// tokens when calculating cell length
 	typedef pair<CString, double> CELL_TOKEN;
 
+	// justification of the cell
+	typedef enum tagJustify
+	{
+		eJustifyLeft,
+		eJustifyCenter,
+		eJustifyRight
+	} JUSTIFY;
+
 // protected data
 protected:
 	// text content of the cell
@@ -25,6 +33,9 @@ protected:
 
 	// heading cells are the first row
 	bool m_bHeading;
+
+	// justification of the cell
+	JUSTIFY m_eJustify;
 
 	// left position of the cell in inches
 	double m_dLeft;
@@ -40,6 +51,9 @@ protected:
 
 	// length of the text in inches
 	double m_dLength;
+
+	// horizontal padding in inches
+	double m_dPad;
 
 	// dots per inch
 	double m_dDpi;
@@ -106,6 +120,22 @@ public:
 	__declspec(property(get = GetHeading, put = SetHeading))
 		bool Heading;
 
+	// justification of the cell
+	CTableCell::JUSTIFY GetJustify()
+	{
+		return m_eJustify;
+	}
+
+	// justification of the cell
+	void SetJustify(CTableCell::JUSTIFY value)
+	{
+		m_eJustify = value;
+	}
+
+	// justification of the cell
+	__declspec(property(get = GetJustify, put = SetJustify))
+		CTableCell::JUSTIFY Justify;
+
 	// array lines after text has been wrapped
 	vector<CString>* GetWrappedText();
 	// array lines after text has been wrapped
@@ -151,7 +181,7 @@ public:
 		// plus padding
 		if (CHelper::NearlyEqual(m_dWidth, 0.0))
 		{
-			double dPad = TextLength(L"AA");
+			double dPad = Pad;
 			m_dWidth = TextLength();
 			m_dWidth += dPad;
 		}
@@ -223,6 +253,28 @@ public:
 	// length of the text in inches
 	__declspec(property(get = GetLength, put = SetLength))
 		double Length;
+
+	// horizontal padding in inches
+	double GetPad()
+	{
+		double value = m_dPad;
+		if (CHelper::NearlyEqual(value, 0.0))
+		{
+			value = TextLength(L"A") / 2;
+			Pad = value;
+		}
+		return m_dPad;
+	}
+
+	// horizontal padding in inches
+	void SetPad(double value)
+	{
+		m_dPad = value;
+	}
+
+	// horizontal padding in inches
+	__declspec(property(get = GetPad, put = SetPad))
+		double Pad;
 
 	// dots per inch
 	double GetDpi()
@@ -453,6 +505,7 @@ public:
 public:
 	CTableCell()
 	{
+		Justify = eJustifyLeft;
 		Left = 0;
 		Heading = false;
 		Top = 0;
@@ -460,6 +513,7 @@ public:
 		Height = 0;
 		Length = 0;
 		BorderWidth = 10.0; // pixels
+		Pad = 0;
 		Dpi = 0;
 		Lines = 0;
 		CellFont = nullptr;
