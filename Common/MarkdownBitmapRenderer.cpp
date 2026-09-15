@@ -880,6 +880,32 @@ void CMarkdownBitmapRenderer::OnImage
 } // OnImage
 
 /////////////////////////////////////////////////////////////////////////////
+void CMarkdownBitmapRenderer::OnHtml(const CString& csHtml)
+{
+	// Look for <img ...>
+	int iStart = csHtml.Find(_T("<img"));
+	if (iStart < 0)
+		return;
+
+	int iEnd = csHtml.Find(_T(">"), iStart);
+	if (iEnd < 0)
+		return;
+
+	CString csTag = csHtml.Mid(iStart, iEnd - iStart + 1);
+
+	// Extract src="..."
+	CString csSrc = CHelper::ExtractHtmlAttribute(csTag, _T("src"));
+	if (csSrc.IsEmpty())
+		return;
+
+	// Optional alt="..."
+	CString csAlt = CHelper::ExtractHtmlAttribute(csTag, _T("alt"));
+
+	// Render the image using your existing pipeline
+	OnImage(csSrc, csAlt);
+} // OnHtml
+
+/////////////////////////////////////////////////////////////////////////////
 // OnHeadingStart
 //
 // Begins a heading. Adds spacing before the heading.

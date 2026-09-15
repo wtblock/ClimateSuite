@@ -580,7 +580,19 @@ bool CParagraph::DrawLine
 // DrawImage
 //
 // Draws an image at the current position, scaled to fit content width.
-// No spacing is applied here; spacing is handled by OnImage().
+//
+// Supported sources:
+//   • Local file paths (PNG, JPG, BMP, GIF)
+//       Loaded directly by GDI+.
+//
+//   • HTTP/HTTPS URLs that return actual image bytes
+//       (e.g., static map services that respond with PNG/JPG).
+//       These are downloaded first, then loaded into GDI+.
+//
+// Important:
+//   A normal web URL (HTML page, script-driven map, etc.) will fail,
+//   because GDI+ cannot load non-image content. The URL must point
+//   to a real image file returned by the server.
 //
 /////////////////////////////////////////////////////////////////////////////
 void CParagraph::DrawImage
@@ -590,14 +602,30 @@ void CParagraph::DrawImage
 {
 	m_pGraphics = pGraphics;
 
-	// load image
-	Image image(csPath);
+	Image* pLoadedImage = nullptr;
+
+	if (CHelper::IsHttpUrl(csPath))
+	{
+		if (!CHelper::LoadImageFromUrl(csPath, pLoadedImage))
+			return; // failed to download
+	}
+	else
+	{
+		pLoadedImage = new Image(csPath);
+		if (pLoadedImage->GetLastStatus() != Ok)
+		{
+			delete pLoadedImage;
+			return;
+		}
+	}
+
+	shared_ptr<Image> pImage = shared_ptr<Image>(pLoadedImage);
 
 	//
 	// natural size in pixels
 	//
-	const int nNaturalWidth = image.GetWidth();
-	const int nNaturalHeight = image.GetHeight();
+	const int nNaturalWidth = pImage->GetWidth();
+	const int nNaturalHeight = pImage->GetHeight();
 
 	//
 	// content width in inches (page width minus left margin)
@@ -608,8 +636,8 @@ void CParagraph::DrawImage
 	//
 	// Compute natural size in inches using image DPI
 	//
-	REAL imgDpiX = image.GetHorizontalResolution();
-	REAL imgDpiY = image.GetVerticalResolution();
+	REAL imgDpiX = pImage->GetHorizontalResolution();
+	REAL imgDpiY = pImage->GetVerticalResolution();
 
 	double fNaturalWidthInches = (double)nNaturalWidth / imgDpiX;
 	double fNaturalHeightInches = (double)nNaturalHeight / imgDpiY;
@@ -670,14 +698,7 @@ void CParagraph::DrawImage
 	//
 	// draw
 	//
-	m_pGraphics->DrawImage
-	(
-		&image,
-		nX,
-		nY,
-		nDrawWidth,
-		nDrawHeight
-	);
+	m_pGraphics->DrawImage( pImage.get(), nX, nY, nDrawWidth, nDrawHeight );
 
 	//
 	// advance vertical position

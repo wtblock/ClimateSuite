@@ -2162,6 +2162,40 @@ public:
 	}
 
 	/////////////////////////////////////////////////////////////////////////////
+	// Extract attribute value from an HTML tag
+	static inline CString ExtractHtmlAttribute
+	(
+		const CString& csTag, const CString& csAttr
+	)
+	{
+		CString csSearch = csAttr + L"=\"";
+		int iStart = csTag.Find(csSearch);
+		if (iStart < 0)
+			return L"";
+
+		iStart += csSearch.GetLength();
+		int iEnd = csTag.Find(L"\"", iStart);
+		if (iEnd < 0)
+			return L"";
+
+		return csTag.Mid(iStart, iEnd - iStart);
+	}
+
+	/////////////////////////////////////////////////////////////////////////////
+	static inline bool IsHttpUrl
+	(
+		const CString& csPath
+	)
+	{
+		return
+			csPath.Left(7).CompareNoCase(L"http://") == 0 ||
+			csPath.Left(8).CompareNoCase(L"https://") == 0;
+	}
+
+	/////////////////////////////////////////////////////////////////////////////
+	static bool LoadImageFromUrl(const CString& url, Image*& outImage);
+
+	/////////////////////////////////////////////////////////////////////////////
 	CHelper()
 	{
 	}

@@ -5,6 +5,9 @@
 #include "framework.h"
 #include "CHelper.h"
 #include "KeyedCollection.h"
+#include <wininet.h>
+
+#pragma comment(lib, "wininet.lib")
 
 /////////////////////////////////////////////////////////////////////////////
 // copies fully qualified source folder to destination folder. 
@@ -783,5 +786,78 @@ bool CHelper::EncodeBitmapToMemory
 	pStream->Release();
 	return true;
 } // EncodeBitmapToMemory
+
+/////////////////////////////////////////////////////////////////////////////
+bool CHelper::LoadImageFromUrl(const CString& url, Image*& outImage)
+{
+	outImage = nullptr;
+
+	HINTERNET hSession =
+		::InternetOpen
+		(
+			L"CEx/1.0", INTERNET_OPEN_TYPE_PRECONFIG, nullptr, nullptr, 0
+		);
+
+	if (!hSession)
+		return false;
+
+	HINTERNET hFile =
+		::InternetOpenUrl
+		(
+			hSession, url, nullptr, 0,
+			INTERNET_FLAG_RELOAD | INTERNET_FLAG_NO_CACHE_WRITE, 0
+		);
+
+	if (!hFile)
+	{
+		::InternetCloseHandle(hSession);
+		return false;
+	}
+
+	std::vector<BYTE> vBuffer;
+	BYTE aChunk[4096];
+	DWORD dwRead = 0;
+
+	for (;; )
+	{
+		if (!::InternetReadFile(hFile, aChunk, sizeof(aChunk), &dwRead))
+			break;
+
+		if (dwRead == 0)
+			break;
+
+		vBuffer.insert(vBuffer.end(), aChunk, aChunk + dwRead);
+	}
+
+	::InternetCloseHandle(hFile);
+	::InternetCloseHandle(hSession);
+
+	if (vBuffer.empty())
+		return false;
+
+	IStream* pStream =
+		::SHCreateMemStream
+		(
+			vBuffer.data(),
+			(UINT)vBuffer.size()
+		);
+
+	if (!pStream)
+		return false;
+
+	Image* pImage =
+		new Image(pStream);
+
+	pStream->Release();
+
+	if (pImage->GetLastStatus() != Ok)
+	{
+		delete pImage;
+		return false;
+	}
+
+	outImage = pImage;
+	return true;
+} // LoadImageFromUrl
 
 /////////////////////////////////////////////////////////////////////////////

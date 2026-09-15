@@ -355,6 +355,22 @@ int CMarkdownParser::EnterSpanCallback
 		pRenderer->OnImage(csPath, csAlt);
 		break;
 	}
+	case MD_SPAN_A:
+	{
+		const MD_SPAN_A_DETAIL* pA =
+			static_cast<const MD_SPAN_A_DETAIL*>(detail);
+
+		CString csHref;
+		if (pA->href.text && pA->href.size > 0)
+			csHref = CHelper::Utf8ToUtf16(pA->href.text, pA->href.size);
+
+		CString csTitle;
+		if (pA->title.text && pA->title.size > 0)
+			csTitle = CHelper::Utf8ToUtf16(pA->title.text, pA->title.size);
+
+		pRenderer->OnLinkStart(csTitle);
+		break;
+	}
 
 	default:
 		break;
@@ -527,5 +543,25 @@ int CMarkdownParser::TextCallback
 
 	return 0;
 } // TextCallback
+
+/////////////////////////////////////////////////////////////////////////////
+int CMarkdownParser::HtmlCallback
+(
+	const MD_CHAR* pszText, MD_SIZE nSize, void* userdata
+)
+{
+	CString csHtml = CHelper::Utf8ToUtf16(pszText, nSize);
+	CMarkdownParser* pParser =
+		static_cast<CMarkdownParser*>(userdata);
+
+	if (!pParser || !pParser->Renderer)
+		return -1;
+
+	CMarkdownRenderer* pRenderer = pParser->Renderer.get();
+
+	pRenderer->OnHtml(csHtml);
+
+	return 0;
+} // HtmlCallback
 
 /////////////////////////////////////////////////////////////////////////////

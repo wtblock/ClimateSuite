@@ -534,6 +534,8 @@ public:
 		const CString& csPath,
 		const CString& csAlt
 	);
+	void OnHtml(const CString& csHtml);
+
 	void OnParagraphStart();
 	void OnParagraphEnd();
 

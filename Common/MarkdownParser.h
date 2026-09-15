@@ -169,6 +169,12 @@ protected:
 		void* userdata
 	);
 
+	static int HtmlCallback
+	(
+		const MD_CHAR* pszText, MD_SIZE nSize, void* userdata
+	);
+
+
 // public methods
 public:
 	bool Parse();
