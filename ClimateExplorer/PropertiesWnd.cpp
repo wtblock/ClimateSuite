@@ -129,7 +129,10 @@ void CPropertiesWnd::PopulateStatesForScope(const CString& scope)
 } // PopulateStatesForScope
 
 /////////////////////////////////////////////////////////////////////////////
-void CPropertiesWnd::PopulateLocationsForState(const CString& scope, const CString& state)
+void CPropertiesWnd::PopulateLocationsForState
+(
+	const CString& scope, const CString& state
+)
 {
 	m_pPropLocation->RemoveAllOptions();
 	CClimateExplorerDoc* pDoc = ClimateExplorerDocument;
@@ -386,12 +389,27 @@ LRESULT CPropertiesWnd::OnPropertyChange
 				m_pTrendGroup->Show();
 				m_pGraphGroup->Show();
 				m_pQueryGroup->Show(); 
+				m_pPropPure->Show();
+				m_pPropYearStart->Show();
+				m_pPropYearEnd->Show();
+				m_pPropType->Show();
+				m_pPropThreshold->Show();
 			}
 			else
 			{
 				m_pTrendGroup->Show(FALSE);
 				m_pGraphGroup->Show(FALSE);
 				m_pQueryGroup->Show(FALSE);
+			}
+
+			if (value == L"map")
+			{
+				m_pQueryGroup->Show(); 
+				m_pPropPure->Show(FALSE);
+				m_pPropYearStart->Show(FALSE);
+				m_pPropYearEnd->Show(FALSE);
+				m_pPropType->Show(FALSE);
+				m_pPropThreshold->Show(FALSE);
 			}
 
 			// there will eventually be multiple paths for 

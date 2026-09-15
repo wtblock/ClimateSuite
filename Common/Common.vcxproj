@@ -167,12 +167,17 @@
     <ClInclude Include="framework.h" />
     <ClInclude Include="ImagePlus.h" />
     <ClInclude Include="KeyedCollection.h" />
+    <ClInclude Include="MapOSM.h" />
+    <ClInclude Include="MapRenderer.h" />
+    <ClInclude Include="MapTile.h" />
+    <ClInclude Include="MapTileGrid.h" />
     <ClInclude Include="MarkdownBitmapRenderer.h" />
     <ClInclude Include="MarkdownParser.h" />
     <ClInclude Include="MarkdownRenderer.h" />
     <ClInclude Include="md4c.h" />
     <ClInclude Include="miniz.h" />
     <ClInclude Include="NaturalLanguage.h" />
+    <ClInclude Include="PageMap.h" />
     <ClInclude Include="Paragraph.h" />
     <ClInclude Include="ParagraphToken.h" />
     <ClInclude Include="pch.h" />
@@ -203,6 +208,10 @@
     <ClCompile Include="ColorPlus.cpp" />
     <ClCompile Include="Common.cpp" />
     <ClCompile Include="ImagePlus.cpp" />
+    <ClCompile Include="MapOSM.cpp" />
+    <ClCompile Include="MapRenderer.cpp" />
+    <ClCompile Include="MapTile.cpp" />
+    <ClCompile Include="MapTileGrid.cpp" />
     <ClCompile Include="MarkdownBitmapRenderer.cpp" />
     <ClCompile Include="MarkdownParser.cpp" />
     <ClCompile Include="MarkdownRenderer.cpp" />
@@ -227,6 +236,7 @@
       <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Release|x64'">NotUsing</PrecompiledHeader>
     </ClCompile>
     <ClCompile Include="NaturalLanguage.cpp" />
+    <ClCompile Include="PageMap.cpp" />
     <ClCompile Include="Paragraph.cpp" />
     <ClCompile Include="ParagraphToken.cpp" />
     <ClCompile Include="pch.cpp">

@@ -1684,12 +1684,22 @@ void CClimateExplorerDoc::ExecuteQuery(bool bProgress/* = true*/)
 } // ExecuteQuery
 
 /////////////////////////////////////////////////////////////////////////////
+void CClimateExplorerDoc::ExecuteMap()
+{
+
+} // ExecuteMap
+
+/////////////////////////////////////////////////////////////////////////////
 void CClimateExplorerDoc::OnExecuteQuery()
 {
 	CString csOutput = Output;
 	if (csOutput == L"Image" || csOutput == L"MD")
 	{
 		ExecuteImage();
+	}
+	else if (csOutput == L"Map")
+	{
+		ExecuteMap();
 	}
 	else
 	{

@@ -2350,6 +2350,8 @@ protected:
 
 	void ExecuteImage();
 
+	void ExecuteMap();
+
 	void WriteHeaderElement(IXmlWriter* pWriter, LPCWSTR name, const CString& value)
 	{
 		pWriter->WriteStartElement(nullptr, name, nullptr);
