@@ -15,20 +15,127 @@ CPageMD::CPageMD(CClimateExplorerDoc* pDoc)
 } // CPageImage
 
 /////////////////////////////////////////////////////////////////////////////
-// CPageMD::WriteXml
+// CPageMD::WriteXml  (Unified CE + CEx)
+// Writes <Markdown> with Text + TextPath.
+// If ZipWriter->IsOpen == true → writes PNG + MD file to ZIP.
 /////////////////////////////////////////////////////////////////////////////
-void CPageMD::WriteXml(IXmlWriter* pWriter, int /*nPage*/, int /*nItem*/)
+void CPageMD::WriteXml(IXmlWriter* pWriter, int nPage, int nItem)
 {
 	HRESULT hr = S_OK;
 
-	// <MD>
-	hr = pWriter->WriteStartElement(nullptr, L"MD", nullptr);
-	if (FAILED(hr))
-		return;
+	// <Markdown>
+	hr = pWriter->WriteStartElement(nullptr, L"Markdown", nullptr);
+	if (FAILED(hr)) return;
 
-	// Placeholder — no content yet
+	// -------------------------------------------------------------
+	// <Text>  (always written)
+	// -------------------------------------------------------------
+	hr = pWriter->WriteStartElement(nullptr, L"Text", nullptr);
+	if (FAILED(hr)) return;
 
-	// </MD>
+	hr = pWriter->WriteString(Markdown);
+	if (FAILED(hr)) return;
+
+	hr = pWriter->WriteEndElement(); // </Text>
+	if (FAILED(hr)) return;
+
+	// -------------------------------------------------------------
+	// <TextPath>  (always written — needed for CEx → CE Save As)
+	// -------------------------------------------------------------
+	if (!ContentPath.IsEmpty())
+	{
+		hr = pWriter->WriteStartElement(nullptr, L"TextPath", nullptr);
+		if (FAILED(hr)) return;
+
+		hr = pWriter->WriteString(ContentPath);
+		if (FAILED(hr)) return;
+
+		hr = pWriter->WriteEndElement(); // </TextPath>
+		if (FAILED(hr)) return;
+	}
+
+	// -------------------------------------------------------------
+	// Always write title (CEx + CE)
+	// -------------------------------------------------------------
+	hr = pWriter->WriteStartElement(nullptr, L"Title", nullptr);
+	if (FAILED(hr)) return;
+
+	hr = pWriter->WriteString(ContentTitle);
+	if (FAILED(hr)) return;
+
+	hr = pWriter->WriteEndElement(); // </Title>
+
+	// -------------------------------------------------------------
+	//// CE-only behavior: write PNG + MD file to ZIP
+	// -------------------------------------------------------------
+	auto pZip = m_pDoc->ZipWriter;
+	if (pZip && pZip->IsOpen)
+	{
+		// Compute CE filenames
+		CString csImageFilename;
+		csImageFilename.Format
+		(
+			L"Markdown/Page_%04u_Markdown_%02u.png",
+			nPage,
+			nItem
+		);
+
+		CString csTextFilename;
+		csTextFilename.Format
+		(
+			L"Markdown/Page_%04u_Markdown_%02u.md",
+			nPage,
+			nItem
+		);
+
+		// <ImagePath>
+		hr = pWriter->WriteStartElement(nullptr, L"ImagePath", nullptr);
+		if (FAILED(hr)) return;
+		hr = pWriter->WriteString(csImageFilename);
+		if (FAILED(hr)) return;
+		hr = pWriter->WriteEndElement();
+
+		// <TextPath>
+		hr = pWriter->WriteStartElement(nullptr, L"TextPath", nullptr);
+		if (FAILED(hr)) return;
+		hr = pWriter->WriteString(csTextFilename);
+		if (FAILED(hr)) return;
+		hr = pWriter->WriteEndElement();
+
+		// -------------------------------------------------------------
+		// Write PNG to ZIP
+		// -------------------------------------------------------------
+		if (ImageContent != nullptr)
+		{
+			std::vector<BYTE> pngBytes;
+			bool bOK = CHelper::EncodeBitmapToMemory
+			(
+				static_cast<Gdiplus::Bitmap*>(ImageContent.get()),
+				L"image/png",
+				pngBytes
+			);
+
+			if (bOK)
+			{
+				pZip->AddFile(csImageFilename, pngBytes.data(), pngBytes.size());
+			}
+		}
+
+		// -------------------------------------------------------------
+		// Write .md text file to ZIP (UTF‑8)
+		// -------------------------------------------------------------
+		{
+			std::string utf8 = CHelper::Utf16ToUtf8(Markdown);
+			pZip->AddFile
+			(
+				csTextFilename,
+				reinterpret_cast<const BYTE*>(utf8.data()),
+				utf8.size()
+			);
+		}
+	}
+
+	// </Markdown>
 	hr = pWriter->WriteEndElement();
 } // WriteXml
 
@@ -40,24 +147,200 @@ void CPageMD::ReadXml(IXmlReader* pReader)
 	HRESULT hr = S_OK;
 	XmlNodeType nodeType = XmlNodeType_None;
 
-	// Skip until </MD>
-	while (true)
-	{
-		hr = pReader->Read(&nodeType);
-		if (FAILED(hr))
-			return;
+	CString csText;        // raw markdown text
+	CString csTextPath;    // external or CE internal .md path
+	CString csImagePath;   // CE internal .png path
+	CString csTitle;       // title of the page section
 
+	while (pReader->Read(&nodeType) == S_OK)
+	{
+		// End of <Markdown>
 		if (nodeType == XmlNodeType_EndElement)
 		{
-			const WCHAR* pwszLocalName = nullptr;
-			hr = pReader->GetLocalName(&pwszLocalName, nullptr);
-			if (FAILED(hr) || pwszLocalName == nullptr)
-				return;
-
-			if (wcscmp(pwszLocalName, L"MD") == 0)
+			const WCHAR* name = nullptr;
+			pReader->GetLocalName(&name, nullptr);
+			if (name && wcscmp(name, L"Markdown") == 0)
 				break;
+
+			continue;
+		}
+
+		if (nodeType != XmlNodeType_Element)
+			continue;
+
+		const WCHAR* name = nullptr;
+		pReader->GetLocalName(&name, nullptr);
+		if (!name)
+			continue;
+
+		// ---------------------------------------------------------
+		// <Text>raw markdown</Text>
+		// ---------------------------------------------------------
+		if (wcscmp(name, L"Text") == 0)
+		{
+			XmlNodeType ntText;
+			hr = pReader->Read(&ntText);
+
+			if (SUCCEEDED(hr) && ntText == XmlNodeType_Text)
+			{
+				const WCHAR* pwszText = nullptr;
+				pReader->GetValue(&pwszText, nullptr);
+
+				if (pwszText)
+					csText = pwszText;
+			}
+
+			continue;
+		}
+
+		// ---------------------------------------------------------
+		// <TextPath>external or CE internal .md path</TextPath>
+		// ---------------------------------------------------------
+		if (wcscmp(name, L"TextPath") == 0)
+		{
+			XmlNodeType ntText;
+			hr = pReader->Read(&ntText);
+
+			if (SUCCEEDED(hr) && ntText == XmlNodeType_Text)
+			{
+				const WCHAR* pwszText = nullptr;
+				pReader->GetValue(&pwszText, nullptr);
+
+				if (pwszText)
+					csTextPath = pwszText;
+			}
+
+			continue;
+		}
+
+		// ---------------------------------------------------------
+		// <Title>text</Title>
+		// ---------------------------------------------------------
+		if (wcscmp(name, L"Title") == 0)
+		{
+			XmlNodeType ntText;
+			hr = pReader->Read(&ntText);
+
+			if (SUCCEEDED(hr) && ntText == XmlNodeType_Text)
+			{
+				const WCHAR* pwszText = nullptr;
+				pReader->GetValue(&pwszText, nullptr);
+
+				if (pwszText)
+					csTitle = pwszText;
+			}
+
+			continue;
+		}
+
+		// ---------------------------------------------------------
+		// CE-only: <ImagePath>Markdown/Page_XXXX_Markdown_YY.png</ImagePath>
+	// ---------------------------------------------------------
+		if (wcscmp(name, L"ImagePath") == 0)
+		{
+			XmlNodeType ntText;
+			hr = pReader->Read(&ntText);
+
+			if (SUCCEEDED(hr) && ntText == XmlNodeType_Text)
+			{
+				const WCHAR* pwszText = nullptr;
+				pReader->GetValue(&pwszText, nullptr);
+
+				if (pwszText)
+					csImagePath = pwszText;
+			}
+
+			continue;
 		}
 	}
+
+	// ---------------------------------------------------------
+	// Store title, text, and path
+	// ---------------------------------------------------------
+	ContentTitle = csTitle;
+	Markdown = csText;
+	ContentPath = csTextPath;
+
+	// ---------------------------------------------------------
+	// Load Markdown text from CE ZIP if present
+	// ---------------------------------------------------------
+	if (!csTextPath.IsEmpty() && m_pDoc && m_pDoc->ZipReader)
+	{
+		auto pZip = m_pDoc->ZipReader;
+
+		if (pZip->IsOpen)
+		{
+			std::vector<uint8_t> bytes;
+
+			if (pZip->ExtractFile(csTextPath, bytes))
+			{
+				// Convert UTF‑8 → UTF‑16 using your helper
+				std::string utf8(bytes.begin(), bytes.end());
+				CString csUtf16 = CHelper::Utf8ToUtf16(utf8.data(), utf8.size());
+
+				Markdown = csUtf16;
+			}
+		}
+	}
+	else
+	{
+		// ---------------------------------------------------------
+		// Load Markdown text from external filesystem (CEx)
+		// ---------------------------------------------------------
+		if (!csTextPath.IsEmpty())
+		{
+			if (::PathFileExists(csTextPath))
+			{
+				vector<CString> lines = CHelper::ReadTextAuto(csTextPath);
+
+				CString csTextFile;
+				for (const CString& line : lines)
+				{
+					csTextFile += line;
+					csTextFile += L"\r\n";
+				}
+
+				Markdown = csTextFile;
+			}
+		}
+	}
+
+	// ---------------------------------------------------------
+	// Load rendered PNG from CE ZIP if present
+	// ---------------------------------------------------------
+	if (!csImagePath.IsEmpty() && m_pDoc && m_pDoc->ZipReader)
+	{
+		auto pZip = m_pDoc->ZipReader;
+
+		if (pZip->IsOpen)
+		{
+			std::vector<uint8_t> bytes;
+
+			if (pZip->ExtractFile(csImagePath, bytes))
+			{
+				IStream* pStream = SHCreateMemStream(bytes.data(),
+					(UINT)bytes.size());
+				if (pStream)
+				{
+					Gdiplus::Image* pImg = Gdiplus::Image::FromStream(pStream);
+					pStream->Release();
+
+					if (pImg)
+					{
+						m_pImageContent = shared_ptr<Gdiplus::Image>(pImg);
+						return;
+					}
+				}
+			}
+		}
+	}
+
+	// ---------------------------------------------------------
+	// If CE image not present, Markdown will render lazily on demand
+	//
+	// (m_pImageContent stays null; GetImageContent() will render)
+	// ---------------------------------------------------------
+
 } // ReadXml
 
 /////////////////////////////////////////////////////////////////////////////
@@ -144,9 +427,9 @@ shared_ptr<Gdiplus::Image> CPageMD::GetImageContent()
 	// ---------------------------------------------------------
 	// Cache and return
 	// ---------------------------------------------------------
-	m_pImageContent = pImagePlus->ImagePlus;
+	ImageContent = pImagePlus->ImagePlus;
 
-	return m_pImageContent;
+	return ImageContent;
 } // GetImageContent
 
 /////////////////////////////////////////////////////////////////////////////

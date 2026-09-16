@@ -38,7 +38,7 @@ void CPageImage::WriteXml(IXmlWriter* pWriter, int nPage, int nItem)
 	hr = pWriter->WriteStartElement(nullptr, L"ImagePath", nullptr);
 	if (FAILED(hr)) return;
 
-	hr = pWriter->WriteString(m_csContentPath);
+	hr = pWriter->WriteString(ContentPath);
 	if (FAILED(hr)) return;
 
 	hr = pWriter->WriteEndElement(); // </ImagePath>
@@ -49,7 +49,7 @@ void CPageImage::WriteXml(IXmlWriter* pWriter, int nPage, int nItem)
 	hr = pWriter->WriteStartElement(nullptr, L"Title", nullptr);
 	if (FAILED(hr)) return;
 
-	hr = pWriter->WriteString(m_csContentTitle);
+	hr = pWriter->WriteString(ContentTitle);
 	if (FAILED(hr)) return;
 
 	hr = pWriter->WriteEndElement(); // </Title>
@@ -81,12 +81,12 @@ void CPageImage::WriteXml(IXmlWriter* pWriter, int nPage, int nItem)
 		// ---------------------------------------------------------
 		// Convert m_pImageContent → PNG bytes
 		// ---------------------------------------------------------
-		if (m_pImageContent != nullptr)
+		if (ImageContent != nullptr)
 		{
 			std::vector<BYTE> pngBytes;
 			bool bOK = CHelper::EncodeBitmapToMemory
 			(
-				static_cast<Gdiplus::Bitmap*>(m_pImageContent.get()),
+				static_cast<Gdiplus::Bitmap*>(ImageContent.get()),
 				L"image/png",
 				pngBytes
 			);
@@ -151,9 +151,9 @@ void CPageImage::ReadXml(IXmlReader* pReader)
 		if (!name)
 			continue;
 
-		//
+		// ---------------------------------------------------------
 		// <ImagePath>external path</ImagePath>
-		//
+		// ---------------------------------------------------------
 		if (wcscmp(name, L"ImagePath") == 0)
 		{
 			XmlNodeType ntText;
@@ -171,9 +171,9 @@ void CPageImage::ReadXml(IXmlReader* pReader)
 			continue;
 		}
 
-		//
+		// ---------------------------------------------------------
 		// <Title>text</Title>
-		//
+		// ---------------------------------------------------------
 		if (wcscmp(name, L"Title") == 0)
 		{
 			XmlNodeType ntText;
@@ -191,9 +191,9 @@ void CPageImage::ReadXml(IXmlReader* pReader)
 			continue;
 		}
 
-		//
+		// ---------------------------------------------------------
 		// CE-only: <Image value="Images/Page_XXXX_Picture_YY.ext"/>
-		//
+		// ---------------------------------------------------------
 		if (wcscmp(name, L"Image") == 0)
 		{
 			const WCHAR* attrName = nullptr;
@@ -213,15 +213,15 @@ void CPageImage::ReadXml(IXmlReader* pReader)
 		}
 	}
 
-	//
+	// ---------------------------------------------------------
 	// Store title and external path
-	//
+	// ---------------------------------------------------------
 	ContentTitle = csTitle;
 	ContentPath = csExternalPath;
 
-	//
+	// ---------------------------------------------------------
 	// Load image immediately
-	//
+	// ---------------------------------------------------------
 
 	// CE: load from ZIP if present
 	if (!csZipPath.IsEmpty() && m_pDoc && m_pDoc->ZipReader)
@@ -243,7 +243,7 @@ void CPageImage::ReadXml(IXmlReader* pReader)
 
 					if (pImg)
 					{
-						m_pImageContent = shared_ptr<Gdiplus::Image>(pImg);
+						ImageContent = shared_ptr<Gdiplus::Image>(pImg);
 						return;
 					}
 				}
@@ -251,7 +251,9 @@ void CPageImage::ReadXml(IXmlReader* pReader)
 		}
 	}
 
+	// ---------------------------------------------------------
 	// CEx: load from external filesystem path
+	// ---------------------------------------------------------
 	if (!csExternalPath.IsEmpty())
 	{
 		if (::PathFileExists(csExternalPath))
@@ -259,13 +261,15 @@ void CPageImage::ReadXml(IXmlReader* pReader)
 			CImagePlus gdi;
 			if (gdi.Open(csExternalPath))
 			{
-				m_pImageContent = gdi.ImagePlus;
+				ImageContent = gdi.ImagePlus;
 				return;
 			}
 		}
 	}
 
+	// ---------------------------------------------------------
 	// If neither source worked, leave m_pImageContent null
+	// ---------------------------------------------------------
 }
 
 /////////////////////////////////////////////////////////////////////////////
@@ -283,7 +287,7 @@ shared_ptr<Gdiplus::Image> CPageImage::GetImageContent()
 		{
 			if (gdi.Open(csPath))
 			{
-				m_pImageContent = gdi.ImagePlus;
+				ImageContent = gdi.ImagePlus;
 			}
 		}
 	}

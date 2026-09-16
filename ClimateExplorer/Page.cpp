@@ -278,34 +278,7 @@ void CPage::ReadXml(IXmlReader* pReader)
 			else if (wcscmp(pwszAttrValue, L"TOC") == 0)
 				PageType = pageTOC;
 
-			if (wcscmp(pwszLocalName, L"Graph") == 0)
-			{
-				// Create a CPageGraph that owns a CGraphPlotter
-				pContent = std::make_shared<CPageGraph>(m_pDoc);
-
-				// Let the content read its XML subtree
-				pContent->ReadXml(pReader);
-
-				// Store it in the page’s content collection
-				m_arrContent.add(pContent->ContentTitle, pContent, true);
-				
-				continue;
-			}
-			else if (wcscmp(pwszAttrValue, L"Picture") == 0)
-			{
-				// Create a CPageGraph that owns a CGraphPlotter
-				pContent = std::make_shared<CPageImage>(m_pDoc);
-
-				// Let the content read its XML subtree
-				pContent->ReadXml(pReader);
-
-				// Store it in the page’s content collection
-				m_arrContent.add(pContent->ContentTitle, pContent, true);
-
-				continue;
-			}
-
-			else if (wcscmp(pwszAttrValue, L"MD") == 0)
+			else if (wcscmp(pwszAttrValue, L"Markdown") == 0)
 				PageType = pageMD;
 
 			else if (wcscmp(pwszAttrValue, L"HTML") == 0)
@@ -393,9 +366,9 @@ void CPage::ReadXml(IXmlReader* pReader)
 
 			continue;
 		}
-		else if (wcscmp(pwszLocalName, L"MD") == 0)
+		else if (wcscmp(pwszLocalName, L"Markdown") == 0)
 		{
-			pContent = std::make_shared<CPageMD>();
+			pContent = std::make_shared<CPageMD>(m_pDoc);
 		}
 		else if (wcscmp(pwszLocalName, L"HTML") == 0)
 		{
