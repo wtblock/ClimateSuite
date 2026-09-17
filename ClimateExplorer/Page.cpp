@@ -38,6 +38,60 @@ CPage::CPage
 }
 
 /////////////////////////////////////////////////////////////////////////////
+// add a map to the page
+bool CPage::AddMapContent()
+{
+	CString csScope = m_pDoc->Scope;
+	CString csState = m_pDoc->State;
+	CString csLocation = m_pDoc->Location;
+
+	csScope.Trim();
+	csState.Trim();
+	csLocation.Trim();
+	CString csTitle;
+
+	if (csScope == L"National")
+	{
+		csTitle = L"Climate Map National";
+	}
+	else if (csScope == L"State")
+	{
+		csTitle.Format(L"Climate Map State of %s", csState);
+	}
+	else
+	{
+		csTitle.Format(L"Climate Map Station %s in %s", csLocation, csState);
+	}
+	CString csImage = m_pDoc->ContentTitle;
+	if
+	(
+		csImage.IsEmpty() ||
+		csImage == L"Title" ||
+		csImage == L"Climate Explorer"
+	)
+	{
+		csImage = csTitle;
+	}
+
+	bool value = false;
+	if (PageIsFull)
+	{
+		return value;
+	}
+
+	shared_ptr<CPageMap> pImage = make_shared<CPageMap>(m_pDoc);
+	pImage->ContentTitle = csImage;
+	pImage->ContentPath = L"";
+
+	// replaces an image if it exists
+	value = m_arrContent.add(csImage, pImage, true);
+
+	csTitle = Title;
+
+	return value;
+} // AddMapContent
+
+/////////////////////////////////////////////////////////////////////////////
 // add an image to the page
 bool CPage::AddImagePath(CString csPath)
 {
@@ -53,7 +107,7 @@ bool CPage::AddImagePath(CString csPath)
 	pImage->ContentPath = csPath;
 
 	// replaces an image if it exists
-	m_arrContent.add(csImage, pImage, true);
+	value = m_arrContent.add(csImage, pImage, true);
 
 	return value;
 } // AddImagePath
@@ -74,7 +128,7 @@ bool CPage::AddMdPath(CString csPath)
 	pMD->ContentPath = csPath;
 
 	// replaces a markdown if it exists
-	m_arrContent.add(csTitle, pMD, true);
+	value = m_arrContent.add(csTitle, pMD, true);
 
 	return value;
 } // AddMdPath
@@ -94,7 +148,7 @@ bool CPage::AddAnImage(shared_ptr<CGraphPlotter> pPlot)
 	shared_ptr<CPageGraph> pGraph = make_shared<CPageGraph>(pPlot, m_pDoc);
 
 	// replaces an image if it exists
-	m_arrContent.add(csImage, pGraph, true);
+	value = m_arrContent.add(csImage, pGraph, true);
 
 	return value;
 } // AddAnImage

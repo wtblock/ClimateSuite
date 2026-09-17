@@ -235,7 +235,7 @@ void CPageMD::ReadXml(IXmlReader* pReader)
 
 		// ---------------------------------------------------------
 		// CE-only: <ImagePath>Markdown/Page_XXXX_Markdown_YY.png</ImagePath>
-	// ---------------------------------------------------------
+		// ---------------------------------------------------------
 		if (wcscmp(name, L"ImagePath") == 0)
 		{
 			XmlNodeType ntText;

@@ -439,5 +439,111 @@ void CClimateDatabase::PopulateStations()
 
 } // PopulateStations
 
+/////////////////////////////////////////////////////////////////////////////
+CClimateDatabase::GPS_COORDINATE CClimateDatabase::GetCenterNational()
+{
+	CClimateDatabase::GPS_COORDINATE value = pair<float, float>(0.0f, 0.0f);
+
+	float minLat = 999.0;
+	float maxLat = -999.0;
+	float minLon = 999.0;
+	float maxLon = -999.0;
+
+	if (m_mapStations.Count == 0)
+	{
+		PopulateStations();
+	}
+
+	// m_mapStations.Items is a vector<pair<CString, CClimateStation>>
+	for (auto& node : m_mapStations.Items)
+	{
+		shared_ptr<CClimateStation> pStation = node.second;
+
+		float fLat = pStation->Latitude;
+		float fLon = pStation->Longitude;
+
+		minLat = min(minLat, fLat);
+		maxLat = max(maxLat, fLat);
+		minLon = min(minLon, fLon);
+		maxLon = max(maxLon, fLon);
+	}
+
+	value.first = (minLat + maxLat) / 2.0;
+	value.second = (minLon + maxLon) / 2.0;
+
+	return value;
+} // GetCenterCoordinate
+
+/////////////////////////////////////////////////////////////////////////////
+CClimateDatabase::GPS_COORDINATE CClimateDatabase::GetCenterState(CString csPC)
+{
+	CClimateDatabase::GPS_COORDINATE value = pair<float, float>(0.0f, 0.0f);
+
+	float minLat = 999.0;
+	float maxLat = -999.0;
+	float minLon = 999.0;
+	float maxLon = -999.0;
+
+	csPC.MakeUpper();
+	csPC.Trim();
+	bool bFound = false;
+
+	if (m_mapStations.Count == 0)
+	{
+		PopulateStations();
+	}
+
+	// m_mapStations.Items is a vector<pair<CString, CClimateStation>>
+	for (auto& node : m_mapStations.Items)
+	{
+		shared_ptr<CClimateStation> pStation = node.second;
+		CString csState = pStation->State;
+		if (csState == csPC)
+		{
+			bFound = true;
+			float fLat = pStation->Latitude;
+			float fLon = pStation->Longitude;
+
+			minLat = min(minLat, fLat);
+			maxLat = max(maxLat, fLat);
+			minLon = min(minLon, fLon);
+			maxLon = max(maxLon, fLon);
+		}
+	}
+
+	if (bFound)
+	{
+		value.first = (minLat + maxLat) / 2.0;
+		value.second = (minLon + maxLon) / 2.0;
+	}
+
+	return value;
+} // GetCenterState
+
+/////////////////////////////////////////////////////////////////////////////
+CClimateDatabase::GPS_COORDINATE CClimateDatabase::GetCoordinates
+(
+	CString csPC, CString csLoc
+)
+{
+	CClimateDatabase::GPS_COORDINATE value = pair<float, float>(0.0f, 0.0f);
+
+	csPC.MakeUpper();
+	csPC.Trim();
+	csLoc.MakeUpper();
+	csLoc.Trim();
+
+	CString csKey;
+	csKey.Format(L"%s, %s", csPC, csLoc);
+	shared_ptr<CClimateStation> pStation = StationByLocation[csKey];
+
+	if (pStation != nullptr)
+	{
+		value.first = pStation->Latitude;
+		value.second = pStation->Longitude;
+	}
+
+	return value;
+} // GetCoordinates
 
 /////////////////////////////////////////////////////////////////////////////

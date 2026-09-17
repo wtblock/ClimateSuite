@@ -92,8 +92,8 @@ public:
 		}
 	}
 	bool PrepareRenderer();
-	bool DrawPins(CDC* pDC);
-	bool DrawMap(CDC* pDC);
+	void DrawPins(CDC* pDC);
+	void DrawMap(CDC* pDC);
 
 // protected overrides
 protected:

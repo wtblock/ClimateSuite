@@ -106,7 +106,8 @@ public:
 	);
 	bool BuildTileGrid
 	(
-		double dLatCenter, double dLonCenter, int nZoom, int nTileRadius
+		double dLatCenter, double dLonCenter, int nZoom,
+		int radiusX, int radiusY
 	);
 	bool DownloadTiles(LPCTSTR lpszCacheFolder);
 	bool StitchTiles();

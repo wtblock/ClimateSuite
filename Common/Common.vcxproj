@@ -177,7 +177,6 @@
     <ClInclude Include="md4c.h" />
     <ClInclude Include="miniz.h" />
     <ClInclude Include="NaturalLanguage.h" />
-    <ClInclude Include="PageMap.h" />
     <ClInclude Include="Paragraph.h" />
     <ClInclude Include="ParagraphToken.h" />
     <ClInclude Include="pch.h" />
@@ -236,7 +235,6 @@
       <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Release|x64'">NotUsing</PrecompiledHeader>
     </ClCompile>
     <ClCompile Include="NaturalLanguage.cpp" />
-    <ClCompile Include="PageMap.cpp" />
     <ClCompile Include="Paragraph.cpp" />
     <ClCompile Include="ParagraphToken.cpp" />
     <ClCompile Include="pch.cpp">

@@ -24,10 +24,8 @@
 
 class CPageContent
 {
+// public types
 public:
-	///////////////////////////////////////////////////////////////////////////
-	// CONTENT_TYPE
-	///////////////////////////////////////////////////////////////////////////
 	enum CONTENT_TYPE
 	{
 		ContentGraph,
@@ -37,6 +35,7 @@ public:
 		ContentMap
 	};
 
+// protected data
 protected:
 	// Content type property
 	CONTENT_TYPE m_eContentType;
@@ -50,6 +49,7 @@ protected:
 	// image of the content
 	shared_ptr<Gdiplus::Image> m_pImageContent;
 
+// public properties
 public:
 	// Content type property
 	CONTENT_TYPE GetContentType()
@@ -109,15 +109,16 @@ public:
 	__declspec(property(get = GetImageContent, put = SetImageContent))
 		shared_ptr<Gdiplus::Image> ImageContent;
 
+// protected methods
 public:
-	/////////////////////////////////////////////////////////////////////////////
+
+// public methods
+public:
 	// ReadElementString
 	//
 	// Reads the text content of the current element.
 	// Assumes the reader is positioned on <ElementName>.
 	// Returns true if a text node was read successfully.
-	//
-	/////////////////////////////////////////////////////////////////////////////
 	static bool ReadElementString(IXmlReader* pReader, CString& outValue)
 	{
 		HRESULT hr = S_OK;
@@ -146,16 +147,15 @@ public:
 		return true;
 	}
 
-	///////////////////////////////////////////////////////////////////////////
-	// Virtual XML methods (implemented by derived classes)
-	///////////////////////////////////////////////////////////////////////////
+// protected overrides
+protected:
+
+// public overrides
+public:
 	virtual void WriteXml(IXmlWriter* pWriter, int nPage=0, int nItem=0) = 0;
 	virtual void ReadXml(IXmlReader* pReader) = 0;
 
 public:
-	///////////////////////////////////////////////////////////////////////////
-	// Constructor / Destructor
-	///////////////////////////////////////////////////////////////////////////
 	CPageContent()
 		: m_eContentType(ContentGraph)   // default; derived classes override
 	{
@@ -164,4 +164,6 @@ public:
 	virtual ~CPageContent()
 	{
 	}
-};
+}; // CPageContent
+
+/////////////////////////////////////////////////////////////////////////////

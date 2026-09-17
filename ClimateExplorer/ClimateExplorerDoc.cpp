@@ -13,6 +13,7 @@
 #include <set>
 #include "PageGraph.h"
 #include "PageImage.h"
+#include "PageMap.h"
 
 /////////////////////////////////////////////////////////////////////////////
 #pragma comment(lib, "xmllite.lib")
@@ -765,6 +766,15 @@ void CClimateExplorerDoc::CopyPlotPropertiesToDocument(CGraphPlotter* pPlot)
 // beginning or ending of the selection
 void CClimateExplorerDoc::SetSelectLimit(int nPage, int nImage)
 {
+	CClimateExplorerView* pView = ClimateExplorerView;
+	if (pView == nullptr)
+	{
+		return;
+	}
+
+	CMainFrame* pFrame = (CMainFrame*)AfxGetMainWnd();
+	CPropertiesWnd* pProps = pFrame->PropertiesPane;
+
 	pair<int, int>& pairStart = m_pairSelection.first;
 	pair<int, int>& pairEnd = m_pairSelection.second;
 
@@ -775,6 +785,11 @@ void CClimateExplorerDoc::SetSelectLimit(int nPage, int nImage)
 		pairStart.second = nImage;
 		pairEnd.first = nPage;
 		pairEnd.second = nImage;
+		ContentTitle = L"Title";
+
+		// signal the properties panel of the change
+		pProps->UpdatePropertiesFromDocument(this);
+		pProps->ChangeOutput(Output);
 		return;
 	}
 
@@ -826,16 +841,23 @@ void CClimateExplorerDoc::SetSelectLimit(int nPage, int nImage)
 				ContentTitle = pContent->ContentTitle;
 				break;
 			case CPageContent::ContentMap:
+			{
+				CPageMap* pMap = (CPageMap*)pContent.get();
 				Output = L"Map";
+				Scope = pMap->Scope;
+				State = pMap->State;
+				Location = pMap->Location;
+				pView->Latitude = pMap->CenterLat;
+				pView->Longitude = pMap->CenterLon;
+				ContentTitle = pContent->ContentTitle;
 				break;
+			}
 			case CPageContent::ContentHTML:
 				Output = L"HTML";
 				break;
 			}
 
 			// signal the properties panel of the change
-			CMainFrame* pFrame = (CMainFrame*)AfxGetMainWnd();
-			CPropertiesWnd* pProps = pFrame->PropertiesPane;
 			pProps->UpdatePropertiesFromDocument(this);
 			pProps->ChangeOutput(Output);
 		}
@@ -1279,18 +1301,25 @@ void CClimateExplorerDoc::ExecuteImage()
 {
 	CString csOutput = Output;
 
-	CString csPath = ImagePath;
+	CString csPath;
 	if (csOutput == L"MD")
 	{
 		csPath = MdPath;
 	}
-
-	if (!::PathFileExists(csPath))
+	else if (csOutput == L"Image")
 	{
-		CString csMessage;
-		csMessage.Format(L"Pathname does not exist:\n\t%s", csPath);
-		AfxMessageBox(csMessage);
-		return;
+		csPath = ImagePath;
+	}
+
+	if (csOutput != L"Map")
+	{
+		if (!::PathFileExists(csPath))
+		{
+			CString csMessage;
+			csMessage.Format(L"Pathname does not exist:\n\t%s", csPath);
+			AfxMessageBox(csMessage);
+			return;
+		}
 	}
 
 	CClimateExplorerView* pView = ClimateExplorerView;
@@ -1382,6 +1411,10 @@ void CClimateExplorerDoc::ExecuteImage()
 	if (csOutput == L"MD")
 	{
 		pPage->AddMdPath(csPath);
+	}
+	else if (csOutput == L"Map")
+	{
+		pPage->AddMapContent();
 	}
 	else
 	{
@@ -1684,28 +1717,24 @@ void CClimateExplorerDoc::ExecuteQuery(bool bProgress/* = true*/)
 } // ExecuteQuery
 
 /////////////////////////////////////////////////////////////////////////////
-void CClimateExplorerDoc::ExecuteMap()
-{
-
-} // ExecuteMap
-
-/////////////////////////////////////////////////////////////////////////////
 void CClimateExplorerDoc::OnExecuteQuery()
 {
 	CString csOutput = Output;
-	if (csOutput == L"Image" || csOutput == L"MD")
+	if (csOutput == L"Image" || csOutput == L"MD" || csOutput == L"Map")
 	{
 		ExecuteImage();
-	}
-	else if (csOutput == L"Map")
-	{
-		ExecuteMap();
 	}
 	else
 	{
 		ExecuteQuery();
 	}
+
 	AdjustForTOC();
+
+	CMainFrame* pFrame = (CMainFrame*)AfxGetMainWnd();
+	CPropertiesWnd* pProps = pFrame->PropertiesPane;
+	pProps->UpdatePropertiesFromDocument(this);
+	pProps->ChangeOutput(Output);
 
 } // OnExecuteQuery
 

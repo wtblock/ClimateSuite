@@ -7,6 +7,7 @@
 #include "ClimateTemperature.h"
 #include "KeyedCollection.h"
 #include <vector>
+#include <winnt.h>
 
 using namespace std;
 
@@ -17,6 +18,11 @@ class CClimateStation;
 // a wrapper class for the SQLite3.c code
 class CClimateDatabase
 {
+// public types
+public:
+	// latitude, longitude pair
+	typedef pair<float, float> GPS_COORDINATE;
+
 // protected data
 protected:
 	sqlite3* m_db;
@@ -156,6 +162,24 @@ public:
 	// (format: "postal_code, city", i.e.: TX, Weatherford)
 	__declspec(property(get = GetStationByLocation))
 		shared_ptr<CClimateStation> StationByLocation[];
+
+	// center coordinates for the nation
+	GPS_COORDINATE GetCenterNational();
+	// center coordinates for the nation
+	__declspec(property(get = GetCenterNational))
+		GPS_COORDINATE CenterNational;
+
+	// center coordinates for the given a state's postal code
+	GPS_COORDINATE GetCenterState(CString csPC);
+	// center coordinates for the given a state's postal code
+	__declspec(property(get = GetCenterState))
+		GPS_COORDINATE CenterState[];
+
+	// coordinates for the given state and location
+	GPS_COORDINATE GetCoordinates(CString csPC, CString csLoc);
+	// coordinates for the given state and location
+	__declspec(property(get = GetCoordinates))
+		GPS_COORDINATE Coordinates[][];
 
 public:
 	/////////////////////////////////////////////////////////////////////////////

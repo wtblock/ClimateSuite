@@ -3,120 +3,179 @@
 /////////////////////////////////////////////////////////////////////////////
 #pragma once
 #include "PageContent.h"
+#include "ClimateExplorerDoc.h"
 #include <afxstr.h>
 #include <vector>
 
 /////////////////////////////////////////////////////////////////////////////
 // CPageMap
-//
-// Shell wrapper for map content. This class will eventually handle:
-//
-//     • XML serialization of map metadata
-//     • XML deserialization of map metadata
-//     • CE (.CE) minimal export (likely PNG only)
-//     • CEx (.CEx) full‑fidelity export
-//     • Integration with CPageContent polymorphism
-//
-// For now, it simply stores map‑related fields and compiles cleanly.
-//
 /////////////////////////////////////////////////////////////////////////////
 class CPageMap : public CPageContent
 {
+// public types
+public:
+
+// protected data
 protected:
-	///////////////////////////////////////////////////////////////////////////
-	// m_csTitle
-	///////////////////////////////////////////////////////////////////////////
-	CString m_csTitle;
+	// owning document
+	CClimateExplorerDoc* m_pDoc;
 
-	///////////////////////////////////////////////////////////////////////////
-	// m_csRegion
-	///////////////////////////////////////////////////////////////////////////
-	CString m_csRegion;
+	// map metadata
+	CString   m_csScope;        // National / State / Location
+	CString   m_csState;       // "TX"
+	CString   m_csLocation;    // "TX, Weatherford"
 
-	///////////////////////////////////////////////////////////////////////////
-	// m_arrBytesPNG
-	///////////////////////////////////////////////////////////////////////////
-	std::vector<uint8_t> m_arrBytesPNG;
+	double    m_dCenterLat;    // resolved center latitude
+	double    m_dCenterLon;    // resolved center longitude
+	int       m_nZoom;         // OSM zoom level
 
+// public properties
 public:
-	///////////////////////////////////////////////////////////////////////////
-	// Title property
-	///////////////////////////////////////////////////////////////////////////
-	CString GetTitle()
+	// document pointer
+	CClimateExplorerDoc* GetDoc()
 	{
-		return m_csTitle;
+		return m_pDoc;
 	}
 
-	void SetTitle(CString value)
+	void SetDoc(CClimateExplorerDoc* value)
 	{
-		m_csTitle = value;
+		m_pDoc = value;
 	}
 
-	__declspec(property(get = GetTitle, put = SetTitle))
-		CString Title;
+	__declspec(property(get = GetDoc, put = SetDoc))
+		CClimateExplorerDoc* Doc;
 
-	///////////////////////////////////////////////////////////////////////////
-	// Region property
-	///////////////////////////////////////////////////////////////////////////
-	CString GetRegion()
+	// map scope
+	CString GetScope()
 	{
-		return m_csRegion;
+		return m_csScope;
 	}
 
-	void SetRegion(CString value)
+	void SetScope(CString value)
 	{
-		m_csRegion = value;
+		m_csScope = value;
 	}
 
-	__declspec(property(get = GetRegion, put = SetRegion))
-		CString Region;
+	__declspec(property(get = GetScope, put = SetScope))
+		CString Scope;
 
-	///////////////////////////////////////////////////////////////////////////
-	// BytesPNG property
-	///////////////////////////////////////////////////////////////////////////
-	std::vector<uint8_t>& GetBytesPNG()
+	// state
+	CString GetState()
 	{
-		return m_arrBytesPNG;
+		return m_csState;
 	}
 
-	void SetBytesPNG(std::vector<uint8_t>& value)
+	void SetState(CString value)
 	{
-		m_arrBytesPNG = value;
+		m_csState = value;
 	}
 
-	__declspec(property(get = GetBytesPNG, put = SetBytesPNG))
-		std::vector<uint8_t> BytesPNG;
+	__declspec(property(get = GetState, put = SetState))
+		CString State;
 
+	// location ("TX, Weatherford")
+	CString GetLocation()
+	{
+		return m_csLocation;
+	}
+
+	void SetLocation(CString value)
+	{
+		m_csLocation = value;
+	}
+
+	__declspec(property(get = GetLocation, put = SetLocation))
+		CString Location;
+
+	// center latitude
+	double GetCenterLat()
+	{
+		return m_dCenterLat;
+	}
+
+	void SetCenterLat(double value)
+	{
+		m_dCenterLat = value;
+	}
+
+	__declspec(property(get = GetCenterLat, put = SetCenterLat))
+		double CenterLat;
+
+	// center longitude
+	double GetCenterLon()
+	{
+		return m_dCenterLon;
+	}
+
+	void SetCenterLon(double value)
+	{
+		m_dCenterLon = value;
+	}
+
+	__declspec(property(get = GetCenterLon, put = SetCenterLon))
+		double CenterLon;
+
+	// zoom level
+	int GetZoom()
+	{
+		return m_nZoom;
+	}
+
+	void SetZoom(int value)
+	{
+		m_nZoom = value;
+	}
+
+	__declspec(property(get = GetZoom, put = SetZoom))
+		int Zoom;
+
+// protected methods
+protected:
+	// resolve center lat/lon + zoom from Scope/State/Location
+	void ResolveCenterFromQuery();
+
+// public methods
 public:
-	///////////////////////////////////////////////////////////////////////////
-	// WriteXml
-	//
-	// Shell only — does nothing yet.
-	// Will be implemented during the serialization refactor.
-	///////////////////////////////////////////////////////////////////////////
+
+// protected overrides
+protected:
+
+// public overrides
+public:
+	virtual shared_ptr<Gdiplus::Image> GetImageContent() override;
+
 	virtual void WriteXml
 	(
-		IXmlWriter* pWriter, int nPage = 0, int nItem = 0
+		IXmlWriter* pWriter,
+		int nPage = 0,
+		int nItem = 0
 	) override;
 
-	///////////////////////////////////////////////////////////////////////////
-	// ReadXml
-	//
-	// Shell only — does nothing yet.
-	// Will be implemented during the serialization refactor.
-	///////////////////////////////////////////////////////////////////////////
 	virtual void ReadXml(IXmlReader* pReader) override;
 
+// public constructor/destructor
 public:
-	///////////////////////////////////////////////////////////////////////////
-	// Constructor / Destructor
-	///////////////////////////////////////////////////////////////////////////
+	// REQUIRED: matches CPageContent pattern
 	CPageMap()
 	{
 		ContentType = ContentMap;
+		m_pDoc = nullptr;
+
+		Scope = L"National";
+		State = L"";
+		Location = L"";
+
+		CenterLat = 0.0;
+		CenterLon = 0.0;
+		Zoom = 4;
 	}
+
+	// REQUIRED: matches all other content types
+	CPageMap(CClimateExplorerDoc* pDoc);
 
 	virtual ~CPageMap()
 	{
 	}
-};
+}; // CPageMap
+
+/////////////////////////////////////////////////////////////////////////////

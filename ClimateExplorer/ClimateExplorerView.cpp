@@ -12,6 +12,8 @@
 #include "PdfWriter.h"
 #include "GraphPlotter.h"
 #include "ColorPlus.h"
+#include "ClimateStation.h"
+#include "PageMap.h"
 
 /////////////////////////////////////////////////////////////////////////////
 #ifdef _DEBUG
@@ -1586,7 +1588,8 @@ void CClimateExplorerView::OnUpdateBingMap(CCmdUI* pCmdUI)
 					pDoc->SelectedContent[pairStart];
 				if (pContent != nullptr)
 				{
-					if (pContent->ContentType == CPageContent::ContentGraph)
+					CPageContent::CONTENT_TYPE eType = pContent->ContentType;
+					if (eType == CPageContent::ContentGraph)
 					{
 						CPageGraph* pGraph = (CPageGraph*)pContent.get();
 						shared_ptr<CGraphPlotter> pPlot = pGraph->Plot;
@@ -1598,6 +1601,40 @@ void CClimateExplorerView::OnUpdateBingMap(CCmdUI* pCmdUI)
 							Longitude = pPlot->Longitude;
 							pCmdUI->Enable();
 						}
+					}
+					else if (eType == CPageContent::ContentMap)
+					{
+						CPageMap* pMap = (CPageMap*)pContent.get();
+						CString csScope = pMap->Scope;
+						CString csState = pMap->State;
+						CString csCity = pMap->Location;
+						
+						if (csScope == L"Location")
+						{
+							csCity.TrimRight();
+							CString csKey;
+							csKey.Format(L"%s, %s", csState, csCity);
+							shared_ptr<CClimateStation> pStation = 
+								theApp.ClimateDatabase->StationByLocation[csKey];
+							if (pStation != nullptr)
+							{
+								Station = pStation->Station;
+								Latitude = pStation->Latitude;
+								Longitude = pStation->Longitude;
+							}
+						}
+						else 
+						{
+							Station = L"National";
+							if (csScope == L"State")
+							{
+								Station = pMap->State;
+							}
+							Station = pMap->State;
+							Latitude = pMap->CenterLat;
+							Longitude = pMap->CenterLon;
+						}
+						pCmdUI->Enable();
 					}
 				}
 			}

@@ -464,7 +464,7 @@ public:
 		case CPage::pageTOC:
 			value = L"Table of Contents";
 			break;
-		case CPage::pageGraph:
+		default:
 			if (m_arrContent.Count != 0)
 			{
 				shared_ptr<CPageContent> pContent = 
@@ -472,10 +472,15 @@ public:
 				value = pContent->ContentTitle;
 			}
 		}
+		Title = value;
 		return value;
 	}
+	void SetTitle(CString value)
+	{
+		m_csTitle = value;
+	}
 	// title of the page
-	__declspec(property(get = GetTitle))
+	__declspec(property(get = GetTitle, put = SetTitle))
 		CString Title;
 
 	// the key is the image title associated with the given plot
@@ -512,6 +517,8 @@ public:
 	bool AddAnImage(shared_ptr<CGraphPlotter> pPlot);
 	// add an image to the page
 	bool AddImagePath(CString csPath);
+	// add a map to the page
+	bool AddMapContent();
 
 	// add a markdown to the page
 	bool AddMdPath(CString csPath);

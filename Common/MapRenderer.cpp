@@ -40,78 +40,72 @@ bool CMapRenderer::DrawSinglePin(CDC* pDC, int x, int y, COLORREF rgbColor)
 } // DrawSinglePin
 
 /////////////////////////////////////////////////////////////////////////////
+// Prepare renderer
 bool CMapRenderer::PrepareRenderer()
 {
-	bool value = false;
+	// ---------------------------------------------------------
+	// Validate OSM map object
+	// ---------------------------------------------------------
+	if (MapOSM == nullptr)
+		return false;
 
-	// ensure we have a map object
-	if (m_pMapOSM == nullptr)
-	{
-		return value;
-	}
+	// ---------------------------------------------------------
+	// Validate stitched bitmap
+	// ---------------------------------------------------------
+	if (MapOSM->FinalBitmap == nullptr)
+		return false;
 
-	// ensure the map has a final bitmap
-	if (m_pMapOSM->FinalBitmap == nullptr)
-	{
-		return value;
-	}
+	// ---------------------------------------------------------
+	// Validate target rectangle
+	// ---------------------------------------------------------
+	if (TargetRect.IsRectEmpty())
+		return false;
 
-	// assign bitmap for rendering
-	m_pBitmap = m_pMapOSM->FinalBitmap;
-
-	value = true;
-
-	return value;
+	return true;
 } // PrepareRenderer
 
 /////////////////////////////////////////////////////////////////////////////
-bool CMapRenderer::DrawPins(CDC* pDC)
+// Draw stitched OSM map
+void CMapRenderer::DrawMap(CDC* pDC)
 {
-	bool value = false;
+	if (!pDC || !MapOSM || !MapOSM->FinalBitmap)
+		return;
 
-	if (!pDC)
-	{
-		return value;
-	}
+	Graphics g(pDC->m_hDC);
 
-	// placeholder: no pin model defined yet
-	// this loop will be replaced once you define pin storage
+	const int nSrcWidth = MapOSM->FinalBitmap->GetWidth();
+	const int nSrcHeight = MapOSM->FinalBitmap->GetHeight();
 
-	// example: draw a single test pin at center of target rect
-	const int nCenterX = (m_rectTarget.left + m_rectTarget.right) / 2;
-	const int nCenterY = (m_rectTarget.top + m_rectTarget.bottom) / 2;
+	Rect destRect
+	(
+		TargetRect.left,
+		TargetRect.top,
+		TargetRect.Width(),
+		TargetRect.Height()
+	);
 
-	DrawSinglePin(pDC, nCenterX, nCenterY, RGB(255, 0, 0));
+	g.SetInterpolationMode(InterpolationModeHighQualityBicubic);
+	g.SetSmoothingMode(SmoothingModeHighQuality);
 
-	value = true;
-
-	return value;
-} // DrawPins
+	g.DrawImage
+	(
+		MapOSM->FinalBitmap.get(),
+		destRect,
+		0, 0, nSrcWidth, nSrcHeight,
+		UnitPixel
+	);
+} // DrawMap
 
 /////////////////////////////////////////////////////////////////////////////
-bool CMapRenderer::DrawMap(CDC* pDC)
+// Draw pins (placeholder)
+void CMapRenderer::DrawPins(CDC* pDC)
 {
-	bool value = false;
+	if (pDC == nullptr)
+		return;
 
-	if (!pDC)
-	{
-		return value;
-	}
-
-	if (m_pBitmap == nullptr)
-	{
-		return value;
-	}
-
-	// use your CImagePlus wrapper for mapping‑mode‑aware drawing
-	CImagePlus plus(m_pBitmap);
-
-	CRect rectSrc(0, 0, plus.Width, plus.Height);
-	plus.Draw(pDC, m_rectTarget, rectSrc);
-
-	value = true;
-
-	return value;
-} // DrawMap
+	// ---------------------------------------------------------
+	// No pins yet — placeholder for future overlays
+	// ---------------------------------------------------------
+} // DrawPins
 
 /////////////////////////////////////////////////////////////////////////////
