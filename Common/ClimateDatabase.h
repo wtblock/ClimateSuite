@@ -36,6 +36,16 @@ protected:
 	// map of location names (state, city) to station data
 	CKeyedCollection<CString, CClimateStation> m_mapLocations;
 
+	// map of active station IDs to locations (PC, Location)
+	// where PC is the postal code of the state and location
+	// is the name of the station (city in most cases)
+	CKeyedCollection<CString, CString> m_mapActiveStations;
+
+	// map of active location keys (PC, Location) to station ID
+	// where PC is the postal code of the state and location
+	// is the name of the station (city in most cases)
+	CKeyedCollection<CString, CString> m_mapActiveLocations;
+
 // public properties
 public:
 	// database metadata
@@ -79,6 +89,20 @@ public:
 	// database metadata
 	__declspec(property(get = GetMetadata, put = SetMetadata))
 		CString Metadata[];
+
+	// retrieve a map of climate stations
+	CKeyedCollection<CString, CClimateStation>* GetStations()
+	{
+		if (m_mapStations.Count == 0)
+		{
+			PopulateStations();
+		}
+		
+		return &m_mapStations;
+	}
+	// retrieve a map of climate stations
+	__declspec(property(get = GetStations))
+		CKeyedCollection<CString, CClimateStation>* Stations;
 
 	// retrieve a vector of state postal codes in alphabetical order 
 	vector<CString> GetStates()
@@ -140,6 +164,52 @@ public:
 	// get a pointer to station data from a station ID
 	__declspec(property(get = GetStationByID))
 		shared_ptr<CClimateStation> StationByID[];
+
+	// the given station ID returns the location key ("PC, Location")
+	// where PC is the state's postal code. Returning an empty 
+	// value indicates the station is not active
+	CString GetActiveLocation(CString csID)
+	{
+		CString value;
+		if (m_mapActiveStations.Count == 0)
+		{
+			PopulateActiveStations();
+		}
+		if (m_mapActiveStations.Exists[csID])
+		{
+			value = *m_mapActiveStations.find(csID);
+		}
+
+		return value;
+	}
+	// the given station ID returns the location key ("PC, Location")
+	// where PC is the state's postal code. Returning an empty 
+	// value indicates the station is not active
+	__declspec(property(get = GetActiveLocation))
+		CString ActiveLocation[];
+
+	// the given location key ("PC, Location") returns the station ID
+	// where PC is the state's postal code. Returning an empty 
+	// value indicates the location is not active
+	CString GetActiveStation(CString csKey)
+	{
+		CString value;
+		if (m_mapActiveLocations.Count == 0)
+		{
+			PopulateActiveStations();
+		}
+		if (m_mapActiveLocations.Exists[csKey])
+		{
+			value = *m_mapActiveLocations.find(csKey);
+		}
+
+		return value;
+	}
+	// the given location key ("PC, Location") returns the station ID
+	// where PC is the state's postal code. Returning an empty 
+	// value indicates the location is not active
+	__declspec(property(get = GetActiveStation))
+		CString ActiveStation[];
 
 	// get a pointer to station data from a location 
 	// (format: "postal_code, city", i.e.: TX, Weatherford)
@@ -302,6 +372,8 @@ public:
 	void PopulateStates();
 
 	void PopulateStations();
+
+	void PopulateActiveStations();
 
 	CClimateDatabase();
 	~CClimateDatabase();

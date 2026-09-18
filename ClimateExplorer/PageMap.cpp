@@ -9,6 +9,8 @@
 #include "CHelper.h"
 #include "MapOSM.h"
 #include "MapRenderer.h"
+#include "ClimateStation.h"
+#include "CHelper.h"
 
 /////////////////////////////////////////////////////////////////////////////
 // Constructor
@@ -27,7 +29,65 @@ CPageMap::CPageMap(CClimateExplorerDoc* pDoc)
 	CenterLat = 0.0;
 	CenterLon = 0.0;
 	Zoom = 4;
+
 }
+
+/////////////////////////////////////////////////////////////////////////////
+// Add a station pin to the map
+void CPageMap::AddStationPin(const CString& stationID, double lat, double lon)
+{
+	MAP_PIN pin;
+
+	pin.StationID = stationID;
+	pin.Lat = lat;
+	pin.Lon = lon;
+
+	CString locationKey = theApp.ClimateDatabase->ActiveLocation[stationID];
+	pin.LocationKey = locationKey;
+
+	const bool active = !locationKey.IsEmpty();
+	pin.Color = active ? 
+		Color::DarkRed :
+		Color::DarkBlue;
+
+	m_arrPins.push_back(pin);
+} // AddStationPin
+
+/////////////////////////////////////////////////////////////////////////////
+bool CPageMap::LatLonToPixel
+(
+	CMapOSM* pMapOSM, double latDeg, double lonDeg, int& px, int& py
+)
+{
+	if (!pMapOSM)
+		return false;
+
+	shared_ptr<CMapTileGrid> pGrid = pMapOSM->TileGrid;
+	if (pGrid == nullptr)
+		return false;
+
+	const int z = pGrid->Zoom;
+	const int minTileX = pGrid->TileXMin;
+	const int minTileY = pGrid->TileYMin;
+
+	// Convert degrees → radians
+	const double dPi = 3.14159265358979323846;
+	const double lat = latDeg * dPi / 180.0;
+	const double lon = lonDeg * dPi / 180.0;
+
+	const double n = pow(2.0, z) * 256.0;
+
+	// Global pixel coordinates
+	const double globalX = (lonDeg + 180.0) / 360.0 * n;
+	const double globalY =
+		(1.0 - log(tan(lat) + 1.0 / cos(lat)) / dPi) / 2.0 * n;
+
+	// Convert to stitched bitmap pixel coordinates
+	px = static_cast<int>(globalX - (minTileX * 256));
+	py = static_cast<int>(globalY - (minTileY * 256));
+
+	return true;
+} // LatLonToPixel
 
 /////////////////////////////////////////////////////////////////////////////
 // ResolveCenterFromQuery
@@ -261,6 +321,114 @@ shared_ptr<Gdiplus::Image> CPageMap::GetImageContent()
 	if (!pMapOSM->GenerateFinalBitmap())
 	{
 		return value;
+	}
+
+	// -------------------------------------------------------------
+	// Populate pins based on the current map's latitude/longitude
+	// -------------------------------------------------------------
+	m_arrPins.clear();
+
+	CClimateDatabase* pDB = theApp.ClimateDatabase;
+	CString csScope = Scope;
+
+	// -------------------------------------------------------------
+	// NATIONAL SCOPE → all stations
+	// -------------------------------------------------------------
+	if (csScope == L"National")
+	{
+		for (auto& node : pDB->Stations->Items)
+		{
+			CClimateStation* pStation = node.second.get();
+
+			if (pStation == nullptr)
+			{
+				continue;
+			}
+
+			CString csID = node.first;
+			float fLatitude = pStation->Latitude;
+			float fLongitude = pStation->Longitude;
+
+			AddStationPin(csID, fLatitude, fLongitude);
+		}
+	}
+
+	// -------------------------------------------------------------
+	// STATE SCOPE → only stations in that state
+	// -------------------------------------------------------------
+	else if (csScope == L"State")
+	{
+		CString csState = State;
+		vector<CString> arrCities = pDB->Cities[csState];
+
+		for (auto& node : arrCities)
+		{
+			CString csLocation = node;
+			csLocation.Trim();
+			CString csKey;
+			csKey.Format(L"%s, %s", csState, csLocation);
+
+			shared_ptr<CClimateStation> pStation = 
+				pDB->StationByLocation[csKey];
+
+			if (pStation == nullptr)
+			{
+				continue;
+			}
+
+			CString csID = pStation->Station;
+			float fLatitude = pStation->Latitude;
+			float fLongitude = pStation->Longitude;
+
+			AddStationPin(csID, fLatitude, fLongitude);
+		}
+	}
+
+	// -------------------------------------------------------------
+	// SINGLE STATION SCOPE → only one station
+	// -------------------------------------------------------------
+	else if (csScope == L"Location")
+	{
+		CString csState = State;
+		CString csLocation = Location;
+		csLocation.Trim();
+		CString csKey;
+		csKey.Format(L"%s, %s", csState, csLocation);
+
+		shared_ptr<CClimateStation> pStation =
+			pDB->StationByLocation[csKey];
+
+		if (pStation != nullptr)
+		{
+			CString csID = pStation->Station;
+			float fLatitude = pStation->Latitude;
+			float fLongitude = pStation->Longitude;
+
+			AddStationPin(csID, fLatitude, fLongitude);
+		}
+	}
+
+	// Draw pins on top of the stitched map
+	{
+		shared_ptr<Bitmap> pBitmap = pMapOSM->FinalBitmap;
+		Gdiplus::Graphics g(pBitmap.get());
+
+		for (const auto& pin : m_arrPins)
+		{
+			int px = 0;
+			int py = 0;
+
+			if (LatLonToPixel(pMapOSM.get(), pin.Lat, pin.Lon, px, py))
+			{
+				const int radius = 10;
+				Gdiplus::SolidBrush brush(pin.Color);
+
+				g.FillEllipse
+				(
+					&brush, px - radius, py - radius, radius * 2, radius * 2
+				);
+			}
+		}
 	}
 
 	//// ---------------------------------------------------------

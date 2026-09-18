@@ -7,7 +7,58 @@
 #include "ImagePlus.h"
 
 /////////////////////////////////////////////////////////////////////////////
-bool CMapRenderer::DrawSinglePin(CDC* pDC, int x, int y, COLORREF rgbColor)
+/////////////////////////////////////////////////////////////////////////////
+// Convert latitude/longitude to pixel coordinates inside the stitched bitmap
+bool CMapRenderer::LatLonToPixel(double dLat, double dLon, int& x, int& y)
+{
+	x = 0;
+	y = 0;
+
+	if (MapOSM == nullptr)
+		return false;
+
+	shared_ptr<CMapTileGrid> pGrid = m_pMapOSM->TileGrid;
+	if (pGrid == nullptr)
+		return false;
+
+	const int nZoom = pGrid->Zoom;
+
+	// clamp latitude to valid OSM range
+	const double dLatMax = 85.05112878;
+	if (dLat > dLatMax) dLat = dLatMax;
+	if (dLat < -dLatMax) dLat = -dLatMax;
+
+	const double dPi = 3.14159265358979323846;
+	const double dRadLat = dLat * dPi / 180.0;
+	const double dRadLon = dLon * dPi / 180.0;
+
+	const double dZoomFactor = pow(2.0, (double)nZoom);
+	const double dMapSize = dZoomFactor * 256.0;
+
+	// global pixel coordinates
+	const double globalX = (dLon + 180.0) / 360.0 * dMapSize;
+	const double globalY =
+		(1.0 - log(tan(dRadLat) + 1.0 / cos(dRadLat)) / dPi) / 2.0 * dMapSize;
+
+	// stitched bitmap offset
+	const int tileXMin = pGrid->TileXMin;
+	const int tileYMin = pGrid->TileYMin;
+
+	const double offsetX = tileXMin * 256.0;
+	const double offsetY = tileYMin * 256.0;
+
+	// final pixel coordinates inside stitched bitmap
+	x = (int)(globalX - offsetX);
+	y = (int)(globalY - offsetY);
+
+	return true;
+} // LatLonToPixel
+
+/////////////////////////////////////////////////////////////////////////////
+bool CMapRenderer::DrawSinglePin
+(
+	CDC* pDC, int x, int y, Gdiplus::Color Color
+)
 {
 	bool value = false;
 
@@ -23,10 +74,10 @@ bool CMapRenderer::DrawSinglePin(CDC* pDC, int x, int y, COLORREF rgbColor)
 	const int nRight = x + nRadius;
 	const int nBottom = y + nRadius;
 
-	CBrush brush(rgbColor);
+	CBrush brush(Color.ToCOLORREF());
 	CBrush* pOldBrush = pDC->SelectObject(&brush);
 
-	CPen pen(PS_SOLID, 1, rgbColor);
+	CPen pen(PS_SOLID, 1, Color.ToCOLORREF());
 	CPen* pOldPen = pDC->SelectObject(&pen);
 
 	pDC->Ellipse(nLeft, nTop, nRight, nBottom);
@@ -97,15 +148,22 @@ void CMapRenderer::DrawMap(CDC* pDC)
 } // DrawMap
 
 /////////////////////////////////////////////////////////////////////////////
-// Draw pins (placeholder)
+// Draw pins
 void CMapRenderer::DrawPins(CDC* pDC)
 {
-	if (pDC == nullptr)
+	if (!pDC || !MapOSM)
 		return;
 
-	// ---------------------------------------------------------
-	// No pins yet — placeholder for future overlays
-	// ---------------------------------------------------------
+	for (auto& pin : *Pins)
+	{
+		int px = 0;
+		int py = 0;
+
+		if (LatLonToPixel(pin.Lat, pin.Lon, px, py))
+		{
+			DrawSinglePin(pDC, px, py, pin.Color);
+		}
+	}
 } // DrawPins
 
 /////////////////////////////////////////////////////////////////////////////

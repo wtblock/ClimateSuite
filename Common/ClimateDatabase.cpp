@@ -24,6 +24,7 @@ bool CClimateDatabase::Open(LPCTSTR path)
 {
 	CStringA utf8(path);
 	int rc = sqlite3_open(utf8, &m_db);
+
 	return rc == SQLITE_OK;
 }
 
@@ -438,6 +439,54 @@ void CClimateDatabase::PopulateStations()
 	}
 
 } // PopulateStations
+
+/////////////////////////////////////////////////////////////////////////////
+void CClimateDatabase::PopulateActiveStations()
+{
+	// we only need to do this once
+	if (m_mapActiveStations.Count > 0)
+	{
+		return;
+	}
+
+	// Query all distinct (State, Location) pairs
+	CSmartArray<CSmartArray<CString>> rows;
+
+	CString sql =
+		L"SELECT s.StationID, s.State, s.Location "
+		L"FROM Stations s "
+		L"JOIN Years y ON s.StationID = y.StationID "
+		L"GROUP BY s.StationID, s.State, s.Location "
+		L"HAVING MAX(y.Year) = (SELECT MAX(Year) FROM Years);";
+
+	if (!ExecuteTable(sql, rows))
+		return;
+	
+	for (auto& pRow : rows.Items)
+	{
+		auto& pColumn = pRow->Items;
+
+		CString csStation = *pColumn[0];
+		csStation.Trim();
+		CString csState = *pColumn[1];
+		csState.Trim();
+		CString csLocation = *pColumn[2];
+		csLocation.Trim();
+
+		CString csKey;
+		csKey.Format(L"%s, %s", csState, csLocation);
+
+		shared_ptr<CString> pStationID = make_shared<CString>(csStation);
+		shared_ptr<CString> pLocation = make_shared<CString>(csKey);
+
+		// these two maps create a cross reference between active station
+		// IDs and active locations. Since the pointer is shared, 
+		// it is safe for both maps to reference the same pointer
+		m_mapActiveStations.add(csStation, pLocation);
+		m_mapActiveLocations.add(csKey, pStationID);
+	}
+
+} // PopulateActiveStations
 
 /////////////////////////////////////////////////////////////////////////////
 CClimateDatabase::GPS_COORDINATE CClimateDatabase::GetCenterNational()

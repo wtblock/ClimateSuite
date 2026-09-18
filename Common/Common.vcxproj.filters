@@ -132,9 +132,6 @@
     <ClInclude Include="MapOSM.h">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="MapRenderer.h">
-      <Filter>Header Files</Filter>
-    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="Common.cpp">
@@ -240,9 +237,6 @@
       <Filter>Source Files</Filter>
     </ClCompile>
     <ClCompile Include="MapOSM.cpp">
-      <Filter>Source Files</Filter>
-    </ClCompile>
-    <ClCompile Include="MapRenderer.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
   </ItemGroup>

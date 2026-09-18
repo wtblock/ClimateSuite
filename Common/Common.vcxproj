@@ -168,7 +168,6 @@
     <ClInclude Include="ImagePlus.h" />
     <ClInclude Include="KeyedCollection.h" />
     <ClInclude Include="MapOSM.h" />
-    <ClInclude Include="MapRenderer.h" />
     <ClInclude Include="MapTile.h" />
     <ClInclude Include="MapTileGrid.h" />
     <ClInclude Include="MarkdownBitmapRenderer.h" />
@@ -208,7 +207,6 @@
     <ClCompile Include="Common.cpp" />
     <ClCompile Include="ImagePlus.cpp" />
     <ClCompile Include="MapOSM.cpp" />
-    <ClCompile Include="MapRenderer.cpp" />
     <ClCompile Include="MapTile.cpp" />
     <ClCompile Include="MapTileGrid.cpp" />
     <ClCompile Include="MarkdownBitmapRenderer.cpp" />

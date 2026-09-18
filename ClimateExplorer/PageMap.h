@@ -6,6 +6,8 @@
 #include "ClimateExplorerDoc.h"
 #include <afxstr.h>
 #include <vector>
+#include <gdipluscolor.h>
+#include "MapOSM.h"
 
 /////////////////////////////////////////////////////////////////////////////
 // CPageMap
@@ -14,6 +16,14 @@ class CPageMap : public CPageContent
 {
 // public types
 public:
+	struct MAP_PIN
+	{
+		double Lat;
+		double Lon;
+		CString StationID;
+		CString LocationKey;
+		Gdiplus::Color Color;
+	};
 
 // protected data
 protected:
@@ -28,6 +38,8 @@ protected:
 	double    m_dCenterLat;    // resolved center latitude
 	double    m_dCenterLon;    // resolved center longitude
 	int       m_nZoom;         // OSM zoom level
+
+	std::vector<MAP_PIN> m_arrPins;
 
 // public properties
 public:
@@ -133,6 +145,13 @@ public:
 protected:
 	// resolve center lat/lon + zoom from Scope/State/Location
 	void ResolveCenterFromQuery();
+
+	void AddStationPin(const CString& stationID, double lat, double lon);
+
+	bool LatLonToPixel
+	(
+		CMapOSM* pMapOSM, double dLat, double dLon, int& x, int& y
+	);
 
 // public methods
 public:

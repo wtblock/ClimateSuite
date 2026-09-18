@@ -23,12 +23,21 @@ class CMapRenderer
 {
 // public types
 public:
+	struct MAP_PIN
+	{
+		double Lat;
+		double Lon;
+		CString StationID;
+		CString LocationKey;
+		Gdiplus::Color Color;
+	};
 
 // protected data
 protected:
 	shared_ptr<CMapOSM> m_pMapOSM;
 	shared_ptr<Bitmap>  m_pBitmap;
 	CRect               m_rectTarget;
+	vector<MAP_PIN>*    m_pPins = nullptr;
 
 // public properties
 public:
@@ -71,9 +80,21 @@ public:
 	__declspec(property(get = GetTargetRect, put = SetTargetRect))
 		CRect TargetRect;
 
+	vector<MAP_PIN>* GetPins()
+	{
+		return m_pPins;
+	}
+	void SetPins(vector<MAP_PIN>* pPins)
+	{
+		m_pPins = pPins;
+	}
+	__declspec(property(get = GetPins, put = SetPins))
+		vector<MAP_PIN>* Pins;
+
 // protected methods
 protected:
-	bool DrawSinglePin(CDC* pDC, int x, int y, COLORREF rgbColor);
+	bool DrawSinglePin(CDC* pDC, int x, int y, Gdiplus::Color Color);
+	bool LatLonToPixel(double dLat, double dLon, int& x, int& y);
 
 // public methods
 public:
