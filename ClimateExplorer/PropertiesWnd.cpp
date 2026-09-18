@@ -381,6 +381,12 @@ LRESULT CPropertiesWnd::OnPropertyChange
 	{
 		if (csName == L"Output")
 		{
+			pDoc->Zoom = 0;
+			if (m_pPropZoom != nullptr)
+			{
+				m_pPropZoom->SetValue(L"0");
+			}
+
 			CString value = CString(varIn);
 			pDoc->Output = value;
 			value.MakeLower();
@@ -400,11 +406,13 @@ LRESULT CPropertiesWnd::OnPropertyChange
 				m_pTrendGroup->Show(FALSE);
 				m_pGraphGroup->Show(FALSE);
 				m_pQueryGroup->Show(FALSE);
+				m_pMapGroup->Show(FALSE);
 			}
 
 			if (value == L"map")
 			{
 				m_pQueryGroup->Show(); 
+				m_pMapGroup->Show(); 
 				m_pPropPure->Show(FALSE);
 				m_pPropYearStart->Show(FALSE);
 				m_pPropYearEnd->Show(FALSE);
@@ -537,6 +545,7 @@ LRESULT CPropertiesWnd::OnPropertyChange
 
 				m_pPropState->Show(FALSE);
 				m_pPropLocation->Show(FALSE);
+				pDoc->Zoom = 0;
 			}
 			else if (scope.CompareNoCase(L"State") == 0)
 			{
@@ -545,7 +554,7 @@ LRESULT CPropertiesWnd::OnPropertyChange
 
 				m_pPropState->Show();
 				m_pPropLocation->Show(FALSE);
-
+				pDoc->Zoom = 0;
 			}
 			else if (scope.CompareNoCase(L"Location") == 0)
 			{
@@ -561,10 +570,16 @@ LRESULT CPropertiesWnd::OnPropertyChange
 				{
 					m_pPropLocation->Show(FALSE);
 				}
+				pDoc->Zoom = 0;
 			}
 
 			CString csTitle = pDoc->Title;
 			m_pPropContentTitle->SetValue(csTitle);
+			pDoc->Zoom = 0;
+			if (m_pPropZoom != nullptr)
+			{
+				m_pPropZoom->SetValue(L"0");
+			}
 
 			m_wndPropList.RedrawWindow();
 		}
@@ -833,6 +848,15 @@ LRESULT CPropertiesWnd::OnPropertyChange
 		else if (csName == L"Trend Three Year")
 		{
 			pDoc->TrendThreeYear = long(varIn);
+		}
+	}
+	else if (csGroup == L"Map Properties")
+	{
+		if (csName == L"Map Zoom")
+		{
+			CString csValue = CString(varIn);
+			int nZoom = (int)_tstol(csValue);
+			pDoc->Zoom = nZoom;
 		}
 	}
 
@@ -1163,6 +1187,23 @@ void CPropertiesWnd::UpdatePropertiesFromDocument(CClimateExplorerDoc* pDoc)
 			{
 				long value = pDoc->TrendThreeYear;
 				pProp->SetValue(_variant_t(value));
+			}
+			else if (csName == L"Map Zoom")
+			{
+				int nZoom = pDoc->Zoom;
+				CString csZoom;
+				csZoom.Format(L"%0d", nZoom);
+				pProp->SetValue(_variant_t(csZoom));
+			}
+			else if (csName == L"Map Central Latitude")
+			{
+				float fLat = pDoc->Latitude;
+				pProp->SetValue(_variant_t(fLat));
+			}
+			else if (csName == L"Map Central Longitude")
+			{
+				float fLong = pDoc->Longitude;
+				pProp->SetValue(_variant_t(fLong));
 			}
 		}
 	}
@@ -2264,9 +2305,80 @@ void CPropertiesWnd::InitTrendProperties()
 } // InitTrendProperties
 
 /////////////////////////////////////////////////////////////////////////////
-void CPropertiesWnd::InitImageProperties()
+void CPropertiesWnd::InitMapProperties()
 {
-} // InitImageProperties
+	m_pMapGroup =
+		new CMFCPropertyGridProperty(L"Map Properties");
+
+	m_pMapGroup->SetDescription
+	(
+		L"Properties that define how the climate map is displayed."
+	);
+
+	// Add the group to the property list
+	m_wndPropList.AddProperty(m_pMapGroup);
+
+	// ---------------------------------------------------------------
+	// Zoom level of the map
+	// ---------------------------------------------------------------
+	CMFCPropertyGridProperty* m_pPropZoom =
+		new CMFCPropertyGridProperty
+		(
+			L"Map Zoom",
+			(_variant_t)L"05",
+			L"Defines how much the map is expanded on the screen."
+		);
+
+	
+	// Add dropdown options
+	for (int nZoom = 4; nZoom < 16; nZoom++)
+	{
+		CString csZoom;
+		csZoom.Format(L"%02d", nZoom);
+		m_pPropZoom->AddOption(csZoom);
+	}
+
+	// Add to group
+	m_pMapGroup->AddSubItem(m_pPropZoom);
+
+	// ---------------------------------------------------------------
+	// Central latitude of the map
+	// ---------------------------------------------------------------
+	CMFCPropertyGridProperty* m_pPropCenterLat =
+		new CMFCPropertyGridProperty
+		(
+			L"Map Central Latitude",
+			(_variant_t)(float)0.0f,
+			L"Displays the central latitude of the map on the screen."
+		);
+
+	// disable the property, for show only
+	m_pPropCenterLat->Enable(FALSE);
+
+	// Add to group
+	m_pMapGroup->AddSubItem(m_pPropCenterLat);
+
+	// ---------------------------------------------------------------
+	// Central longitude of the map
+	// ---------------------------------------------------------------
+	CMFCPropertyGridProperty* m_pPropCenterLong =
+		new CMFCPropertyGridProperty
+		(
+			L"Map Central Longitude",
+			(_variant_t)(float)0.0f,
+			L"Displays the central longitude of the map on the screen."
+		);
+
+	// disable the property, for show only
+	m_pPropCenterLong->Enable(FALSE);
+
+	// Add to group
+	m_pMapGroup->AddSubItem(m_pPropCenterLong);
+
+	// only visible while a map is selected
+	m_pMapGroup->Show(FALSE);
+
+} // InitMapProperties
 
 /////////////////////////////////////////////////////////////////////////////
 void CPropertiesWnd::InitPropList()
@@ -2311,9 +2423,9 @@ void CPropertiesWnd::InitPropList()
 	InitTrendProperties();
 
 	// ===============================================
-	// Image Properties 
+	// Map Properties 
 	// ===============================================
-	InitImageProperties();
+	InitMapProperties();
 
 } // InitPropList
 

@@ -183,6 +183,10 @@ void CClimateExplorerDoc::InitializeProperties()
 	TrendThreeThickness = 0.03;
 	TrendThreeYear = 2000;
 
+	Zoom = 0;
+	Latitude = 0.0f;
+	Longitude = 0.0f;
+
 	Clear();
 
 } // InitializeProperties
@@ -786,6 +790,7 @@ void CClimateExplorerDoc::SetSelectLimit(int nPage, int nImage)
 		pairEnd.first = nPage;
 		pairEnd.second = nImage;
 		ContentTitle = L"Title";
+		Zoom = 0;
 
 		// signal the properties panel of the change
 		pProps->UpdatePropertiesFromDocument(this);
@@ -847,8 +852,9 @@ void CClimateExplorerDoc::SetSelectLimit(int nPage, int nImage)
 				Scope = pMap->Scope;
 				State = pMap->State;
 				Location = pMap->Location;
-				pView->Latitude = pMap->CenterLat;
-				pView->Longitude = pMap->CenterLon;
+				Latitude = pMap->CenterLat;
+				Longitude = pMap->CenterLon;
+				Zoom = pMap->Zoom;
 				ContentTitle = pContent->ContentTitle;
 				break;
 			}

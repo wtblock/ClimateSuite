@@ -64,56 +64,40 @@ public:
 
 // protected data
 protected:
-	// selected station
-	CString m_csStation;
-	// selected latitude
-	float m_fLatitude;
-	// selected longitude
-	float m_fLongitude;
 
 // public properties
 public:
 	// selected station
-	CString GetStation()
-	{
-		return m_csStation;
-	}
+	CString GetStation();
 	// selected station
-	void SetStation(CString value)
-	{
-		m_csStation = value;
-	}
+	void SetStation(CString value);
 	// selected station
 	__declspec(property(get = GetStation, put = SetStation))
 		CString Station;
 
 	// station latitude
-	float GetLatitude()
-	{
-		return m_fLatitude;
-	}
+	float GetLatitude();
 	// station latitude
-	void SetLatitude(float value)
-	{
-		m_fLatitude = value;
-	}
+	void SetLatitude(float value);
 	// station latitude
 	__declspec(property(get = GetLatitude, put = SetLatitude))
 		float Latitude;
 
 	// station longitude
-	float GetLongitude()
-	{
-		return m_fLongitude;
-	}
+	float GetLongitude();
 	// station longitude
-	void SetLongitude(float value)
-	{
-		m_fLongitude = value;
-	}
+	void SetLongitude(float value);
 	// station longitude
 	__declspec(property(get = GetLongitude, put = SetLongitude))
 		float Longitude;
+
+	// map zoom level
+	int GetZoom();
+	// map zoom level
+	void SetZoom(int value);
+	// map zoom level
+	__declspec(property(get = GetZoom, put = SetZoom))
+		int Zoom;
 
 	// title height in logical pixels
 	int GetTitleHeight();

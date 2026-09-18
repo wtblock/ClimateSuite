@@ -44,6 +44,7 @@ bool CPage::AddMapContent()
 	CString csScope = m_pDoc->Scope;
 	CString csState = m_pDoc->State;
 	CString csLocation = m_pDoc->Location;
+	int nZoom = m_pDoc->Zoom;
 
 	csScope.Trim();
 	csState.Trim();
@@ -62,13 +63,14 @@ bool CPage::AddMapContent()
 	{
 		csTitle.Format(L"Climate Map Station %s in %s", csLocation, csState);
 	}
+
 	CString csImage = m_pDoc->ContentTitle;
-	if
-	(
-		csImage.IsEmpty() ||
-		csImage == L"Title" ||
-		csImage == L"Climate Explorer"
-	)
+	//if
+	//(
+	//	csImage.IsEmpty() ||
+	//	csImage == L"Title" ||
+	//	csImage == L"Climate Explorer"
+	//)
 	{
 		csImage = csTitle;
 	}
@@ -81,6 +83,7 @@ bool CPage::AddMapContent()
 
 	shared_ptr<CPageMap> pImage = make_shared<CPageMap>(m_pDoc);
 	pImage->ContentTitle = csImage;
+	pImage->Zoom = nZoom;
 	pImage->ContentPath = L"";
 
 	// replaces an image if it exists

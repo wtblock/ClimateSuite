@@ -28,7 +28,7 @@ CPageMap::CPageMap(CClimateExplorerDoc* pDoc)
 	// default metadata
 	CenterLat = 0.0;
 	CenterLon = 0.0;
-	Zoom = 4;
+	Zoom = 0;
 
 }
 
@@ -131,7 +131,10 @@ void CPageMap::ResolveCenterFromQuery()
 		CenterLon = gps.second;
 
 		// national zoom (fits entire US)
-		Zoom = 6;
+		if (Zoom == 0)
+		{
+			Zoom = 6;
+		}
 		return;
 	}
 
@@ -153,12 +156,18 @@ void CPageMap::ResolveCenterFromQuery()
 		if (!CHelper::NearlyEqual(gps.first, 0.0f))
 		{
 			// state-level zoom (fits a single US state)
-			Zoom = 8;
+			if (Zoom == 0)
+			{
+				Zoom = 8;
+			}
 		}
 		else
 		{
 			// fallback
-			Zoom = 4;
+			if (Zoom == 0)
+			{
+				Zoom = 4;
+			}
 		}
 
 		return;
@@ -182,12 +191,18 @@ void CPageMap::ResolveCenterFromQuery()
 		if (!CHelper::NearlyEqual(gps.first, 0.0f))
 		{
 			// location-level zoom (close-up)
-			Zoom = 15;
+			if (Zoom == 0)
+			{
+				Zoom = 15;
+			}
 		}
 		else
 		{
 			// fallback
-			Zoom = 4;
+			if (Zoom == 0)
+			{
+				Zoom = 4;
+			}
 		}
 
 		return;

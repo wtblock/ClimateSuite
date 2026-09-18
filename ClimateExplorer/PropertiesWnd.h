@@ -146,6 +146,14 @@ protected:
 	// Trend properties -- not storing individual properties
 	CMFCPropertyGridProperty* m_pTrendGroup          = nullptr;
 
+	// map properties
+	CMFCPropertyGridProperty* m_pMapGroup            = nullptr;
+
+	CMFCPropertyGridProperty* m_pPropZoom            = nullptr;
+	CMFCPropertyGridProperty* m_pPropCenterLat       = nullptr;
+	CMFCPropertyGridProperty* m_pPropCenterLong      = nullptr;
+
+
 // public properties
 public:
 	// the list control displaying the properties 
@@ -231,7 +239,7 @@ protected:
 	void InitRenderProperties();
 	void InitGraphProperties();
 	void InitTrendProperties();
-	void InitImageProperties();
+	void InitMapProperties();
 
 	void InitPropList();
 	void SetPropListFont();

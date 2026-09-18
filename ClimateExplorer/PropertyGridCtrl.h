@@ -153,6 +153,9 @@ public:
 		case VT_BOOL:
 			return oldVal.boolVal != newVal.boolVal;
 
+		case VT_R4:
+			return oldVal.fltVal != newVal.fltVal;
+
 		case VT_R8:
 			return oldVal.dblVal != newVal.dblVal;
 

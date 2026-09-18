@@ -61,6 +61,102 @@ CClimateExplorerView::~CClimateExplorerView()
 }
 
 /////////////////////////////////////////////////////////////////////////////
+// selected station
+CString CClimateExplorerView::GetStation()
+{
+	CClimateExplorerDoc* pDoc = GetDocument();
+	CString value;
+	if (pDoc != nullptr)
+	{
+		value = pDoc->Station;
+	}
+	return value;
+}
+
+/////////////////////////////////////////////////////////////////////////////
+// selected station
+void CClimateExplorerView::SetStation(CString value)
+{
+	CClimateExplorerDoc* pDoc = GetDocument();
+	if (pDoc != nullptr)
+	{
+		pDoc->Station = value;
+	}
+}
+
+/////////////////////////////////////////////////////////////////////////////
+// station latitude
+float CClimateExplorerView::GetLatitude()
+{
+	CClimateExplorerDoc* pDoc = GetDocument();
+	float value = 0.0f;
+	if (pDoc != nullptr)
+	{
+		value = pDoc->Latitude;
+	}
+	return value;
+}
+
+/////////////////////////////////////////////////////////////////////////////
+// station latitude
+void CClimateExplorerView::SetLatitude(float value)
+{
+	CClimateExplorerDoc* pDoc = GetDocument();
+	if (pDoc != nullptr)
+	{
+		pDoc->Latitude = value;
+	}
+}
+
+/////////////////////////////////////////////////////////////////////////////
+// station longitude
+float CClimateExplorerView::GetLongitude()
+{
+	CClimateExplorerDoc* pDoc = GetDocument();
+	float value = 0.0f;
+	if (pDoc != nullptr)
+	{
+		value = pDoc->Longitude;
+	}
+	return value;
+}
+
+/////////////////////////////////////////////////////////////////////////////
+// station longitude
+void CClimateExplorerView::SetLongitude(float value)
+{
+	CClimateExplorerDoc* pDoc = GetDocument();
+	if (pDoc != nullptr)
+	{
+		pDoc->Longitude = value;
+	}
+}
+
+/////////////////////////////////////////////////////////////////////////////
+// map zoom level
+int CClimateExplorerView::GetZoom()
+{
+	CClimateExplorerDoc* pDoc = GetDocument();
+	int value = 0;
+	if (pDoc != nullptr)
+	{
+		value = pDoc->Zoom;
+	}
+	return value;
+}
+
+/////////////////////////////////////////////////////////////////////////////
+// map zoom level
+void CClimateExplorerView::SetZoom(int value)
+{
+	CClimateExplorerDoc* pDoc = GetDocument();
+	if (pDoc != nullptr)
+	{
+		pDoc->Zoom = value;
+	}
+}
+
+/////////////////////////////////////////////////////////////////////////////
 // PreCreateWindow
 //
 // Forces classic scrollbars and disables composited rendering.
@@ -1445,6 +1541,10 @@ void CClimateExplorerView::Dump(CDumpContext& dc) const
 /////////////////////////////////////////////////////////////////////////////
 CClimateExplorerDoc* CClimateExplorerView::GetDocument() const // non-debug version is inline
 {
+	if (m_pDocument == nullptr)
+	{
+		return nullptr;
+	}
 	ASSERT(m_pDocument->IsKindOf(RUNTIME_CLASS(CClimateExplorerDoc)));
 	return (CClimateExplorerDoc*)m_pDocument;
 }
