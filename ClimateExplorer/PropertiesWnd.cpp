@@ -439,6 +439,10 @@ LRESULT CPropertiesWnd::OnPropertyChange
 				m_pPropMdPath->Show(FALSE);
 			}
 		}
+		else if (csName == L"In Table of Contents")
+		{
+			pDoc->TOC = bool(varIn);
+		}
 		else if (csName == L"Content Title")
 		{
 			pDoc->ContentTitle = CString(varIn);
@@ -989,6 +993,11 @@ void CPropertiesWnd::UpdatePropertiesFromDocument(CClimateExplorerDoc* pDoc)
 			{
 				CString value = pDoc->Output;
 				pProp->SetValue(value);
+			}
+			else if (csName == L"In Table of Contents")
+			{
+				bool value = pDoc->TOC;
+				pProp->SetValue(_variant_t(value));
 			}
 			else if (csName == L"Content Title")
 			{
@@ -1567,6 +1576,23 @@ void CPropertiesWnd::InitRenderProperties()
 
 	// Add to group
 	pRenderGroup->AddSubItem(pPropOutput);
+
+	// ---------------------------------------------------------------
+	// TOC (boolean) to include in the table of contents
+	// ---------------------------------------------------------------
+	CMFCPropertyGridProperty* pPropTOC =
+		new CMFCPropertyGridProperty
+		(
+			L"In Table of Contents",
+			(_variant_t)false,
+			L"Include content title and page in table of contents."
+		);
+
+	// remember the property
+	m_pPropTOC = pPropTOC;
+
+	// Add to group
+	pRenderGroup->AddSubItem(pPropTOC);
 
 	// ---------------------------------------------------------------
 	// Title of the content drawn above the content
@@ -2493,7 +2519,7 @@ void CPropertiesWnd::UpdateTableOfContents(CClimateExplorerDoc* pDoc)
 
 	// Populate new sub-items from the document
 	vector<pair<CString, int>>& arrTableOfContents =
-		pDoc->TitleTableOfContents;
+		pDoc->TableOfLinks;
 	for (auto& album : arrTableOfContents)
 	{
 		CString csAlbum = album.first;

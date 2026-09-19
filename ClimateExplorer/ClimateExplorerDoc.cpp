@@ -110,6 +110,7 @@ void CClimateExplorerDoc::InitializeProperties()
 	ThresholdText = L"90";
 
 	Output = L"Plot";
+	TOC = false;
 	ContentTitle = L"Title";
 	Layout = L"Half";
 	Placement = L"Append";
@@ -576,16 +577,55 @@ vector<pair<CString, int>>& CClimateExplorerDoc::GetTitleTableOfContents()
 		{
 			bTOC = true;
 		}
-		CString csTitle = node->Title;
+
 		int nPage = node->Page;
-		item.first = csTitle;
-		item.second = nPage;
-		m_arrTOC.push_back(item);
+		CString csTemp = node->Title;
+		int nStart = 0;
+		CString csToken = csTemp.Tokenize(L"\n", nStart);
+		while (!csToken.IsEmpty())
+		{
+			item.first = csToken;
+			item.second = nPage;
+			m_arrTOC.push_back(item);
+			csToken = csTemp.Tokenize(L"\n", nStart);
+		}
 	}
 
 	return m_arrTOC;
-
 } // GetTitleTableOfContents
+
+/////////////////////////////////////////////////////////////////////////////
+// table of links populates the property panel links
+vector<pair<CString, int>>& CClimateExplorerDoc::GetTableOfLinks()
+{
+	m_arrTOL.clear();
+	pair<CString, int> item;
+
+	bool bTOC = false;
+	for (auto& node : m_arrPages.Items)
+	{
+		CPage::PAGE_TYPE eType = node->PageType;
+		if (bTOC && eType == CPage::pageTOC)
+		{
+			continue;
+		}
+		if (eType == CPage::pageTOC)
+		{
+			bTOC = true;
+		}
+
+		int nPage = node->Page;
+		vector<CString> arrTitles = node->ContentTitles;
+		for ( auto& node : arrTitles)
+		{
+			item.first = node;
+			item.second = nPage;
+			m_arrTOL.push_back(item);
+		}
+	}
+
+	return m_arrTOL;
+} // GetTableOfLinks
 
 // CClimateExplorerDoc diagnostics
 
@@ -824,6 +864,7 @@ void CClimateExplorerDoc::SetSelectLimit(int nPage, int nImage)
 		shared_ptr<CPageContent> pContent = SelectedContent[pairStart];
 		if (pContent != nullptr)
 		{
+			TOC = pContent->TOC;
 			CPageContent::CONTENT_TYPE eType = pContent->ContentType;
 			switch (eType)
 			{
@@ -858,9 +899,6 @@ void CClimateExplorerDoc::SetSelectLimit(int nPage, int nImage)
 				ContentTitle = pContent->ContentTitle;
 				break;
 			}
-			case CPageContent::ContentHTML:
-				Output = L"HTML";
-				break;
 			}
 
 			// signal the properties panel of the change
@@ -1058,7 +1096,7 @@ BOOL CClimateExplorerDoc::ReadXml(CComPtr<IStream> pStream)
 
 				CString csLayout;
 				CString csType;
-				CPage::PAGE_TYPE eType = CPage::pageGraph;
+				CPage::PAGE_TYPE eType = CPage::pageContent;
 				int nPage = 0;
 
 				const WCHAR* attrName = nullptr;
@@ -1085,7 +1123,7 @@ BOOL CClimateExplorerDoc::ReadXml(CComPtr<IStream> pStream)
 						}
 						else
 						{
-							eType = CPage::pageGraph;
+							eType = CPage::pageContent;
 							csType = attrValue;
 						}
 					}
@@ -1397,7 +1435,7 @@ void CClimateExplorerDoc::ExecuteImage()
 	if (pPage->PageIsFull)
 	{
 		pPage = shared_ptr<CPage>
-			(new CPage(nPages + 1, Layout, this, CPage::pageGraph));
+			(new CPage(nPages + 1, Layout, this, CPage::pageContent));
 		m_arrPages.append(pPage);
 		Pages = (UINT)m_arrPages.Count;
 		nPages = Pages;
@@ -1683,7 +1721,7 @@ void CClimateExplorerDoc::ExecuteQuery(bool bProgress/* = true*/)
 		if (pPage->PageIsFull)
 		{
 			pPage = shared_ptr<CPage>
-				(new CPage(nPages + 1, Layout, this, CPage::pageGraph));
+				(new CPage(nPages + 1, Layout, this, CPage::pageContent));
 			m_arrPages.append(pPage);
 			Pages = (UINT)m_arrPages.Count;
 			nPages = Pages;
@@ -1785,7 +1823,7 @@ void CClimateExplorerDoc::AdjustForTOC()
 			case CPage::pageCover:
 				m_arrPages.append(page);
 				continue;
-			case CPage::pageGraph:
+			case CPage::pageContent:
 			{
 				UINT uiPage = page->Page;
 				if (bTOC)
@@ -2795,10 +2833,10 @@ void CClimateExplorerDoc::OnEditDelete()
 	}
 
 	// if there are no images on the last page and that
-	// page is a graph page, then delete it
+	// page is a content page, then delete it
 	shared_ptr<CPage> pPage = m_arrPages.get(lPages - 1);
 	long lImages = pPage->ImageCount;
-	if (lImages == 0 && pPage->PageType == CPage::pageGraph)
+	if (lImages == 0 && pPage->PageType == CPage::pageContent)
 	{
 		m_arrPages.remove(lPages - 1);
 		Pages = m_arrPages.Count;

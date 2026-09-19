@@ -114,6 +114,9 @@ protected:
 	// number of lines.
 	vector<pair<CString, int>> m_arrTOC;
 
+	// table of links populates the property panel links
+	vector<pair<CString, int>> m_arrTOL;
+
 	// collection of page numbers to be exported
 	CKeyedCollection<UINT, UINT> m_keyExportPages;
 
@@ -231,8 +234,11 @@ protected:
 	/////////////////////////////////////////////////////////////////////////////
 	// render properties
 	/////////////////////////////////////////////////////////////////////////////
-	// 5B. Output (Plot, Image, Map, MD, and HTML)
+	// 5B. Output (Plot, Image, Map, MD)
 	CString m_csOutput;
+
+	// is the title of this content included in the table of contents page
+	bool m_bTOC;
 
 	// title of the content
 	CString m_csContentTitle;
@@ -469,7 +475,7 @@ public:
 			{
 			case CPage::pageCover:
 				break;
-			case CPage::pageGraph:
+			case CPage::pageContent:
 				bDone = true;
 				break;
 			case CPage::pageTOC:
@@ -1025,6 +1031,12 @@ public:
 	__declspec(property(get = GetTitleTableOfContents))
 		vector<pair<CString, int>>& TitleTableOfContents;
 
+	// table of links populates the property panel links
+	vector<pair<CString, int>>& GetTableOfLinks();
+	// table of links populates the property panel links
+	__declspec(property(get = GetTableOfLinks))
+		vector<pair<CString, int>>& TableOfLinks;
+
 	// document export folder
 	CString GetExportFolder()
 	{
@@ -1454,19 +1466,105 @@ public:
 	__declspec(property(get = GetUnitType, put = SetUnitType))
 		CNaturalLanguage::UnitType UnitType;
 
-	// Output (Plot, Image, Map, ML, HTML)
+	// Output (Plot, Image, Map, ML)
 	CString GetOutput()
 	{
 		return m_csOutput;
 	}
-	// Output (Plot, Image, Map, ML, HTML)
+	// Output (Plot, Image, Map, ML)
 	void SetOutput(CString value)
 	{
 		m_csOutput = value;
 	}
-	// Output (Plot, Image, Map, ML, HTML)
+	// Output (Plot, Image, Map, ML)
 	__declspec(property(get = GetOutput, put = SetOutput))
 		CString Output;
+
+	// include in the table of contents
+	bool GetTOC()
+	{
+		return m_bTOC;
+	}
+	// include in the table of contents
+	void SetTOC(bool value)
+	{
+		m_bTOC = value;
+		if (Selection)
+		{
+			if (SingleSelection)
+			{
+				pair<int, int> pairStart = m_pairSelection.first;
+				shared_ptr<CPageContent> pSel = 
+					SelectedContent[pairStart];
+				if (pSel != nullptr)
+				{
+					pSel->TOC = m_bTOC;
+				}
+			}
+		}
+	}
+	// include in the table of contents
+	__declspec(property(get = GetTOC, put = SetTOC))
+		bool TOC;
+
+	// the title of the one based page number (documents to not have 
+	// a page zero, but arrays are zero based indexing). Page titles
+	// are based on their content titles where the first content title
+	// that is enabled for the table of contents is used. If the title 
+	// for the page is blank, the search continues with the previous 
+	// page or pages.
+	CString GetPageTitle(int nPage)
+	{
+		int nPagesInTOC = (int)TableOfContentsPages;
+		CString value;
+		int nPages = (int)Pages;
+		if (nPage > nPages)
+		{
+			nPage = nPages;
+		}
+
+		// zero based index 
+		int nIndex = nPage - 1;
+
+		// we are on the current page
+		bool bCurrent = true;
+
+		while (value.IsEmpty() && nIndex > nPagesInTOC)
+		{
+			shared_ptr<CPage> page = m_arrPages.get(nIndex);
+			if (page == nullptr)
+			{
+				break;
+			}
+			CKeyedCollection<CString, CPageContent> Content = page->Content;
+			for (auto& node : Content.Items)
+			{
+				bool bTOC = node.second->TOC;
+				if (bTOC)
+				{
+					value = node.second->ContentTitle;
+					if (bCurrent)
+					{
+						break;
+					}
+				}
+			}
+
+			// if not current, then we want the last content title
+			// instead of the first one (closest to current page)
+			bCurrent = false;
+			nIndex--;
+		}
+		return value;
+	}
+	// the title of the one based page number (documents to not have 
+	// a page zero, but arrays are zero based indexing). Page titles
+	// are based on their content titles where the first content title
+	// that is enabled for the table of contents is used. If the title 
+	// for the page is blank, the search continues with the previous 
+	// page or pages.
+	__declspec(property(get = GetPageTitle))
+		CString PageTitle[];
 
 	// The title of the graph
 	CString GetContentTitle()

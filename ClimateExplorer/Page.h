@@ -64,11 +64,7 @@ public:
 	{
 		pageCover,
 		pageTOC,
-		pageGraph,
-		pageImage,
-		pageMD,
-		pageHTML,
-		pageMap
+		pageContent,
 	} PAGE_TYPE;
 
 // protected data
@@ -465,12 +461,16 @@ public:
 			value = L"Table of Contents";
 			break;
 		default:
-			if (m_arrContent.Count != 0)
+			for (auto& node : m_arrContent.Items)
 			{
-				shared_ptr<CPageContent> pContent = 
-					m_arrContent.Items.begin()->second;
-				value = pContent->ContentTitle;
+				bool bTOC = node.second->TOC;
+				if (bTOC)
+				{
+					value += node.second->ContentTitle;
+					value += L"\n";
+				}
 			}
+			value.TrimRight(L"\n");
 		}
 		Title = value;
 		return value;
@@ -482,6 +482,32 @@ public:
 	// title of the page
 	__declspec(property(get = GetTitle, put = SetTitle))
 		CString Title;
+
+	// content titles
+	vector<CString> GetContentTitles()
+	{
+		vector<CString> value;
+		CPage::PAGE_TYPE eType = PageType;
+
+		switch (eType)
+		{
+		case CPage::pageCover:
+			value.push_back( L"Cover Page" );
+			break;
+		case CPage::pageTOC:
+			value.push_back( L"Table of Contents" );
+			break;
+		default:
+			for (auto& node : m_arrContent.Items)
+			{
+				value.push_back(node.second->ContentTitle );
+			}
+		}
+		return value;
+	}
+	// content titles
+	__declspec(property(get = GetContentTitles))
+		vector<CString> ContentTitles;
 
 	// the key is the image title associated with the given plot
 	CKeyedCollection<CString, CPageContent>& GetContent()

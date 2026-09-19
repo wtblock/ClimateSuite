@@ -55,6 +55,17 @@ void CPageMD::WriteXml(IXmlWriter* pWriter, int nPage, int nItem)
 	}
 
 	// -------------------------------------------------------------
+	// Always write TOC (CEx + CE)
+	// -------------------------------------------------------------
+	hr = pWriter->WriteStartElement(nullptr, L"TOC", nullptr);
+	if (FAILED(hr)) return;
+
+	hr = pWriter->WriteString(TOC ? L"true" : L"false");
+	if (FAILED(hr)) return;
+
+	hr = pWriter->WriteEndElement(); // </TOC>
+
+	// -------------------------------------------------------------
 	// Always write title (CEx + CE)
 	// -------------------------------------------------------------
 	hr = pWriter->WriteStartElement(nullptr, L"Title", nullptr);
@@ -228,6 +239,29 @@ void CPageMD::ReadXml(IXmlReader* pReader)
 
 				if (pwszText)
 					csTitle = pwszText;
+			}
+
+			continue;
+		}
+
+		// ---------------------------------------------------------
+		// <TOC>text</TOC>
+		// ---------------------------------------------------------
+		if (wcscmp(name, L"TOC") == 0)
+		{
+			XmlNodeType ntText;
+			hr = pReader->Read(&ntText);
+
+			if (SUCCEEDED(hr) && ntText == XmlNodeType_Text)
+			{
+				const WCHAR* pwszText = nullptr;
+				pReader->GetValue(&pwszText, nullptr);
+
+				if (pwszText)
+				{
+					CString csTOC(pwszText);
+					TOC = csTOC == L"true";
+				}
 			}
 
 			continue;

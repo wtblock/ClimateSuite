@@ -259,6 +259,9 @@ void CPageGraph::ReadPickerXml(IXmlReader* pReader)
 		else if (wcscmp(name, L"Output") == 0)
 			m_pPlot->Output = csValue;
 
+		if (wcscmp(name, L"Pure") == 0)
+			TOC = (csValue == L"true");
+
 		else if (wcscmp(name, L"Threshold") == 0)
 			m_pPlot->Threshold = _wtoi(csValue);
 
@@ -798,6 +801,7 @@ void CPageGraph::WritePickerXml(IXmlWriter* pWriter)
 	WInt(L"YearEnd", m_pPlot->YearEnd);
 	W(L"Units", m_pPlot->Units);
 	W(L"Output", m_pPlot->Output);
+	W(L"TOC", TOC ? L"true" : L"false");
 	WInt(L"Threshold", m_pPlot->Threshold);
 	W(L"State", m_pPlot->State);
 	W(L"Location", m_pPlot->Location);

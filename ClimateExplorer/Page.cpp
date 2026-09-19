@@ -6,7 +6,6 @@
 #include "PageGraph.h"
 #include "PageImage.h"
 #include "PageMD.h"
-#include "PageHTML.h"
 #include "PageMap.h"
 #include "ClimateExplorerDoc.h"
 #include "ClimateExplorerView.h"
@@ -238,18 +237,14 @@ void CPage::WriteXml
 	if (FAILED(hr))
 		return;
 
-	// Type="Graph" / "Image" / "MD" / "HTML" / "Map" / "Cover" / "TOC"
+	// Type="Content" / "Cover" / "TOC"
 	CString csType;
 	switch (PageType)
 	{
-	case CPage::pageCover: csType = L"Cover";   break;
-	case CPage::pageTOC:   csType = L"TOC";     break;
-	case CPage::pageGraph: csType = L"Graph";   break;
-	case CPage::pageImage: csType = L"Image";   break;
-	case CPage::pageMD:    csType = L"MD";      break;
-	case CPage::pageHTML:  csType = L"HTML";    break;
-	case CPage::pageMap:   csType = L"Map";     break;
-	default:               csType = L"Unknown"; break;
+	case CPage::pageCover:   csType = L"Cover";     break;
+	case CPage::pageTOC:     csType = L"TOC";       break;
+	case CPage::pageContent: csType = L"Content";   break;
+	default: csType = L"Unknown"; break;
 	}
 
 	// Number="1"
@@ -335,16 +330,8 @@ void CPage::ReadXml(IXmlReader* pReader)
 			else if (wcscmp(pwszAttrValue, L"TOC") == 0)
 				PageType = pageTOC;
 
-			else if (wcscmp(pwszAttrValue, L"Markdown") == 0)
-				PageType = pageMD;
-
-			else if (wcscmp(pwszAttrValue, L"HTML") == 0)
-				PageType = pageHTML;
-
-			else if (wcscmp(pwszAttrValue, L"Map") == 0)
-				PageType = pageMap;
 			else
-				PageType = pageGraph; // safe fallback
+				PageType = pageContent; // safe fallback
 		}
 		else if (wcscmp(pwszAttrName, L"Number") == 0)
 		{
@@ -426,10 +413,6 @@ void CPage::ReadXml(IXmlReader* pReader)
 		else if (wcscmp(pwszLocalName, L"Markdown") == 0)
 		{
 			pContent = std::make_shared<CPageMD>(m_pDoc);
-		}
-		else if (wcscmp(pwszLocalName, L"HTML") == 0)
-		{
-			pContent = std::make_shared<CPageHTML>();
 		}
 		else if (wcscmp(pwszLocalName, L"Map") == 0)
 		{

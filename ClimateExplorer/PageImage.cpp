@@ -55,6 +55,17 @@ void CPageImage::WriteXml(IXmlWriter* pWriter, int nPage, int nItem)
 	hr = pWriter->WriteEndElement(); // </Title>
 
 	// -------------------------------------------------------------
+	// Always write TOC (CEx + CE)
+	// -------------------------------------------------------------
+	hr = pWriter->WriteStartElement(nullptr, L"TOC", nullptr);
+	if (FAILED(hr)) return;
+
+	hr = pWriter->WriteString(TOC ? L"true" : L"false");
+	if (FAILED(hr)) return;
+
+	hr = pWriter->WriteEndElement(); // </TOC>
+
+	// -------------------------------------------------------------
 	// CE-only behavior: embed <Image> and write PNG to ZIP
 	// -------------------------------------------------------------
 	auto pZip = m_pDoc->ZipWriter;
@@ -166,6 +177,27 @@ void CPageImage::ReadXml(IXmlReader* pReader)
 
 				if (pwszText)
 					csExternalPath = pwszText;
+			}
+
+			continue;
+		}
+
+		// ---------------------------------------------------------
+		// <TOC>text</TOC>
+		// ---------------------------------------------------------
+		if (wcscmp(name, L"TOC") == 0)
+		{
+			XmlNodeType ntText;
+			hr = pReader->Read(&ntText);
+
+			if (SUCCEEDED(hr) && ntText == XmlNodeType_Text)
+			{
+				const WCHAR* pwszText = nullptr;
+				pReader->GetValue(&pwszText, nullptr);
+
+				CString value(pwszText);
+				if (pwszText)
+					TOC = value == L"true";
 			}
 
 			continue;

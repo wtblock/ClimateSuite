@@ -283,7 +283,13 @@ void CClimateExplorerView::RenderHeader
 	{
 		return;
 	}
-	const CString csPageTitle = page->Title;
+
+	// pages can have multiple titles from each of the content items
+	// this is either the first title of the current page that is
+	// enabled for TOC or the most recent item in the previous
+	// pages that are enabled for TOC showing.
+	CString csPageTitle = pDoc->PageTitle[nPage];
+
 	const CString csTitle = pDoc->Title;
 
 	const int nMap = pDoc->Map;

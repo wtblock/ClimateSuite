@@ -94,6 +94,7 @@ protected:
 
 	// render properties
 	CMFCPropertyGridProperty* m_pPropOutput          = nullptr;
+	CMFCPropertyGridProperty* m_pPropTOC             = nullptr;
 	CMFCPropertyGridProperty* m_pPropContentTitle    = nullptr;
 	CMFCPropertyGridProperty* m_pPropTitlePoints     = nullptr;
 	CMFCPropertyGridFileProperty* m_pPropImagePath   = nullptr;

@@ -9,7 +9,6 @@
 //     • CPageGraph   (wraps CGraphPlotter)
 //     • CPageImage   (PNG/JPEG images)
 //     • CPageMD      (Markdown)
-//     • CPageHTML    (HTML fragments)
 //     • CPageMap     (Station Map)
 //
 // This class is intentionally minimal so the project continues
@@ -31,7 +30,6 @@ public:
 		ContentGraph,
 		ContentImage,
 		ContentMD,
-		ContentHTML,
 		ContentMap
 	};
 
@@ -42,6 +40,9 @@ protected:
 
 	// Title of the content
 	CString m_csContentTitle;
+
+	// include in the table of contents
+	bool m_bTOC;
 
 	// path of the content
 	CString m_csContentPath;
@@ -80,6 +81,20 @@ public:
 	// Title of the content
 	__declspec(property(get = GetContentTitle, put = SetContentTitle))
 		CString ContentTitle;
+
+	// include in the table of contents
+	bool GetTOC()
+	{
+		return m_bTOC;
+	}
+	// include in the table of contents
+	void SetTOC(bool value)
+	{
+		m_bTOC = value;
+	}
+	// include in the table of contents
+	__declspec(property(get = GetTOC, put = SetTOC))
+		bool TOC;
 
 	// path of the content
 	virtual CString GetContentPath()
@@ -159,6 +174,7 @@ public:
 	CPageContent()
 		: m_eContentType(ContentGraph)   // default; derived classes override
 	{
+		TOC = false;
 	}
 
 	virtual ~CPageContent()

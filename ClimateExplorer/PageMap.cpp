@@ -235,6 +235,19 @@ void CPageMap::WriteXml(IXmlWriter* pWriter, int nPage, int nItem)
 		return;
 
 	// ---------------------------------------------------------
+	// TOC (required for inclusion in table of contents page)
+	// ---------------------------------------------------------
+	hr = pWriter->WriteStartElement(nullptr, L"TOC", nullptr);
+	if (FAILED(hr))
+		return;
+
+	hr = pWriter->WriteString(TOC ? L"true" : L"false");
+	if (FAILED(hr))
+		return;
+
+	hr = pWriter->WriteEndElement(); // </TOC>
+
+	// ---------------------------------------------------------
 	// Title (required for page identity)
 	// ---------------------------------------------------------
 	hr = pWriter->WriteStartElement(nullptr, L"Title", nullptr);
@@ -365,6 +378,7 @@ void CPageMap::ReadXml(IXmlReader* pReader)
 	HRESULT hr = S_OK;
 	XmlNodeType nodeType = XmlNodeType_None;
 
+	CString csTOC;
 	CString csTitle;
 	CString csScope;
 	CString csState;
@@ -410,6 +424,15 @@ void CPageMap::ReadXml(IXmlReader* pReader)
 					out = pwszText;
 			}
 		};
+
+		// ---------------------------------------------------------
+		// <TOC>
+		// ---------------------------------------------------------
+		if (wcscmp(name, L"TOC") == 0)
+		{
+			ReadSimpleText(csTOC);
+			continue;
+		}
 
 		// ---------------------------------------------------------
 		// <Title>
@@ -501,6 +524,7 @@ void CPageMap::ReadXml(IXmlReader* pReader)
 	// ---------------------------------------------------------
 	// Store values
 	// ---------------------------------------------------------
+	TOC = csTOC == L"true";
 	ContentTitle = csTitle;
 	Scope = csScope;
 	State = csState;
