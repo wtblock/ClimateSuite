@@ -420,8 +420,6 @@ LRESULT CPropertiesWnd::OnPropertyChange
 				m_pPropThreshold->Show(FALSE);
 			}
 
-			// there will eventually be multiple paths for 
-			// different types: MD, MAP, and HTML
 			if (value == L"image")
 			{
 				m_pPropImagePath->Show();
@@ -1553,7 +1551,6 @@ void CPropertiesWnd::InitRenderProperties()
 			L"  • Image — Displays an image the user selected.\n"
 			L"  • Map   — Displays a map of stations based on location.\n"
 			L"  • MD    — Displays Markdown file the user selected.\n"
-			L"  • HTML  — Displays an HTML link the user selected."
 		);
 
 	// Add dropdown options
@@ -1561,7 +1558,6 @@ void CPropertiesWnd::InitRenderProperties()
 	pPropOutput->AddOption(L"Image");
 	pPropOutput->AddOption(L"Map");
 	pPropOutput->AddOption(L"MD");
-	pPropOutput->AddOption(L"HTML");
 
 	// Default selection
 	pPropOutput->SetValue((_variant_t)L"Plot");
