@@ -1,5 +1,5 @@
-/////////////////////////////////////////////////////////////////////////////
-// Copyright � 2026 by W. T. Block, all rights reserved
+﻿/////////////////////////////////////////////////////////////////////////////
+// Copyright © 2026 by W. T. Block, all rights reserved
 /////////////////////////////////////////////////////////////////////////////
 #include "pch.h"
 #include "MapOSM.h"
@@ -541,5 +541,58 @@ bool CMapOSM::GenerateFinalBitmap()
 	value = true;
 	return value;
 } // GenerateFinalBitmap
+
+/////////////////////////////////////////////////////////////////////////////
+// PixelToLatLon
+//
+// Converts a pixel coordinate inside the stitched map bitmap
+// back into a geographic latitude/longitude.
+//
+// This is the exact inverse of LatLonToPixel.
+//
+// Requirements:
+//   • pGrid->Zoom
+//   • pGrid->TileXMin / TileYMin
+//   • Web Mercator math
+/////////////////////////////////////////////////////////////////////////////
+bool CMapOSM::PixelToLatLon(int px, int py, double& latDeg, double& lonDeg)
+{
+	shared_ptr<CMapTileGrid> pGrid = TileGrid;
+	if (!pGrid)
+		return false;
+
+	const int z = pGrid->Zoom;
+	const int minTileX = pGrid->TileXMin;
+	const int minTileY = pGrid->TileYMin;
+
+	const double dPi = 3.14159265358979323846;
+
+	//
+	// 1. Convert stitched-bitmap pixel → global pixel
+	//
+	const double globalX = px + (minTileX * 256);
+	const double globalY = py + (minTileY * 256);
+
+	//
+	// 2. Convert global pixel → normalized Web Mercator coordinates
+	//
+	const double n = pow(2.0, z) * 256.0;
+
+	const double xNorm = globalX / n;          // 0 → 1
+	const double yNorm = globalY / n;          // 0 → 1
+
+	//
+	// 3. Convert normalized → lon/lat in radians
+	//
+	lonDeg = xNorm * 360.0 - 180.0;
+
+	// Web Mercator inverse:
+	const double merc = dPi * (1.0 - 2.0 * yNorm);
+	const double latRad = atan(sinh(merc));
+
+	latDeg = latRad * 180.0 / dPi;
+
+	return true;
+} // PixelToLatLon
 
 /////////////////////////////////////////////////////////////////////////////

@@ -217,52 +217,330 @@ void CPageMap::ResolveCenterFromQuery()
 } // ResolveCenterFromQuery
 
 /////////////////////////////////////////////////////////////////////////////
-// WriteXml
+// CPageMap::WriteXml  (Unified CE + CEx)
 /////////////////////////////////////////////////////////////////////////////
-void CPageMap::WriteXml(IXmlWriter* pWriter, int /*nPage*/, int /*nItem*/)
+void CPageMap::WriteXml(IXmlWriter* pWriter, int nPage, int nItem)
 {
 	HRESULT hr = S_OK;
+
+	if (m_pDoc == nullptr)
+	{
+		CMainFrame* pFrame = (CMainFrame*)AfxGetMainWnd();
+		m_pDoc = pFrame->ClimateExplorerDocument;
+	}
 
 	// <Map>
 	hr = pWriter->WriteStartElement(nullptr, L"Map", nullptr);
 	if (FAILED(hr))
 		return;
 
-	// TODO: Write map metadata (Scope, State, Location, Lat, Lon, Zoom)
+	// ---------------------------------------------------------
+	// Title (required for page identity)
+	// ---------------------------------------------------------
+	hr = pWriter->WriteStartElement(nullptr, L"Title", nullptr);
+	if (FAILED(hr))
+		return;
+
+	hr = pWriter->WriteString(ContentTitle);
+	if (FAILED(hr))
+		return;
+
+	hr = pWriter->WriteEndElement(); // </Title>
+
+	// ---------------------------------------------------------
+	// Scope
+	// ---------------------------------------------------------
+	hr = pWriter->WriteStartElement(nullptr, L"Scope", nullptr);
+	if (FAILED(hr))
+		return;
+
+	hr = pWriter->WriteString(Scope);
+	hr = pWriter->WriteEndElement();
+
+	// ---------------------------------------------------------
+	// State
+	// ---------------------------------------------------------
+	hr = pWriter->WriteStartElement(nullptr, L"State", nullptr);
+	if (FAILED(hr))
+		return;
+
+	hr = pWriter->WriteString(State);
+	hr = pWriter->WriteEndElement();
+
+	// ---------------------------------------------------------
+	// Location
+	// ---------------------------------------------------------
+	hr = pWriter->WriteStartElement(nullptr, L"Location", nullptr);
+	if (FAILED(hr))
+		return;
+
+	hr = pWriter->WriteString(Location);
+	hr = pWriter->WriteEndElement();
+
+	// ---------------------------------------------------------
+	// Zoom
+	// ---------------------------------------------------------
+	CString csZoom;
+	csZoom.Format(L"%d", Zoom);
+
+	hr = pWriter->WriteStartElement(nullptr, L"Zoom", nullptr);
+	if (FAILED(hr))
+		return;
+
+	hr = pWriter->WriteString(csZoom);
+	hr = pWriter->WriteEndElement();
+
+	// ---------------------------------------------------------
+	// CenterLat
+	// ---------------------------------------------------------
+	CString csLat;
+	csLat.Format(L"%.7f", CenterLat);
+
+	hr = pWriter->WriteStartElement(nullptr, L"CenterLat", nullptr);
+	if (FAILED(hr))
+		return;
+
+	hr = pWriter->WriteString(csLat);
+	hr = pWriter->WriteEndElement(); // </CenterLat>
+
+	// ---------------------------------------------------------
+	// CenterLon
+	// ---------------------------------------------------------
+	CString csLon;
+	csLon.Format(L"%.7f", CenterLon);
+
+	hr = pWriter->WriteStartElement(nullptr, L"CenterLon", nullptr);
+	if (FAILED(hr))
+		return;
+
+	hr = pWriter->WriteString(csLon);
+	hr = pWriter->WriteEndElement(); // </CenterLon>
+
+	// ---------------------------------------------------------
+	// CE-only: embed map snapshot
+	// ---------------------------------------------------------
+	auto pZip = m_pDoc->ZipWriter;
+	if (pZip && pZip->IsOpen)
+	{
+		CString csFilename;
+		csFilename.Format
+		(
+			L"Maps/Page_%04u_Map_%02u.png",
+			nPage,
+			nItem
+		);
+
+		hr = pWriter->WriteStartElement(nullptr, L"MapImage", nullptr);
+		if (FAILED(hr))
+			return;
+
+		hr = pWriter->WriteAttributeString(nullptr, L"value", nullptr, csFilename);
+		hr = pWriter->WriteEndElement();
+
+		if (ImageContent != nullptr)
+		{
+			std::vector<BYTE> pngBytes;
+			bool bOK = CHelper::EncodeBitmapToMemory(
+				static_cast<Gdiplus::Bitmap*>(ImageContent.get()),
+				L"image/png",
+				pngBytes
+			);
+
+			if (bOK)
+			{
+				pZip->AddFile(csFilename, pngBytes.data(), pngBytes.size());
+			}
+		}
+	}
 
 	// </Map>
 	hr = pWriter->WriteEndElement();
-}
+} // WriteXml
 
 /////////////////////////////////////////////////////////////////////////////
-// ReadXml
+// CPageMap::ReadXml
 /////////////////////////////////////////////////////////////////////////////
 void CPageMap::ReadXml(IXmlReader* pReader)
 {
 	HRESULT hr = S_OK;
 	XmlNodeType nodeType = XmlNodeType_None;
 
-	// TODO: Read map metadata when XML format is finalized
+	CString csTitle;
+	CString csScope;
+	CString csState;
+	CString csLocation;
+	CString csZoom;
+	CString csZipPath;
+	CString csCenterLat;
+	CString csCenterLon;
 
-	// Skip until </Map>
-	while (true)
+	while (pReader->Read(&nodeType) == S_OK)
 	{
-		hr = pReader->Read(&nodeType);
-		if (FAILED(hr))
-			return;
-
+		// End of <Map>
 		if (nodeType == XmlNodeType_EndElement)
 		{
-			const WCHAR* pwszLocalName = nullptr;
-			hr = pReader->GetLocalName(&pwszLocalName, nullptr);
-			if (FAILED(hr) || pwszLocalName == nullptr)
-				return;
-
-			if (wcscmp(pwszLocalName, L"Map") == 0)
+			const WCHAR* name = nullptr;
+			pReader->GetLocalName(&name, nullptr);
+			if (name && wcscmp(name, L"Map") == 0)
 				break;
+
+			continue;
+		}
+
+		if (nodeType != XmlNodeType_Element)
+			continue;
+
+		const WCHAR* name = nullptr;
+		pReader->GetLocalName(&name, nullptr);
+		if (!name)
+			continue;
+
+		// Helper
+		auto ReadSimpleText = [&](CString& out)
+		{
+			XmlNodeType ntText;
+			hr = pReader->Read(&ntText);
+
+			if (SUCCEEDED(hr) && ntText == XmlNodeType_Text)
+			{
+				const WCHAR* pwszText = nullptr;
+				pReader->GetValue(&pwszText, nullptr);
+
+				if (pwszText)
+					out = pwszText;
+			}
+		};
+
+		// ---------------------------------------------------------
+		// <Title>
+		// ---------------------------------------------------------
+		if (wcscmp(name, L"Title") == 0)
+		{
+			ReadSimpleText(csTitle);
+			continue;
+		}
+
+		// ---------------------------------------------------------
+		// <Scope>
+		// ---------------------------------------------------------
+		if (wcscmp(name, L"Scope") == 0)
+		{
+			ReadSimpleText(csScope);
+			continue;
+		}
+
+		// ---------------------------------------------------------
+		// <State>
+		// ---------------------------------------------------------
+		if (wcscmp(name, L"State") == 0)
+		{
+			ReadSimpleText(csState);
+			continue;
+		}
+
+		// ---------------------------------------------------------
+		// <Location>
+		// ---------------------------------------------------------
+		if (wcscmp(name, L"Location") == 0)
+		{
+			ReadSimpleText(csLocation);
+			continue;
+		}
+
+		// ---------------------------------------------------------
+		// <Zoom>
+		// ---------------------------------------------------------
+		if (wcscmp(name, L"Zoom") == 0)
+		{
+			ReadSimpleText(csZoom);
+			continue;
+		}
+
+		// ---------------------------------------------------------
+		// <CenterLat>
+		// ---------------------------------------------------------
+		if (wcscmp(name, L"CenterLat") == 0)
+		{
+			ReadSimpleText(csCenterLat);
+			continue;
+		}
+
+		// ---------------------------------------------------------
+		// <CenterLon>
+		// ---------------------------------------------------------
+		if (wcscmp(name, L"CenterLon") == 0)
+		{
+			ReadSimpleText(csCenterLon);
+			continue;
+		}
+
+		// ---------------------------------------------------------
+		// CE-only: <MapImage value="Maps/...png"/>
+		// ---------------------------------------------------------
+		if (wcscmp(name, L"MapImage") == 0)
+		{
+			const WCHAR* attrName = nullptr;
+			const WCHAR* attrValue = nullptr;
+
+			while (pReader->MoveToNextAttribute() == S_OK)
+			{
+				pReader->GetLocalName(&attrName, nullptr);
+				pReader->GetValue(&attrValue, nullptr);
+
+				if (wcscmp(attrName, L"value") == 0 && attrValue)
+				{
+					csZipPath = attrValue;
+				}
+			}
+
+			pReader->MoveToElement();
+			continue;
 		}
 	}
-}
+
+	// ---------------------------------------------------------
+	// Store values
+	// ---------------------------------------------------------
+	ContentTitle = csTitle;
+	Scope = csScope;
+	State = csState;
+	Location = csLocation;
+	Zoom = _wtoi(csZoom);
+	CenterLat = _wtof(csCenterLat);
+	CenterLon = _wtof(csCenterLon);
+
+	// ---------------------------------------------------------
+	// CE: load snapshot (optional)
+	// ---------------------------------------------------------
+	if (!csZipPath.IsEmpty() && m_pDoc && m_pDoc->ZipReader)
+	{
+		auto pZip = m_pDoc->ZipReader;
+
+		if (pZip->IsOpen)
+		{
+			std::vector<uint8_t> bytes;
+
+			if (pZip->ExtractFile(csZipPath, bytes))
+			{
+				IStream* pStream = SHCreateMemStream(bytes.data(),
+					(UINT)bytes.size());
+				if (pStream)
+				{
+					Gdiplus::Image* pImg = Gdiplus::Image::FromStream(pStream);
+					pStream->Release();
+
+					if (pImg)
+					{
+						ImageContent = shared_ptr<Gdiplus::Image>(pImg);
+						return;
+					}
+				}
+			}
+		}
+	}
+
+	// If no snapshot, map will be regenerated
+} // ReadXml
 
 /////////////////////////////////////////////////////////////////////////////
 // image of the content
@@ -297,9 +575,7 @@ shared_ptr<Gdiplus::Image> CPageMap::GetImageContent()
 	// ---------------------------------------------------------
 	// Create OSM map object
 	// ---------------------------------------------------------
-	shared_ptr<CMapOSM> pMapOSM = make_shared<CMapOSM>();
-	pMapOSM->Title = ContentTitle;
-	pMapOSM->Description = ContentPath;
+	shared_ptr<CMapOSM> pMapOSM = MapOSM;
 
 	// ---------------------------------------------------------
 	// Build tile grid around center
@@ -428,7 +704,7 @@ shared_ptr<Gdiplus::Image> CPageMap::GetImageContent()
 		shared_ptr<Bitmap> pBitmap = pMapOSM->FinalBitmap;
 		Gdiplus::Graphics g(pBitmap.get());
 
-		for (const auto& pin : m_arrPins)
+		for (const auto& pin : *Pins)
 		{
 			int px = 0;
 			int py = 0;

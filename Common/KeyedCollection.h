@@ -221,6 +221,26 @@ public:
 	__declspec(property(get = GetLastKey))
 		KEY LastKey;
 
+	/////////////////////////////////////////////////////////////////////////////
+	inline KEY GetNthKey(int nTh)
+	{
+		if (m_mapItems.empty())
+			return nullptr;
+
+		KEY value = LastKey;
+		int n = 0;
+		for (auto& node : m_mapItems)
+		{
+			if (n++ == nTh)
+			{
+				value = node.first;
+			}
+		}
+		return value;
+	}
+	__declspec(property(get = GetNthKey))
+		KEY NthKey[];
+
 public:
 	/////////////////////////////////////////////////////////////////////////////
 	// GetDeletedItems

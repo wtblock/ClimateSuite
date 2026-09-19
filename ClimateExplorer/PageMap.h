@@ -39,7 +39,9 @@ protected:
 	double    m_dCenterLon;    // resolved center longitude
 	int       m_nZoom;         // OSM zoom level
 
+	// collection of pins for the current map
 	std::vector<MAP_PIN> m_arrPins;
+	shared_ptr<CMapOSM> m_pMapOSM;
 
 // public properties
 public:
@@ -56,6 +58,33 @@ public:
 
 	__declspec(property(get = GetDoc, put = SetDoc))
 		CClimateExplorerDoc* Doc;
+
+	// pointer to CMapOSM class
+	shared_ptr<CMapOSM> GetMapOSM()
+	{
+		if (m_pMapOSM == nullptr)
+		{
+			m_pMapOSM = make_shared<CMapOSM>();
+		}
+		m_pMapOSM->Title = ContentTitle;
+		m_pMapOSM->Description = ContentPath;
+
+		return m_pMapOSM;
+	}
+
+	// pointer to CMapOSM class
+	__declspec(property(get = GetMapOSM))
+		shared_ptr<CMapOSM> MapOSM;
+
+	// collection of pins for the current map
+	std::vector<MAP_PIN>* GetPins()
+	{
+		return &m_arrPins;
+	}
+
+	// collection of pins for the current map
+	__declspec(property(get = GetPins))
+		std::vector<MAP_PIN>* Pins;
 
 	// map scope
 	CString GetScope()
@@ -148,13 +177,13 @@ protected:
 
 	void AddStationPin(const CString& stationID, double lat, double lon);
 
+
+// public methods
+public:
 	bool LatLonToPixel
 	(
 		CMapOSM* pMapOSM, double dLat, double dLon, int& x, int& y
 	);
-
-// public methods
-public:
 
 // protected overrides
 protected:

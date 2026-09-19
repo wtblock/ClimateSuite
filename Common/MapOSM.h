@@ -112,6 +112,7 @@ public:
 	bool DownloadTiles(LPCTSTR lpszCacheFolder);
 	bool StitchTiles();
 	bool GenerateFinalBitmap();
+	bool PixelToLatLon(int px, int py, double& latDeg, double& lonDeg);
 
 // protected overrides
 protected:

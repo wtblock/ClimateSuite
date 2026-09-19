@@ -121,6 +121,8 @@ protected:
 		IMAGE_ROTATION ir
 	);
 
+	void HitTestMapStation(const CPoint& ptLogical);
+
 // public methods
 public:
 	CClimateExplorerDoc* GetDocument() const;
