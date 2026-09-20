@@ -684,6 +684,33 @@ public:
 	__declspec(property(get = GetSelectedContent))
 		shared_ptr<CPageContent> SelectedContent[];
 
+	// page content number by title and one based page number
+	int GetPageContentIndex(int nPage, CString csTitle)
+	{
+		int value = -1;
+		nPage--; // zero base index
+		int nPages = (int)m_arrPages.Count;
+		if (0 <= nPage && nPage < nPages)
+		{
+			shared_ptr<CPage> pPage = m_arrPages.get(nPage);
+			int nImage = 0;
+			for (auto& node : pPage->Content.Items)
+			{
+				CString csContent = node.second->ContentTitle;
+				if (csContent == csTitle)
+				{
+					value = nImage;
+					break;
+				}
+				nImage++;
+			}
+		}
+		return value;
+	}
+	// page content number by title and one based page number
+	__declspec(property(get = GetPageContentIndex))
+		int PageContentIndex[][];
+
 	// is the given page image pair selected? Returns true is the pair
 	// is the current selection or if it falls within the multiple 
 	// selection range
@@ -761,6 +788,8 @@ public:
 	// select an image on a given page number
 	__declspec(property(get = GetSelectLimit, put = SetSelectLimit))
 		int SelectLimit[];
+
+	// get a page image 
 	
 	// height of page in inches
 	virtual double GetHeightOfPage()

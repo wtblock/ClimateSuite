@@ -893,7 +893,12 @@ void CClimateExplorerView::DrawImageWithTitle
 	// 2. Image box = bounding rectangle minus title band
 	//
 	CRect rectImageBox = *pRect;
-	AdjustRectForTitle(rectImageBox, titleHeight, ir);
+
+	// maps need this label
+	if (eContent == CPageContent::ContentMap)
+	{
+		AdjustRectForTitle(rectImageBox, titleHeight, ir);
+	}
 
 	//
 	// 3. Draw the image inside rectImageBox
@@ -903,8 +908,12 @@ void CClimateExplorerView::DrawImageWithTitle
 	//
 	// 4. Draw the title inside content rectangle
 	//
-	CString csTitle = pContent->ContentTitle;
-	DrawTitle(pDC, csTitle, *pRect, titleHeight, ir);
+	// maps need this label
+	if (eContent == CPageContent::ContentMap)
+	{
+		CString csTitle = pContent->ContentTitle;
+		DrawTitle(pDC, csTitle, *pRect, titleHeight, ir);
+	}
 } // DrawImageWithTitle
 
 /////////////////////////////////////////////////////////////////////////////

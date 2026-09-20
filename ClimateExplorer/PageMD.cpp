@@ -423,7 +423,19 @@ shared_ptr<Gdiplus::Image> CPageMD::GetImageContent()
 	shared_ptr<CMarkdownBitmapRenderer> pRenderer =
 		make_shared<CMarkdownBitmapRenderer>();
 
+	CString csLayout = m_pDoc->Layout;
+
 	Gdiplus::RectF rcMargin = m_pDoc->RealMargin;
+	if (csLayout == L"Quarter")
+	{
+		rcMargin.Width /= 2;
+		rcMargin.Height /= 2;
+	}
+	else if (csLayout == L"Half")
+	{
+		rcMargin.Height /= 2;
+	}
+
 	rcMargin.Y -= m_pDoc->TopOfPage;
 	rcMargin.Y -= m_pDoc->TopMargin;
 	rcMargin.X -= m_pDoc->LeftMargin;

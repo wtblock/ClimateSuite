@@ -1340,8 +1340,14 @@ void CPropertiesWnd::OnGoTo()
 
 	CMFCPropertyGridProperty* pSelectedProp = m_wndPropList.GetCurSel();
 	CString propValue = pSelectedProp->GetValue().bstrVal;
+	CString csTitle = pSelectedProp->GetName();
 	const int nPage = (int)_tstoi(propValue);
 	pDoc->Page = nPage;
+	int nImage = pDoc->PageContentIndex[nPage][csTitle];
+	if (nImage != -1)
+	{
+		pDoc->SelectLimit[nPage] = nImage;
+	}
 	const double dPageHeight = pDoc->HeightOfPage;
 	const double dTop = dPageHeight * (nPage - 1);
 	pView->TopOfView = dTop;
