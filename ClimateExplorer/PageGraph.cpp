@@ -259,7 +259,7 @@ void CPageGraph::ReadPickerXml(IXmlReader* pReader)
 		else if (wcscmp(name, L"Output") == 0)
 			m_pPlot->Output = csValue;
 
-		if (wcscmp(name, L"Pure") == 0)
+		if (wcscmp(name, L"TOC") == 0)
 			TOC = (csValue == L"true");
 
 		else if (wcscmp(name, L"Threshold") == 0)

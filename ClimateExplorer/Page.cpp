@@ -148,6 +148,7 @@ bool CPage::AddAnImage(shared_ptr<CGraphPlotter> pPlot)
 	value = true;
 
 	shared_ptr<CPageGraph> pGraph = make_shared<CPageGraph>(pPlot, m_pDoc);
+	pGraph->TOC = m_pDoc->TOC;
 
 	// replaces an image if it exists
 	value = m_arrContent.add(csImage, pGraph, true);
@@ -416,7 +417,7 @@ void CPage::ReadXml(IXmlReader* pReader)
 		}
 		else if (wcscmp(pwszLocalName, L"Map") == 0)
 		{
-			pContent = std::make_shared<CPageMap>();
+			pContent = std::make_shared<CPageMap>(m_pDoc);
 		}
 		else
 		{

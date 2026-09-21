@@ -41,6 +41,9 @@ protected:
 	// Title of the content
 	CString m_csContentTitle;
 
+	// Layout (Full, Half, or Quarter page)
+	CString m_csPageLayout;
+
 	// include in the table of contents
 	bool m_bTOC;
 
@@ -81,6 +84,20 @@ public:
 	// Title of the content
 	__declspec(property(get = GetContentTitle, put = SetContentTitle))
 		CString ContentTitle;
+
+	// Layout (Full, Half, or Quarter page)
+	CString GetPageLayout()
+	{
+		return m_csPageLayout;
+	}
+	// Layout (Full, Half, or Quarter page)
+	void SetPageLayout(CString value)
+	{
+		m_csPageLayout = value;
+	}
+	// Layout (Full, Half, or Quarter page)
+	__declspec(property(get = GetPageLayout, put = SetPageLayout))
+		CString PageLayout;
 
 	// include in the table of contents
 	bool GetTOC()

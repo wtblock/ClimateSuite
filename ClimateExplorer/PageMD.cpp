@@ -106,8 +106,8 @@ void CPageMD::WriteXml(IXmlWriter* pWriter, int nPage, int nItem)
 		if (FAILED(hr)) return;
 		hr = pWriter->WriteEndElement();
 
-		// <TextPath>
-		hr = pWriter->WriteStartElement(nullptr, L"TextPath", nullptr);
+		// <MdPath>
+		hr = pWriter->WriteStartElement(nullptr, L"MdPath", nullptr);
 		if (FAILED(hr)) return;
 		hr = pWriter->WriteString(csTextFilename);
 		if (FAILED(hr)) return;
@@ -162,6 +162,7 @@ void CPageMD::ReadXml(IXmlReader* pReader)
 	CString csTextPath;    // external or CE internal .md path
 	CString csImagePath;   // CE internal .png path
 	CString csTitle;       // title of the page section
+	CString csTOC;         // include in table of contents boolean
 
 	while (pReader->Read(&nodeType) == S_OK)
 	{
@@ -259,8 +260,7 @@ void CPageMD::ReadXml(IXmlReader* pReader)
 
 				if (pwszText)
 				{
-					CString csTOC(pwszText);
-					TOC = csTOC == L"true";
+					csTOC = pwszText;
 				}
 			}
 
@@ -289,11 +289,12 @@ void CPageMD::ReadXml(IXmlReader* pReader)
 	}
 
 	// ---------------------------------------------------------
-	// Store title, text, and path
+	// Store title, text, path, TOC
 	// ---------------------------------------------------------
 	ContentTitle = csTitle;
 	Markdown = csText;
 	ContentPath = csTextPath;
+	TOC = csTOC == L"true";
 
 	// ---------------------------------------------------------
 	// Load Markdown text from CE ZIP if present
@@ -423,7 +424,7 @@ shared_ptr<Gdiplus::Image> CPageMD::GetImageContent()
 	shared_ptr<CMarkdownBitmapRenderer> pRenderer =
 		make_shared<CMarkdownBitmapRenderer>();
 
-	CString csLayout = m_pDoc->Layout;
+	CString csLayout = PageLayout;
 
 	Gdiplus::RectF rcMargin = m_pDoc->RealMargin;
 	if (csLayout == L"Quarter")

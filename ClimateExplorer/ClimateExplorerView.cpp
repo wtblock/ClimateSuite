@@ -995,6 +995,9 @@ void CClimateExplorerView::RenderImagePage
 			// find the content
 			shared_ptr<CPageContent> pContent = mapContent.find( csContent );
 
+			// page layout (Full, Half, or Quarter page)
+			pContent->PageLayout = page->Layout;
+
 			// type of content affect the rotation rules
 			CPageContent::CONTENT_TYPE eType = pContent->ContentType;
 
