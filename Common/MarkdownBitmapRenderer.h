@@ -536,6 +536,7 @@ public:
 	);
 	void OnHtml(const CString& csHtml);
 
+	void OnHorizontalRule();
 	void OnParagraphStart();
 	void OnParagraphEnd();
 

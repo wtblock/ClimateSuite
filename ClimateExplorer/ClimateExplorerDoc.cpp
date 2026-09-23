@@ -94,10 +94,26 @@ void CClimateExplorerDoc::InitializeProperties()
 	CClimateExplorerApp* pApp = (CClimateExplorerApp*)AfxGetApp();
 	if (pApp)
 	{
-		Subtitle = pApp->DatabaseVersion;
-		Publisher = pApp->Publisher;
-		Copyright = pApp->Copyright;
-		Description = pApp->DatabaseCredits;
+		CString csSubtitle = Subtitle;
+		CString csPublisher = Publisher;
+		CString csCopyright = Copyright;
+		CString csDescription = Description;
+		if (csSubtitle.IsEmpty())
+		{
+			Subtitle = pApp->DatabaseVersion;
+		}
+		if (csPublisher.IsEmpty())
+		{
+			Publisher = pApp->Publisher;
+		}
+		if (csCopyright.IsEmpty())
+		{
+			Copyright = pApp->Copyright;
+		}
+		if (csDescription.IsEmpty())
+		{
+			Description = pApp->DatabaseCredits;
+		}
 	}
 
 	Pure = true;

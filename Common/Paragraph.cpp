@@ -434,14 +434,22 @@ CSmartArray<CParagraphToken> CParagraph::GetLine
 	// if not the end of line, calculate the space between words
 	if (!bEOL)
 	{
-		// available space
-		double dAvailable = dEnd - dStart;
+		// no right justification when dSpace is zero
+		if (Justify == false)
+		{
+			dSpace = 0;
+		}
+		else
+		{
+			// available space
+			double dAvailable = dEnd - dStart;
 
-		// padding is extra space for the line to fit into
-		double dPadding = dAvailable - dLine;
+			// padding is extra space for the line to fit into
+			double dPadding = dAvailable - dLine;
 
-		// space between words
-		dSpace = dPadding / nTokens;
+			// space between words
+			dSpace = dPadding / nTokens;
+		}
 	}
 
 	// remove the words that made up this line

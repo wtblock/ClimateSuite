@@ -128,6 +128,7 @@ bool CPage::AddMdPath(CString csPath)
 	shared_ptr<CPageMD> pMD = make_shared<CPageMD>(m_pDoc);
 	pMD->ContentTitle = csTitle;
 	pMD->ContentPath = csPath;
+	pMD->TOC = m_pDoc->TOC;
 
 	// replaces a markdown if it exists
 	value = m_arrContent.add(csTitle, pMD, true);

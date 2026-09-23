@@ -608,6 +608,15 @@ double CMarkdownBitmapRenderer::DrawParagraph()
 	double fLineHeight = 0;
 	double fParagraphSpacing = 0;
 
+	if (InListItem || HeadingLevel > 0)
+	{
+		m_paragraph.Justify = false;
+	}
+	else
+	{
+		m_paragraph.Justify = true;
+	}
+
 	while (DrawLine)
 	{
 		DrawLine = m_paragraph.DrawLine(pGraphics, dLeft, dRight, dY);
@@ -933,7 +942,7 @@ void CMarkdownBitmapRenderer::OnHeadingStart(int level)
 	{
 	case 1: fBeforeInches = fLineHeight * 0.40; break;
 	case 2: fBeforeInches = fLineHeight * 0.30; break;
-	default: fBeforeInches = fLineHeight * 0.20; break;
+	default: fBeforeInches = 0; break;
 	}
 
 	YInches += fBeforeInches;
@@ -982,6 +991,34 @@ void CMarkdownBitmapRenderer::OnHeadingEnd()
 } // OnHeadingEnd
 
 /////////////////////////////////////////////////////////////////////////////
+void CMarkdownBitmapRenderer::OnHorizontalRule
+(
+)
+{
+	NewLine();
+	double fThicknessInches = (HeadingLevel == 1 ? 0.03 : 0.02);
+	int nThickness = ToPixelsY(fThicknessInches);
+
+	double fLeftInches = MarginInches.X;
+	double fRightInches = MarginInches.X + MarginInches.Width;
+
+	int x1 = ToPixelsX(fLeftInches);
+	int x2 = ToPixelsX(fRightInches);
+
+	float fLineHeight = ComputeLineHeightInches(*CurrentFont);
+	int y = ToPixelsY(YInches + fLineHeight * 0.65);
+
+	Graphics* pGraphics = GetGraphics();
+	if (pGraphics)
+	{
+		Gdiplus::Pen pen(Color::Silver, (Gdiplus::REAL)nThickness);
+		pGraphics->DrawLine(&pen, x1, y, x2, y);
+		delete pGraphics;
+	}
+	NewLine();
+} // OnHorizontalRule
+
+/////////////////////////////////////////////////////////////////////////////
 void CMarkdownBitmapRenderer::OnUnorderedListStart()
 {
 	InUnorderedList = true;
@@ -995,6 +1032,18 @@ void CMarkdownBitmapRenderer::OnUnorderedListEnd()
 	nListDepth--;
 	InUnorderedList = nListDepth > 0;
 	ListDepth = nListDepth;
+	if (nListDepth == 0)
+	{
+		const double fLineHeightInches = ComputeLineHeightInches(*CurrentFont);
+
+		// advance Y by line height
+		YInches += fLineHeightInches / 2;
+		Y = ToPixelsY(YInches);
+
+		// reset X to left margin
+		XInches = MarginInches.X;
+		X = ToPixelsX(XInches);
+	}
 }
 
 /////////////////////////////////////////////////////////////////////////////
@@ -1009,6 +1058,7 @@ void CMarkdownBitmapRenderer::OnOrderedListEnd()
 {
 	OrderedListCounter = 0;
 	ListDepth = ListDepth - 1;
+	NewLine();
 }
 
 /////////////////////////////////////////////////////////////////////////////

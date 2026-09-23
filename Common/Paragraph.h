@@ -31,6 +31,9 @@ protected:
 
 	bool m_bExpanded;
 
+	// right justify text?
+	bool m_bJustify;
+
 	double m_dMarkerLength;
 
 	double m_dListIndent;
@@ -146,21 +149,37 @@ public:
 	__declspec(property(get = GetMarginInches, put = SetMarginInches))
 		Gdiplus::RectF MarginInches;
 
-	// dots per inch
+	// phrases are expanded into words
 	bool GetExpanded()
 	{
 		return m_bExpanded;
 	}
 
-	// dots per inch
+	// phrases are expanded into words
 	void SetExpanded(bool value)
 	{
 		m_bExpanded = value;
 	}
 
-	// dots per inch
+	// phrases are expanded into words
 	__declspec(property(get = GetExpanded, put = SetExpanded))
 		bool Expanded;
+
+	// right justify text?
+	bool GetJustify()
+	{
+		return m_bJustify;
+	}
+
+	// right justify text?
+	void SetJustify(bool value)
+	{
+		m_bJustify = value;
+	}
+
+	// right justify text?
+	__declspec(property(get = GetJustify, put = SetJustify))
+		bool Justify;
 
 // protected methods
 protected:
@@ -281,6 +300,7 @@ public:
 
 		m_pGraphics = nullptr;
 		Expanded = false;
+		Justify = true;
 	}
 	~CParagraph()
 	{
