@@ -527,7 +527,10 @@ public:
 	}
 
 	void DrawText(const CString& text);
-	void NewLine();
+
+	// the multiplier determines the amount of the current line height
+	// to use for offsetting the Y coordinate
+	void NewLine(float fMultiplier = 1.0f);
 
 	void OnImage
 	(

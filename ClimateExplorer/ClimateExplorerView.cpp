@@ -1702,6 +1702,7 @@ void CClimateExplorerView::HitTestMapStation(const CPoint& ptLogical)
 	pDoc->Location = pStation->Location;
 	pDoc->Latitude = pStation->Latitude;
 	pDoc->Longitude = pStation->Longitude;
+	pDoc->ContentTitle = L"Title";
 
 	// You can choose to keep current zoom or set a recommended zoom
 	// e.g., pDoc->Zoom = max(pDoc->Zoom, 10);

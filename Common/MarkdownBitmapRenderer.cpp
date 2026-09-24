@@ -575,16 +575,20 @@ shared_ptr<CImagePlus> CMarkdownBitmapRenderer::ToImagePlus()
 //
 // Advances to the next line.
 //
+// the multiplier determines the amount of the current line height
+// to use for offsetting the Y coordinate
 /////////////////////////////////////////////////////////////////////////////
-void CMarkdownBitmapRenderer::NewLine
-(
-)
+void CMarkdownBitmapRenderer::NewLine( float fMultiplier/* = 1.0f*/)
 {
 	const double fLineHeightInches = ComputeLineHeightInches(*CurrentFont);
 
 	// advance Y by line height
-	YInches += fLineHeightInches;
-	Y = ToPixelsY(YInches);
+	double dY = YInches;
+	double dOffset = fLineHeightInches * fMultiplier;
+
+	dY += dOffset;
+	Y = ToPixelsY(dY);
+	YInches = dY;
 
 	// reset X to left margin
 	XInches = MarginInches.X;
@@ -866,7 +870,7 @@ void CMarkdownBitmapRenderer::OnImage
 	//
 	// GitHub-style spacing before image
 	//
-	NewLine();      // ensure clean block start
+	//NewLine(0.1f);
 
 	m_paragraph.MarginInches = MarginInches;
 	m_paragraph.XInches = XInches;
@@ -885,7 +889,7 @@ void CMarkdownBitmapRenderer::OnImage
 	YInches = m_paragraph.YInches;
 	XInches = m_paragraph.XInches;
 
-	NewLine();
+	//NewLine(0.1f);
 } // OnImage
 
 /////////////////////////////////////////////////////////////////////////////
@@ -995,7 +999,7 @@ void CMarkdownBitmapRenderer::OnHorizontalRule
 (
 )
 {
-	NewLine();
+	NewLine(0.2f);
 	double fThicknessInches = (HeadingLevel == 1 ? 0.03 : 0.02);
 	int nThickness = ToPixelsY(fThicknessInches);
 
@@ -1006,7 +1010,7 @@ void CMarkdownBitmapRenderer::OnHorizontalRule
 	int x2 = ToPixelsX(fRightInches);
 
 	float fLineHeight = ComputeLineHeightInches(*CurrentFont);
-	int y = ToPixelsY(YInches + fLineHeight * 0.65);
+	int y = ToPixelsY(YInches + fLineHeight * 0.4);
 
 	Graphics* pGraphics = GetGraphics();
 	if (pGraphics)
@@ -1015,7 +1019,7 @@ void CMarkdownBitmapRenderer::OnHorizontalRule
 		pGraphics->DrawLine(&pen, x1, y, x2, y);
 		delete pGraphics;
 	}
-	NewLine();
+	NewLine(0.2f);
 } // OnHorizontalRule
 
 /////////////////////////////////////////////////////////////////////////////

@@ -575,7 +575,7 @@ LRESULT CPropertiesWnd::OnPropertyChange
 				pDoc->Zoom = 0;
 			}
 
-			CString csTitle = pDoc->Title;
+			CString csTitle = pDoc->ContentTitle;
 			m_pPropContentTitle->SetValue(csTitle);
 			pDoc->Zoom = 0;
 			if (m_pPropZoom != nullptr)
@@ -589,7 +589,7 @@ LRESULT CPropertiesWnd::OnPropertyChange
 		{
 			HandleStateChanged(pProp);
 
-			CString csTitle = pDoc->Title;
+			CString csTitle = pDoc->ContentTitle;
 			m_pPropContentTitle->SetValue(csTitle);
 
 			m_wndPropList.RedrawWindow();
@@ -598,7 +598,7 @@ LRESULT CPropertiesWnd::OnPropertyChange
 		{
 			pDoc->Location = CString(varIn);
 
-			CString csTitle = pDoc->Title;
+			CString csTitle = pDoc->ContentTitle;
 			m_pPropContentTitle->SetValue(csTitle);
 
 			m_wndPropList.RedrawWindow();
@@ -685,7 +685,7 @@ LRESULT CPropertiesWnd::OnPropertyChange
 				m_pPropLocation->SetValue(_variant_t(pDoc->Location));
 			}
 
-			CString csTitle = pDoc->Title;
+			CString csTitle = pDoc->ContentTitle;
 			m_pPropContentTitle->SetValue(csTitle);
 
 			m_wndPropList.RedrawWindow();
@@ -694,7 +694,7 @@ LRESULT CPropertiesWnd::OnPropertyChange
 		{
 			pDoc->ThresholdText = CString(varIn);
 
-			CString csTitle = pDoc->Title;
+			CString csTitle = pDoc->ContentTitle;
 			m_pPropContentTitle->SetValue(csTitle);
 
 			m_wndPropList.RedrawWindow();
