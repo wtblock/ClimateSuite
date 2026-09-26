@@ -649,14 +649,15 @@ CRect CClimateExplorerView::ComputeImageRect
 	if (!pBitmap || !pRect)
 		return CRect(0, 0, 0, 0);
 
-	// Apply rotation before computing dimensions
-	if (ir == RotateCW)
-		pBitmap->RotateFlip(Rotate90FlipNone);
-	else if (ir == RotateCCW)
-		pBitmap->RotateFlip(Rotate270FlipNone);
-
 	int imgWidth = pBitmap->GetWidth();
 	int imgHeight = pBitmap->GetHeight();
+
+	// For rotated layouts, the drawn orientation is swapped
+	if (ir == RotateCW || ir == RotateCCW)
+	{
+		std::swap(imgWidth, imgHeight);
+	}
+
 	CSize size = pRect->Size();
 	float fImageAspect = CHelper::GetAspectRatio(imgWidth, imgHeight);
 
@@ -1604,11 +1605,15 @@ void CClimateExplorerView::HitTestMapStation(const CPoint& ptLogical)
 {
 	CClimateExplorerDoc* pDoc = GetDocument();
 	if (!pDoc)
+	{
 		return;
+	}
 
 	shared_ptr<CPage> page = pDoc->CurrentPage;
 	if (!page)
+	{
 		return;
+	}
 
 	// -------------------------------------------------------------
 	// 1. Find which rectangle was clicked
@@ -1631,7 +1636,9 @@ void CClimateExplorerView::HitTestMapStation(const CPoint& ptLogical)
 	}
 
 	if (nHitIndex < 0)
-		return; // click not in any content rectangle
+	{
+		return;
+	}
 
 	// -------------------------------------------------------------
 	// 2. Get the content and verify it's a map
@@ -1642,23 +1649,33 @@ void CClimateExplorerView::HitTestMapStation(const CPoint& ptLogical)
 	nImage = nHitIndex;
 
 	if (nImage < 0 || nImage >= static_cast<int>(mapContent.Items.size()))
+	{
 		return;
+	}
 
 	const CString& csContentKey = mapContent.NthKey[nImage];
 
 	if (!mapContent.Exists[csContentKey])
+	{
 		return;
+	}
 
 	shared_ptr<CPageContent> pContent = mapContent.find(csContentKey);
 	if (!pContent)
+	{
 		return;
+	}
 
 	if (pContent->ContentType != CPageContent::ContentMap)
-		return; // only maps support station hit-testing
+	{
+		return;
+	}
 
 	shared_ptr<Gdiplus::Image> pImage = pContent->ImageContent;
 	if (!pImage)
+	{
 		return;
+	}
 
 	// -------------------------------------------------------------
 	// 3. Recompute rotation (same rules as RenderImagePage)
@@ -1702,35 +1719,29 @@ void CClimateExplorerView::HitTestMapStation(const CPoint& ptLogical)
 	// -------------------------------------------------------------
 	CRect rectDest = ComputeImageRect(pImage, &rectImageBox, ir);
 	if (rectDest.IsRectEmpty())
+	{
 		return;
+	}
 
 	// If click is outside the drawn image, no station hit
 	if (!rectDest.PtInRect(ptLogical))
+	{
 		return;
+	}
+
+	const long lDestX = rectDest.left;
+	const long lDestY = rectDest.top;
+	const long lDestW = rectDest.Width();
+	const long lDestH = rectDest.Height();
 
 	// -------------------------------------------------------------
 	// 6. Normalize click into rectDest and undo rotation
 	// -------------------------------------------------------------
-	int localX = ptLogical.x - rectDest.left;
-	int localY = ptLogical.y - rectDest.top;
+	int localX = ptLogical.x - lDestX;
+	int localY = ptLogical.y - lDestY;
 
-	// Get rotated bitmap dimensions
-	Gdiplus::Image* pRawClone = pImage->Clone();
-	if (!pRawClone)
-		return;
-
-	shared_ptr<Gdiplus::Image>  pClone(pRawClone);
-	shared_ptr<Gdiplus::Bitmap> pBitmap = static_pointer_cast<Gdiplus::Bitmap>(pClone);
-	if (!pBitmap)
-		return;
-
-	if (ir == RotateCW)
-		pBitmap->RotateFlip(Gdiplus::Rotate90FlipNone);
-	else if (ir == RotateCCW)
-		pBitmap->RotateFlip(Gdiplus::Rotate270FlipNone);
-
-	const int imgWidth = pBitmap->GetWidth();
-	const int imgHeight = pBitmap->GetHeight();
+	int imgWidth = pImage->GetWidth();
+	int imgHeight = pImage->GetHeight();
 
 	int unrotX = 0;
 	int unrotY = 0;
@@ -1740,13 +1751,15 @@ void CClimateExplorerView::HitTestMapStation(const CPoint& ptLogical)
 	case RotateCW:
 		// +90°: x' = y, y' = width - x
 		unrotX = localY;
-		unrotY = rectDest.Width() - localX;
+		unrotY = lDestW - localX;
+		swap(imgWidth, imgHeight);
 		break;
 
 	case RotateCCW:
 		// -90°: x' = height - y, y' = x
-		unrotX = rectDest.Height() - localY;
+		unrotX = lDestH - localY;
 		unrotY = localX;
+		swap(imgWidth, imgHeight);
 		break;
 
 	case RotateNone:
@@ -1756,35 +1769,29 @@ void CClimateExplorerView::HitTestMapStation(const CPoint& ptLogical)
 		break;
 	}
 
-	// Clamp to image rectangle
-	if (unrotX < 0 || unrotY < 0 ||
-		unrotX >= rectDest.Width() || unrotY >= rectDest.Height())
-	{
-		return;
-	}
-
 	// -------------------------------------------------------------
 	// 7. Scale back to bitmap pixel coordinates
 	// -------------------------------------------------------------
-	const double scaleX = static_cast<double>(imgWidth) / rectDest.Width();
-	const double scaleY = static_cast<double>(imgHeight) / rectDest.Height();
+	const double scaleX = static_cast<double>(imgWidth) / lDestW;
+	const double scaleY = static_cast<double>(imgHeight) / lDestH;
 
-	const int imgX = static_cast<int>(unrotX * scaleX);
-	const int imgY = static_cast<int>(unrotY * scaleY);
-
-	if (imgX < 0 || imgY < 0 || imgX >= imgWidth || imgY >= imgHeight)
-		return;
+	int imgX = static_cast<int>(unrotX * scaleX);
+	int imgY = static_cast<int>(unrotY * scaleY);
 
 	// -------------------------------------------------------------
 	// 8. Convert bitmap pixel -> lat/lon using MapOSM
 	// -------------------------------------------------------------
 	shared_ptr<CPageMap> pMap = static_pointer_cast<CPageMap>(pContent);
 	if (!pMap)
+	{
 		return;
+	}
 
 	shared_ptr<CMapOSM> pMapOSM = pMap->MapOSM;
 	if (!pMapOSM)
+	{
 		return;
+	}
 
 	double clickedLat = 0.0;
 	double clickedLon = 0.0;
@@ -1799,15 +1806,13 @@ void CClimateExplorerView::HitTestMapStation(const CPoint& ptLogical)
 	const int HIT_RADIUS = 10; // pixels around pin center
 
 	CString csBestStationID;
-	bool    bFound = false;
+	bool bFound = false;
 
 	for (const auto& pin : *pMap->Pins)
 	{
 		int px = 0;
 		int py = 0;
 
-		// Assuming you have:
-		//   void LatLonToPixel(CMapOSM* pOSM, double lat, double lon, int& x, int& y);
 		pMap->LatLonToPixel(pMapOSM.get(), pin.Lat, pin.Lon, px, py);
 
 		if (std::abs(px - imgX) <= HIT_RADIUS &&
@@ -1819,21 +1824,35 @@ void CClimateExplorerView::HitTestMapStation(const CPoint& ptLogical)
 		}
 	}
 
+	// if not found, send the clicked on coordinates to the property panel
 	if (!bFound || csBestStationID.IsEmpty())
+	{
+		pDoc->Latitude = clickedLat;
+		pDoc->Longitude = clickedLon;
+		CMainFrame* pFrame = (CMainFrame*)AfxGetMainWnd();
+		CPropertiesWnd* pProperties = pFrame->PropertiesPane;
+		pProperties->UpdatePropertiesFromDocument(pDoc);
 		return;
+	}
 
 	// -------------------------------------------------------------
 	// 10. Update Map Properties in the document
 	// -------------------------------------------------------------
 	CClimateDatabase* pDB = theApp.ClimateDatabase;
 	if (!pDB)
+	{
 		return;
+	}
 
-	shared_ptr<CClimateStation> pStation = pDB->Stations->find(csBestStationID);
+	shared_ptr<CClimateStation> pStation = 
+		pDB->Stations->find(csBestStationID);
 	if (!pStation)
+	{
 		return;
+	}
 
-	// Populate properties so the toolbar Execute button can create a station map
+	// Populate properties so the toolbar Execute button can create 
+	// a station map
 	pDoc->Scope = L"Location";
 	pDoc->State = pStation->State;
 	pDoc->Location = pStation->Location;

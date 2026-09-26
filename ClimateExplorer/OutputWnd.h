@@ -117,7 +117,12 @@ public:
 	__declspec(property(put = SetSQLText))
 		CString SQLText;
 
-	// write text to the text tab
+	// the formatted text window
+	CString GetFormattedText()
+	{
+		return m_csText;
+	}
+	// the formatted text window
 	void SetFormattedText(CString value)
 	{
 		if (value != m_csText)
@@ -139,8 +144,8 @@ public:
 			//ScrollToBottom(m_wndOutputText);
 		}
 	}
-	// write text to the text tab
-	__declspec(property(put = SetFormattedText))
+	// the formatted text window
+	__declspec(property(get = GetFormattedText, put = SetFormattedText))
 		CString FormattedText;
 
 	// write text to the CSV tab
