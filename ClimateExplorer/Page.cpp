@@ -34,6 +34,7 @@ CPage::CPage
 	Gutter = pDoc->Gutter;
 
 	Rect = MarginRectangle;
+	MarginOffset = CPoint(0, 0);
 }
 
 /////////////////////////////////////////////////////////////////////////////

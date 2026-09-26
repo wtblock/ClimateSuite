@@ -91,7 +91,8 @@ void CPropertiesWnd::PopulateStatesForScope(const CString& scope)
 	m_pPropState->RemoveAllOptions();
 	CClimateExplorerDoc* pDoc = ClimateExplorerDocument;
 
-	CClimateDatabase* pDB = ((CClimateExplorerApp*)AfxGetApp())->ClimateDatabase;
+	CClimateDatabase* pDB = 
+		((CClimateExplorerApp*)AfxGetApp())->ClimateDatabase;
 
 	if (scope.CompareNoCase(L"National") == 0)
 	{
@@ -2504,7 +2505,9 @@ void CPropertiesWnd::UpdateTableOfContents(CClimateExplorerDoc* pDoc)
 	// Ensure the Table of Contents group exists
 	if (!m_pTableOfContents)
 	{
-		m_pTableOfContents = new CMFCPropertyGridProperty(_T("Table of Contents"));
+		m_pTableOfContents = 
+			new CMFCPropertyGridProperty(L"Table of Contents");
+
 		m_pTableOfContents->SetDescription
 		(
 			L"A list of pages with their corresponding page numbers."
@@ -2515,9 +2518,12 @@ void CPropertiesWnd::UpdateTableOfContents(CClimateExplorerDoc* pDoc)
 	{
 		// Remove existing sub-items
 		int subItemCount = m_pTableOfContents->GetSubItemsCount();
-		for (int i = subItemCount - 1; i >= 0; --i) // Remove from last to first
+
+		// Remove from last to first
+		for (int i = subItemCount - 1; i >= 0; --i) 
 		{
-			CMFCPropertyGridProperty* pSubItem = m_pTableOfContents->GetSubItem(0);
+			CMFCPropertyGridProperty* pSubItem = 
+				m_pTableOfContents->GetSubItem(0);
 			m_pTableOfContents->RemoveSubItem(pSubItem);
 			delete pSubItem; // Prevent memory leaks
 		}

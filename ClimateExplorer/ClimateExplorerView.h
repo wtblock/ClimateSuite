@@ -64,6 +64,11 @@ public:
 
 // protected data
 protected:
+	// vertical printer margin (top and bottom)
+	double m_dVerticalPrinterMargin;
+
+	// horizontal printer margin (left and right)
+	double m_dHorizontalPrinterMargin;
 
 // public properties
 public:
@@ -104,6 +109,91 @@ public:
 	// title height in logical pixels
 	__declspec(property(get = GetTitleHeight))
 		int TitleHeight;
+
+	// vertical printer margin (top and bottom)
+	double GetVerticalPrinterMargin()
+	{
+		return m_dVerticalPrinterMargin;
+	}
+	// vertical printer margin (top and bottom)
+	void SetVerticalPrinterMargin(double value)
+	{
+		m_dVerticalPrinterMargin = value;
+	}
+	// vertical printer margin (top and bottom)
+	__declspec
+	(
+		property
+		(
+			get = GetVerticalPrinterMargin, 
+			put = SetVerticalPrinterMargin
+		)
+	)
+	double VerticalPrinterMargin;
+
+	// vertical printer margin (top and bottom)
+	double GetHorizontalPrinterMargin()
+	{
+		return m_dHorizontalPrinterMargin;
+	}
+	// vertical printer margin (top and bottom)
+	void SetHorizontalPrinterMargin(double value)
+	{
+		m_dHorizontalPrinterMargin = value;
+	}
+	// vertical printer margin (top and bottom)
+	__declspec
+	(
+		property
+		(
+			get = GetHorizontalPrinterMargin, 
+			put = SetHorizontalPrinterMargin
+		)
+	)
+	double HorizontalPrinterMargin;
+
+	// The margin rectangle in inches
+	Gdiplus::RectF GetRealMargin();
+	// The margin rectangle in inches
+	__declspec(property(get = GetRealMargin))
+		Gdiplus::RectF RealMargin;
+
+	// The margin rectangle varies depending on the page
+	// number being an even or odd number. Even pages are
+	// on the left side of the printed book and odd pages
+	// are on the right side of the printed book
+	CRect GetMarginRectangle()
+	{
+		Gdiplus::RectF fRect = RealMargin;
+
+		CRect value
+		(
+			InchesToLogical(fRect.X),
+			InchesToLogical(fRect.Y),
+			InchesToLogical(fRect.X + fRect.Width),
+			InchesToLogical(fRect.Y + fRect.Height)
+		);
+
+		return value;
+	}
+	// The margin rectangle varies depending on the page
+	// number being an even or odd number. Even pages are
+	// on the left side of the printed book and odd pages
+	// are on the right side of the printed book
+	__declspec(property(get = GetMarginRectangle))
+		CRect MarginRectangle;
+
+	// logical margin offset that compensates for printer margins
+	CPoint GetMarginOffset()
+	{
+		int nX = InchesToLogical(HorizontalPrinterMargin);
+		int nY = InchesToLogical(VerticalPrinterMargin);
+		CPoint value(-nX, -nY);
+		return value;
+	}
+	// logical margin offset that compensates for printer margins
+	__declspec(property(get = GetMarginOffset))
+		CPoint MarginOffset;
 
 // protected methods
 protected:
@@ -282,18 +372,19 @@ public:
 	/////////////////////////////////////////////////////////////////////////////
 	void ExportDocument();
 
-	// protected overrides
+// protected overrides
 protected:
 	virtual void OnInitialUpdate(); // called first time after construct
 	virtual BOOL OnPreparePrinting(CPrintInfo* pInfo);
 	virtual void OnBeginPrinting(CDC* pDC, CPrintInfo* pInfo);
+	virtual void OnPrint(CDC* pDC, CPrintInfo* pInfo);
 	virtual void OnEndPrinting(CDC* pDC, CPrintInfo* pInfo);
 #ifdef _DEBUG
 	virtual void AssertValid() const;
 	virtual void Dump(CDumpContext& dc) const;
 #endif
 
-	// public overrides
+// public overrides
 public:
 	/////////////////////////////////////////////////////////////////////////////
 	// render
@@ -333,8 +424,11 @@ public:
 	//   • WS_EX_CLIENTEDGE restores classic scrollbar appearance.
 	/////////////////////////////////////////////////////////////////////////////
 	virtual BOOL PreCreateWindow(CREATESTRUCT& cs);
+	virtual void OnUpdate(CView* /*pSender*/, LPARAM /*lHint*/, CObject* /*pHint*/);
+	virtual void OnActivateView(BOOL bActivate, CView* pActivateView, CView* pDeactiveView);
+	virtual void OnEndPrintPreview(CDC* pDC, CPrintInfo* pInfo, POINT point, CPreviewView* pView);
 
-	// public constructor/destructor
+// public constructor/destructor
 public:
 	CClimateExplorerView() noexcept;
 	virtual ~CClimateExplorerView();
@@ -364,7 +458,6 @@ public:
 	afx_msg void OnUpdateBingMap(CCmdUI* pCmdUI);
 	afx_msg void OnGoogleMap();
 	afx_msg void OnUpdateGoogleMap(CCmdUI* pCmdUI);
-	virtual void OnUpdate(CView* /*pSender*/, LPARAM /*lHint*/, CObject* /*pHint*/);
 };
 
 /////////////////////////////////////////////////////////////////////////////

@@ -53,6 +53,8 @@ END_MESSAGE_MAP()
 /////////////////////////////////////////////////////////////////////////////
 CClimateExplorerView::CClimateExplorerView() noexcept
 {	
+	VerticalPrinterMargin = 0;
+	HorizontalPrinterMargin = 0;
 }
 
 /////////////////////////////////////////////////////////////////////////////
@@ -176,12 +178,47 @@ BOOL CClimateExplorerView::PreCreateWindow(CREATESTRUCT& cs)
 } // PreCreateWindow
 
 /////////////////////////////////////////////////////////////////////////////
+// The margin rectangle in inches
+Gdiplus::RectF CClimateExplorerView::GetRealMargin()
+{
+	Gdiplus::RectF value;
+	CClimateExplorerDoc* pDoc = GetDocument();
+	if (pDoc != nullptr)
+	{
+		const double dTopOfPage = pDoc->TopOfPage;
+		const double dBottomOfPage = pDoc->BottomOfPage;
+		const double dRightOfPage = pDoc->Width;
+
+		double dTopMargin = pDoc->TopMargin;
+		double dBottomMargin = pDoc->BottomMargin;
+		double dLeftMargin = pDoc->LeftMargin;
+		double dRightMargin = pDoc->RightMargin;
+
+		const REAL fTop = float(dTopOfPage + dTopMargin);
+		const REAL fBottom = float(dBottomOfPage - dBottomMargin);
+		const REAL fLeft = float(dLeftMargin);
+		const REAL fRight = float(dRightOfPage - dRightMargin);
+		value = Gdiplus::RectF(fLeft, fTop, fRight - fLeft, fBottom - fTop);
+
+		bool bPrinting = Printing;
+		if (bPrinting)
+		{
+			const double dMarginV = VerticalPrinterMargin;
+			const double dMarginH = HorizontalPrinterMargin;
+			value.Offset(-dMarginV, -dMarginH);
+		}
+	}
+
+	return value;
+} // GetRealMargin
+
+/////////////////////////////////////////////////////////////////////////////
 // RenderMargins
 //
 // Draws page margins and page boundary lines.
 //
 // Behavior:
-//   • Draws outer margin rectangle on page 1.
+//   • Draws outer margin rectangle on all pages.
 //   • Draws bottom‑of‑page line when not printing/exporting.
 //   • Uses logical inches for consistent layout across devices.
 /////////////////////////////////////////////////////////////////////////////
@@ -193,10 +230,6 @@ void CClimateExplorerView::RenderMargins
 {
 	CClimateExplorerDoc* pDoc = GetDocument();
 	const int nPage = pDoc->Page;
-	//if (nPage == 2)
-	//{
-	//	return;
-	//}
 
 	// save the entry state
 	const int nDC = pDC->SaveDC();
@@ -216,7 +249,7 @@ void CClimateExplorerView::RenderMargins
 	CPen* pPen = pDC->SelectObject(&penBorder);
 	CBrush* pOldBrush = (CBrush*)pDC->SelectStockObject(NULL_BRUSH);
 
-	CRect rect = pDoc->MarginRectangle;
+	CRect rect = MarginRectangle;
 	pDC->Rectangle(&rect);
 
 	double dBottomOfPage = pDoc->HeightOfPage * nPage;
@@ -233,6 +266,7 @@ void CClimateExplorerView::RenderMargins
 	shared_ptr<CPage> page = pDoc->CurrentPage;
 	if (page != nullptr)
 	{
+		page->MarginOffset = MarginOffset;
 		page->RenderImageRectangles(pDC);
 	}
 
@@ -308,7 +342,7 @@ void CClimateExplorerView::RenderHeader
 		DT_RIGHT | DT_WORDBREAK | DT_NOPREFIX | DT_NOCLIP;
 
 	// the text rectangle located in the top margin
-	CRect rect = pDoc->MarginRectangle;
+	CRect rect = MarginRectangle;
 	CRect rectText = rect;
 	rectText.bottom = rectText.top;
 	rectText.top -= nPoint12;
@@ -387,7 +421,7 @@ void CClimateExplorerView::RenderFooter
 		DT_CENTER | DT_WORDBREAK | DT_NOPREFIX | DT_NOCLIP;
 
 	// the text rectangle located in the top margin
-	CRect rect = pDoc->MarginRectangle;
+	CRect rect = MarginRectangle;
 	CRect rectText = rect;
 	rectText.top = rectText.bottom;
 	rectText.bottom += nPoint12;
@@ -453,7 +487,7 @@ void CClimateExplorerView::RenderTitlePage
 	CFont* pFont = pDC->SelectObject(&fontTitle);
 	COLORREF rgbOld = pDC->SetTextColor(RGB(0, 0, 0));
 
-	CRect rect = pDoc->MarginRectangle;
+	CRect rect = MarginRectangle;
 	CPoint ptCenter = rect.CenterPoint();
 	const UINT uiFormat =
 		DT_CENTER | DT_WORDBREAK | DT_NOPREFIX | DT_NOCLIP;
@@ -536,7 +570,7 @@ void CClimateExplorerView::RenderTableOfContentsPage
 	CFont* pFont = pDC->SelectObject(&fontTitle);
 	COLORREF rgbOld = pDC->SetTextColor(RGB(0, 0, 0));
 
-	CRect rect = pDoc->MarginRectangle;
+	CRect rect = MarginRectangle;
 
 	const UINT uiLeft =
 		DT_LEFT | DT_WORDBREAK | DT_NOPREFIX | DT_NOCLIP;
@@ -955,6 +989,9 @@ void CClimateExplorerView::RenderImagePage
 	const int nTopOfView = InchesToLogical(dTopOfView);
 	pDC->SetWindowOrg(nLeftOfView, nTopOfView);
 
+	// margin offset to account for printer margins if any
+	CPoint ptOffset = MarginOffset;
+
 	shared_ptr<CPage> page = pDoc->CurrentPage;
 	if (page != nullptr)
 	{
@@ -971,6 +1008,7 @@ void CClimateExplorerView::RenderImagePage
 			bool bSelected = pDoc->Selected[pairImage];
 
 			CRect imageRect = arrRectangles[nImage];
+
 			double dTop = LogicalToInches(imageRect.top);
 			double dBottom = LogicalToInches(imageRect.bottom);
 			if (dBottomOfView < dTop) // entire view is above rectangle
@@ -1045,6 +1083,7 @@ void CClimateExplorerView::RenderImagePage
 			}
 
 			// draw the image returned from the content
+			imageRect.OffsetRect(ptOffset);
 			DrawImageWithTitle
 			(
 				pDC, pContent, pImage, &imageRect, bSelected, ir
@@ -1428,8 +1467,32 @@ void CClimateExplorerView::OnInitialUpdate()
 /////////////////////////////////////////////////////////////////////////////
 void CClimateExplorerView::OnFilePrintPreview()
 {
+	CMainFrame* pFrame = (CMainFrame*)AfxGetMainWnd();
+	CPropertiesWnd* pProperties = pFrame->PropertiesPane;
+	pProperties->EnableWindow(FALSE);
+
 	AFXPrintPreview(this);
 }
+
+/////////////////////////////////////////////////////////////////////////////
+void CClimateExplorerView::OnEndPrintPreview
+(
+	CDC* pDC, CPrintInfo* pInfo, POINT pt, CPreviewView* pView
+)
+{
+	CBaseView::OnEndPrintPreview(pDC, pInfo, pt, pView);
+
+	CMainFrame* pFrame = (CMainFrame*)AfxGetMainWnd();
+	CPropertiesWnd* pProperties = pFrame->PropertiesPane;
+	pProperties->EnableWindow();
+
+	CClimateExplorerDoc* pDoc = GetDocument();
+	if (pDoc != nullptr)
+	{
+		pProperties->UpdatePropertiesFromDocument(pDoc);
+		pProperties->UpdateTableOfContents(pDoc);
+	}
+} // OnEndPrintPreview
 
 /////////////////////////////////////////////////////////////////////////////
 BOOL CClimateExplorerView::OnPreparePrinting(CPrintInfo* pInfo)
@@ -1441,12 +1504,86 @@ BOOL CClimateExplorerView::OnPreparePrinting(CPrintInfo* pInfo)
 /////////////////////////////////////////////////////////////////////////////
 void CClimateExplorerView::OnBeginPrinting(CDC* pDC, CPrintInfo* pInfo)
 {
-	CBaseView::OnBeginPrinting(pDC, pInfo);
+	//CBaseView::OnBeginPrinting(pDC, pInfo);
+	// setup the device context for our printer
+	SetPrintDC
+	(
+		pDC,
+		m_nPhysicalPageWidth,
+		m_nPhysicalPageHeight,
+		m_nLogicalPageWidth,
+		m_nLogicalPageHeight
+	);
+
+	Printing = true;
+
+	// height of the document in inches
+	const double dDocumentHeight = DocumentHeight;
+
+	// height of a page in inches
+	const double dPrinterPageHeight = LogicalToInches(m_nLogicalPageHeight);
+	
+	// width of a page in inches
+	const double dPrinterPageWidth = LogicalToInches(m_nLogicalPageWidth);
+	
+	// document page dimensions
+	const double dPageHeight = HeightOfPage;
+	const double dPageWidth = WidthOfPage;
+
+	// calculate the top and bottom printer margin
+	VerticalPrinterMargin =
+		(dPageHeight - dPrinterPageHeight) / 2;
+
+	// calculate the top and bottom printer margin
+	HorizontalPrinterMargin =
+		(dPageWidth - dPrinterPageWidth) / 2;
+
+	// number of printer pages
+	double dPages = dDocumentHeight / dPageHeight;
+
+	// add a page if there is a fraction of a page
+	m_nNumPages = (int)dPages;
+	if (!CHelper::NearlyEqual(double(m_nNumPages), dPages, 0.05))
+	{
+		m_nNumPages++; // account for fractional page
+	}
+
+	// let the print dialog know
+	pInfo->SetMinPage(1);
+	pInfo->SetMaxPage(m_nNumPages);
 }
+
+/////////////////////////////////////////////////////////////////////////////
+void CClimateExplorerView::OnPrint(CDC* pDC, CPrintInfo* pInfo)
+{
+	// unlike the base class where the number of pages have to be
+	// calculated, Climate Explorer is building pages and the number
+	// is already determined.
+	const double dPageHeight = HeightOfPage;
+	const double dPageWidth = WidthOfPage;
+
+	// when using the printer page height to calculate the number
+	// of pages, the margins of the printer cause the calculation
+	// to be out of sync with reality. This means the printer margins
+	// have to be taken into account when rendering the page.
+	const int nPage = (int)pInfo->m_nCurPage;
+	const double dTopOfPage = ((float)(nPage - 1)) * dPageHeight;
+	const double dBottomOfPage = dTopOfPage + dPageHeight;
+
+	// the same render method used to draw on the screen
+	render
+	(
+		pDC, 0.0, dTopOfPage, dPageWidth, dBottomOfPage
+	);
+
+} // OnPrint
 
 /////////////////////////////////////////////////////////////////////////////
 void CClimateExplorerView::OnEndPrinting(CDC* pDC, CPrintInfo* pInfo)
 {
+	VerticalPrinterMargin = 0;
+	HorizontalPrinterMargin = 0;
+
 	CBaseView::OnEndPrinting(pDC, pInfo);
 }
 
@@ -1935,13 +2072,49 @@ void CClimateExplorerView::OnUpdateFilePdf(CCmdUI* pCmdUI)
 /////////////////////////////////////////////////////////////////////////////
 void CClimateExplorerView::OnFileExportimages()
 {
-	// TODO: Add your command handler code here
+	CClimateExplorerDoc* pDoc = GetDocument();
+	pair<int, int> pairStart = pDoc->SelectedPairs.first;
+	
+	// the quality of the images in percent
+	ULONG ulQuality = pDoc->ExportQuality;
+
+	shared_ptr<CPageContent> pContent = pDoc->SelectedContent[pairStart];
+	if (pContent != nullptr)
+	{
+		CString csTitle = pContent->ContentTitle;
+		shared_ptr<Image> pImage = pContent->ImageContent;
+		if (pImage != nullptr)
+		{
+			CLSID clsidEncoder;
+			CImagePlus::GetEncoderClsid(L"image/png", &clsidEncoder);
+
+			CString csImage;
+			csImage.Format(L".\\Images\\%s.png", csTitle);
+
+			// JPEG quality parameter
+			Gdiplus::EncoderParameters params;
+			params.Count = 1;
+			params.Parameter[0].Guid = Gdiplus::EncoderQuality;
+			params.Parameter[0].Type = Gdiplus::EncoderParameterValueTypeLong;
+			params.Parameter[0].NumberOfValues = 1;
+			params.Parameter[0].Value = &ulQuality;
+			pImage->Save(csImage, &clsidEncoder, &params);
+		}
+	}
 } // OnFileExportimages
 
 /////////////////////////////////////////////////////////////////////////////
 void CClimateExplorerView::OnUpdateFileExportimages(CCmdUI* pCmdUI)
 {
-	OnUpdateFileExportPages(pCmdUI);
+	pCmdUI->Enable(FALSE);
+	if (::PathFileExists(L".\\Images\\"))
+	{
+		CClimateExplorerDoc* pDoc = GetDocument();
+		if (pDoc->SingleSelection)
+		{
+			pCmdUI->Enable();
+		}
+	}
 
 } // OnUpdateFileExportimages
 
@@ -2062,4 +2235,23 @@ void CClimateExplorerView::OnUpdate(CView* pSender, LPARAM lHint, CObject* pHint
 } // OnUpdate
 
 /////////////////////////////////////////////////////////////////////////////
+void CClimateExplorerView::OnActivateView
+(
+	BOOL bActivate, CView* pActivateView, CView* pDeactiveView
+)
+{
+	CBaseView::OnActivateView(bActivate, pActivateView, pDeactiveView);
+	if (bActivate)
+	{
+		CClimateExplorerDoc* pDoc = GetDocument();
+		if (pDoc != nullptr)
+		{
+			CMainFrame* pFrame = (CMainFrame*)AfxGetMainWnd();
+			CPropertiesWnd* pProperties = pFrame->PropertiesPane;
+			pProperties->UpdatePropertiesFromDocument(pDoc);
+			pProperties->UpdateTableOfContents(pDoc);
+		}
+	}
+} // OnActivateView
 
+/////////////////////////////////////////////////////////////////////////////

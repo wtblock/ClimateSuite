@@ -126,10 +126,6 @@ BEGIN
     BUTTON      ID_FILE_OPEN
     BUTTON      ID_FILE_SAVE
     SEPARATOR
-    BUTTON      ID_EDIT_CUT
-    BUTTON      ID_EDIT_COPY
-    BUTTON      ID_EDIT_PASTE
-    SEPARATOR
     BUTTON      ID_EDIT_DELETE
     SEPARATOR
     BUTTON      ID_EXECUTE_QUERY
@@ -264,7 +260,7 @@ BEGIN
     END
     POPUP "&Help"
     BEGIN
-        MENUITEM "&About Climate Explorer...",   ID_APP_ABOUT
+        MENUITEM "&About Climate Explorer...",  ID_APP_ABOUT
     END
 END
 
@@ -332,7 +328,7 @@ BEGIN
     END
     POPUP "&Help"
     BEGIN
-        MENUITEM "&About Climate Explorer...",   ID_APP_ABOUT
+        MENUITEM "&About Climate Explorer...",  ID_APP_ABOUT
     END
 END
 
@@ -528,8 +524,8 @@ END
 STRINGTABLE
 BEGIN
     IDR_MAINFRAME           "Climate Explorer"
-    IDR_CEX_TYPE "\nClimateXML\nClimate Explorer XML\nClimate Explorer XML (*.CEx)\n.CEx\nClimateExplorerX.Document\nClimate Explorer XML (CEx)"
-    IDR_CE_TYPE "\nClimateBinary\nClimate Explorer Binary\nClimate Explorer Files (*.CE)\n.CE\nClimateExplorer.Document\nClimate Explorer (CE)"
+    IDR_CEX_TYPE            "\nClimateXML\nClimate Explorer XML\nClimate Explorer XML (*.CEx)\n.CEx\nClimateExplorerX.Document\nClimate Explorer XML (CEx)"
+    IDR_CE_TYPE             "\nClimateBinary\nClimate Explorer Binary\nClimate Explorer Files (*.CE)\n.CE\nClimateExplorer.Document\nClimate Explorer (CE)"
     ID_WINDOW_MANAGER       "&Windows..."
 END
 
@@ -676,7 +672,7 @@ END
 
 STRINGTABLE
 BEGIN
-    ID_FILE_EXPORTIMAGES    "Export the the plots as individual images in the selected folder\nImages..."
+    ID_FILE_EXPORTIMAGES    "Export the selected content as an individual image into the images folder\nImage..."
     ID_FILE_EXPORTPAGES     "Export the pages of the document as individual images in the selected folder\nExport..."
     ID_FILE_PDF             "Export the book to a PDF\nPDF"
     ID_EXECUTE_QUERY        "Execute the current query defined in property panel\nExecute"

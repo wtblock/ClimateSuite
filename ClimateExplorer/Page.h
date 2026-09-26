@@ -108,6 +108,9 @@ protected:
 	// printed document.
 	CRect m_Rect;
 
+	// logical margin offset that compensates for printer margins
+	CPoint m_ptOffset;
+
 	// title of the page
 	CString m_csTitle;
 
@@ -347,6 +350,20 @@ public:
 	__declspec(property(get = GetMarginRectangle))
 		CRect MarginRectangle;
 
+	// logical margin offset that compensates for printer margins
+	CPoint GetMarginOffset()
+	{
+		CPoint value = m_ptOffset;
+		return value;
+	}
+	void SetMarginOffset(CPoint value)
+	{
+		m_ptOffset = value;
+	}
+	// logical margin offset that compensates for printer margins
+	__declspec(property(get = GetMarginOffset, put = SetMarginOffset))
+		CPoint MarginOffset;
+
 	// number of images on the page
 	UINT GetImageCount()
 	{
@@ -552,12 +569,16 @@ public:
 	// render the image rectangles
 	void RenderImageRectangles(CDC* pDC)
 	{
+		CPoint pt = MarginOffset;
 		vector<CRect> arrRect = Rectangles;
 
 		for (auto& rectPlot : arrRect )
 		{
+			rectPlot.OffsetRect(pt);
 			pDC->Rectangle(rectPlot);
 		}
+
+		MarginOffset = CPoint(0, 0);
 	}
 
 // protected overrides
