@@ -61,3 +61,22 @@
 #*.PDF   diff=astextplain
 #*.rtf   diff=astextplain
 #*.RTF   diff=astextplain
+
+###############################################################################
+# GitHub Linguist configuration for Climate Suite
+###############################################################################
+
+# Exclude third?party C libraries from GitHub Linguist language statistics
+md4c/* linguist-vendored
+miniz/* linguist-vendored
+sqlite/* linguist-vendored
+
+# Treat all .c files in these directories as vendored
+md4c/*.c linguist-vendored
+miniz/*.c linguist-vendored
+sqlite/*.c linguist-vendored
+
+# Ensure your own C++ code is counted normally
+*.cpp linguist-detectable
+*.h   linguist-detectable
+*.hpp linguist-detectable
