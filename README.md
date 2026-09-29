@@ -8,6 +8,19 @@ Climate Explorer includes a rich set of tools that make climate history easy to 
 
 Getting started is simple: download the Climate Suite ZIP file, extract it anywhere, and launch Climate Explorer (`ce.cmd`). The database is included, so you can begin exploring climate history immediately—no setup, no configuration, and no additional downloads required.
 
+### Running Unsigned Builds
+
+The Climate Suite executables are currently **not code‑signed**.  
+When you launch the application for the first time, Windows may show a SmartScreen warning.
+
+This is normal for independent open‑source software.
+
+To continue:
+1. Click **More info**
+2. Click **Run anyway**
+
+After this, the application will start normally.
+
 ## What You Can Do With Climate Explorer
 
 Climate Explorer lets you graph temperature trends, view interactive maps of station locations, create documents that combine images, graphs, and Markdown, and export your work as high‑resolution images or Kindle‑ready PDFs. Whether you want to study long‑term climate behavior or publish your own findings, the tools you need are built directly into the application.
