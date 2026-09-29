@@ -66,13 +66,14 @@
 # GitHub Linguist configuration for Climate Suite
 ###############################################################################
 
-# Mark third?party libraries as vendored (ignore for language statistics)
-Common/md4c/** linguist-vendored
-Common/miniz/** linguist-vendored
-Common/sqlite/** linguist-vendored
+# Vendor out all third?party code
+Common/** linguist-vendored
 
 # Treat all project headers as C++
 *.h linguist-language=C++
+
+# Treat all .c files as C++ unless vendored
+*.c linguist-language=C++
 
 # Ensure your own C++ code is counted normally
 *.cpp linguist-detectable
