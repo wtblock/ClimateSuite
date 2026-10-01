@@ -130,7 +130,7 @@ void CPageImage::WriteXml(IXmlWriter* pWriter, int nPage, int nItem)
 /////////////////////////////////////////////////////////////////////////////
 // CPageImage::ReadXml
 /////////////////////////////////////////////////////////////////////////////
-void CPageImage::ReadXml(IXmlReader* pReader)
+void CPageImage::ReadXml(IXmlReader* pReader, int /*nPage = 0*/, int /*nItem = 0*/)
 {
 	HRESULT hr = S_OK;
 	XmlNodeType nodeType = XmlNodeType_None;

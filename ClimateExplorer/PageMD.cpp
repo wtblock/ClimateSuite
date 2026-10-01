@@ -82,14 +82,18 @@ void CPageMD::WriteXml(IXmlWriter* pWriter, int nPage, int nItem)
 	auto pZip = m_pDoc->ZipWriter;
 	if (pZip && pZip->IsOpen)
 	{
-		// Compute CE filenames
-		CString csImageFilename;
-		csImageFilename.Format
-		(
-			L"Markdown/Page_%04u_Markdown_%02u.png",
-			nPage,
-			nItem
-		);
+		vector<CString> arrImages = ImageReferences;
+		for (auto& path : arrImages)
+		{
+			if (::PathFileExists(path))
+			{
+				shared_ptr<CImagePlus> pIP = make_shared<CImagePlus>(CImagePlus());
+				if (pIP->Open(path))
+				{
+					m_pDoc->MarkdownImage[path] = pIP;
+				}
+			}
+		}
 
 		CString csTextFilename;
 		csTextFilename.Format
@@ -99,38 +103,12 @@ void CPageMD::WriteXml(IXmlWriter* pWriter, int nPage, int nItem)
 			nItem
 		);
 
-		// <ImagePath>
-		hr = pWriter->WriteStartElement(nullptr, L"ImagePath", nullptr);
-		if (FAILED(hr)) return;
-		hr = pWriter->WriteString(csImageFilename);
-		if (FAILED(hr)) return;
-		hr = pWriter->WriteEndElement();
-
 		// <MdPath>
 		hr = pWriter->WriteStartElement(nullptr, L"MdPath", nullptr);
 		if (FAILED(hr)) return;
 		hr = pWriter->WriteString(csTextFilename);
 		if (FAILED(hr)) return;
 		hr = pWriter->WriteEndElement();
-
-		// -------------------------------------------------------------
-		// Write PNG to ZIP
-		// -------------------------------------------------------------
-		if (ImageContent != nullptr)
-		{
-			std::vector<BYTE> pngBytes;
-			bool bOK = CHelper::EncodeBitmapToMemory
-			(
-				static_cast<Gdiplus::Bitmap*>(ImageContent.get()),
-				L"image/png",
-				pngBytes
-			);
-
-			if (bOK)
-			{
-				pZip->AddFile(csImageFilename, pngBytes.data(), pngBytes.size());
-			}
-		}
 
 		// -------------------------------------------------------------
 		// Write .md text file to ZIP (UTF‑8)
@@ -153,7 +131,7 @@ void CPageMD::WriteXml(IXmlWriter* pWriter, int nPage, int nItem)
 /////////////////////////////////////////////////////////////////////////////
 // CPageMD::ReadXml
 /////////////////////////////////////////////////////////////////////////////
-void CPageMD::ReadXml(IXmlReader* pReader)
+void CPageMD::ReadXml(IXmlReader* pReader, int nPage/* = 0*/, int nItem/* = 0*/)
 {
 	HRESULT hr = S_OK;
 	XmlNodeType nodeType = XmlNodeType_None;
@@ -266,26 +244,6 @@ void CPageMD::ReadXml(IXmlReader* pReader)
 
 			continue;
 		}
-
-		// ---------------------------------------------------------
-		// CE-only: <ImagePath>Markdown/Page_XXXX_Markdown_YY.png</ImagePath>
-		// ---------------------------------------------------------
-		if (wcscmp(name, L"ImagePath") == 0)
-		{
-			XmlNodeType ntText;
-			hr = pReader->Read(&ntText);
-
-			if (SUCCEEDED(hr) && ntText == XmlNodeType_Text)
-			{
-				const WCHAR* pwszText = nullptr;
-				pReader->GetValue(&pwszText, nullptr);
-
-				if (pwszText)
-					csImagePath = pwszText;
-			}
-
-			continue;
-		}
 	}
 
 	// ---------------------------------------------------------
@@ -305,15 +263,45 @@ void CPageMD::ReadXml(IXmlReader* pReader)
 
 		if (pZip->IsOpen)
 		{
-			std::vector<uint8_t> bytes;
+			CString csTextFilename;
+			csTextFilename.Format
+			(
+				L"Markdown/Page_%04u_Markdown_%02u.md",
+				nPage,
+				nItem
+			);
 
-			if (pZip->ExtractFile(csTextPath, bytes))
+			std::vector<uint8_t> bytes;
+			if (pZip->ExtractFile(csTextFilename, bytes))
 			{
 				// Convert UTF‑8 → UTF‑16 using your helper
 				std::string utf8(bytes.begin(), bytes.end());
 				CString csUtf16 = CHelper::Utf8ToUtf16(utf8.data(), utf8.size());
 
 				Markdown = csUtf16;
+				vector<CString> arrImages = ImageReferences;
+				for (auto& path : arrImages)
+				{
+					// zip path does not user relative notation
+					CString csZip = path;
+					csZip.TrimLeft(L".\\");
+
+					std::vector<uint8_t> bytes;
+
+					if (pZip->ExtractFile(csZip, bytes))
+					{
+						IStream* pStream = SHCreateMemStream(bytes.data(),
+							(UINT)bytes.size());
+						if (pStream)
+						{
+							shared_ptr<CImagePlus> pIP = make_shared<CImagePlus>(CImagePlus());
+							if (pIP->Open(pStream))
+							{
+								m_pDoc->MarkdownImage[path] = pIP;
+							}
+						}
+					}
+				}
 			}
 		}
 	}

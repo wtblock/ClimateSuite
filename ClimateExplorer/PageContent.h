@@ -185,7 +185,7 @@ protected:
 // public overrides
 public:
 	virtual void WriteXml(IXmlWriter* pWriter, int nPage=0, int nItem=0) = 0;
-	virtual void ReadXml(IXmlReader* pReader) = 0;
+	virtual void ReadXml(IXmlReader* pReader, int nPage=0, int nItem=0) = 0;
 
 public:
 	CPageContent()

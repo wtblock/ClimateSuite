@@ -169,7 +169,7 @@ public:
 	// Shell only — does nothing yet.
 	// Will be implemented during the serialization refactor.
 	///////////////////////////////////////////////////////////////////////////
-	virtual void ReadXml(IXmlReader* pReader) override;
+	virtual void ReadXml(IXmlReader* pReader, int nPage = 0, int nItem = 0) override;
 
 public:
 	///////////////////////////////////////////////////////////////////////////

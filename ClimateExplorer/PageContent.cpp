@@ -15,7 +15,7 @@ void CPageContent::WriteXml
 } // WriteXml
 
 /////////////////////////////////////////////////////////////////////////////
-void CPageContent::ReadXml(IXmlReader* pReader)
+void CPageContent::ReadXml(IXmlReader* pReader, int /*nPage = 0*/, int /*nItem = 0*/)
 {
 	// Placeholder — no-op
 } // ReadXml

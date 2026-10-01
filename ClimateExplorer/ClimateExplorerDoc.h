@@ -96,11 +96,9 @@ protected:
 	// collection of pages containing image names and rectangles
 	CSmartArray<CPage> m_arrPages;
 
-	/////////////////////////////////////////////////////////////////////////////
-	// New architecture (disabled for now)
-	/////////////////////////////////////////////////////////////////////////////
-	// std::vector<std::shared_ptr<CPage>> m_arrPagesEx;
-	
+	// a collection of images linked to in markdown files
+	CKeyedCollection<CString, CImagePlus> m_keyMarkdownImages;
+
 	// selected images where the first pair is the start page
 	// and image number (0..3) and the second pair is the end 
 	// page and image number. If start and end are the same, 
@@ -359,6 +357,28 @@ protected:
 
 // public properties
 public:
+	// image referenced in a markdown file 
+	shared_ptr<CImagePlus> GetMarkdownImage(CString key)
+	{
+		shared_ptr<CImagePlus> value;
+		if (m_keyMarkdownImages.Exists[key])
+		{
+			value = m_keyMarkdownImages.find(key);
+		}
+		return value;
+	}
+	// image referenced in a markdown file 
+	void SetMarkdownImage(CString key, shared_ptr<CImagePlus> value)
+	{
+		if (!m_keyMarkdownImages.Exists[key])
+		{
+			m_keyMarkdownImages.add(key, value);
+		}
+	}
+	// image referenced in a markdown file 
+	__declspec(property(get = GetMarkdownImage, put = SetMarkdownImage))
+		shared_ptr<CImagePlus> MarkdownImage[];
+
 	// get a pointer to the zip reader
 	shared_ptr<CZipReader> GetZipReader()
 	{
@@ -2587,6 +2607,12 @@ protected:
 
 // public methods
 public:
+	// clear the collection of markdown image references
+	void ClearMarkdownImages()
+	{
+		m_keyMarkdownImages.clear();
+	}
+
 	// Main function to generate Google Maps link
 	CString GenerateMapLink(double dLat, double dLong, bool bBing = true);
 

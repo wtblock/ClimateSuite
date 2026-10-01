@@ -107,7 +107,7 @@ void CPageGraph::WriteXml
 /////////////////////////////////////////////////////////////////////////////
 // CPageGraph::ReadXml
 /////////////////////////////////////////////////////////////////////////////
-void CPageGraph::ReadXml(IXmlReader* pReader)
+void CPageGraph::ReadXml(IXmlReader* pReader, int /*nPage = 0*/, int /*nItem = 0*/)
 {
 	// Ensure we have a plot when called from CPage::ReadXml
 	if (m_pPlot == nullptr && m_pDoc != nullptr)

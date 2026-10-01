@@ -373,7 +373,7 @@ void CPageMap::WriteXml(IXmlWriter* pWriter, int nPage, int nItem)
 /////////////////////////////////////////////////////////////////////////////
 // CPageMap::ReadXml
 /////////////////////////////////////////////////////////////////////////////
-void CPageMap::ReadXml(IXmlReader* pReader)
+void CPageMap::ReadXml(IXmlReader* pReader, int /*nPage = 0*/, int /*nItem = 0*/)
 {
 	HRESULT hr = S_OK;
 	XmlNodeType nodeType = XmlNodeType_None;

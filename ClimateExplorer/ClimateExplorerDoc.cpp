@@ -285,9 +285,52 @@ BOOL CClimateExplorerDoc::WriteXml(CComPtr<IStream> pStream)
 
 	pWriter->WriteStartElement(nullptr, L"PageEx", nullptr);
 
+	// launch the progress dialog
+	CThumbnailDialog dlg;
+
+	// prepare the progress dialog
+	theApp.OnIdle(0);
+	CMainFrame* pFrame = (CMainFrame*)AfxGetMainWnd();
+
+	int nPages = Pages;
+	int nPage = 0;
+	bool bAbort = false;
+	dlg.Parent = pFrame;
+	dlg.CreateDlg();
+	dlg.ShowWindow(SW_SHOW);
+	CString csDialogTitle;
+	csDialogTitle.Format(L"Writing %d pages", nPages);
+
+	dlg.SetWindowText(csDialogTitle);
+	dlg.Objects = L"Pages";
+
+	dlg.TotalImages = (int)nPages;
+
 	for (auto& pPage : m_arrPages.Items)
 	{
+		nPage = pPage->Page;
 		pPage->WriteXml(pWriter);
+
+		// let the user cancel out
+		if (dlg.Cancel)
+		{
+			bAbort = true;
+			break;
+		}
+
+		// update the progress dialog's status
+		dlg.CurrentImage = nPage;
+
+		// wait one millisecond while letting normal 
+		// window messaging run
+		pFrame->Wait(1);
+	}
+
+	// close the progress dialog
+	if (dlg.m_hWnd != nullptr)
+	{
+		// done with the progress dialog
+		dlg.DestroyWindow();
 	}
 
 	pWriter->WriteEndElement(); // </PageEx>
@@ -333,6 +376,9 @@ BOOL CClimateExplorerDoc::SaveCEx(CString& csPath)
 BOOL CClimateExplorerDoc::SaveCE(const CString& csPath)
 {
 	BOOL value = FALSE;
+
+	// clear the collection of markdown image references
+	ClearMarkdownImages();
 
 	// -------------------------------------------------------------
 	// Make sure we are not holding the zip file open
@@ -388,6 +434,27 @@ BOOL CClimateExplorerDoc::SaveCE(const CString& csPath)
 		// Add XML file to ZIP
 		// -------------------------------------------------------------
 		pZip->AddFile(L"ClimateExplorer.xml", xmlBytes.data(), xmlBytes.size());
+
+		// images referenced in markdown files
+		for (auto& image : m_keyMarkdownImages.Items)
+		{
+			CString csPath = image.first;
+			csPath.TrimLeft(L".\\");
+			shared_ptr<CImagePlus> pImage = image.second;
+
+			std::vector<BYTE> pngBytes;
+			bool bOK = CHelper::EncodeBitmapToMemory
+			(
+				pImage->BitmapPlus.get(),
+				L"image/png",
+				pngBytes
+			);
+
+			if (bOK)
+			{
+				pZip->AddFile(csPath, pngBytes.data(), pngBytes.size());
+			}
+		}
 	}
 
 	// Cleanup
@@ -1203,6 +1270,9 @@ BOOL CClimateExplorerDoc::LoadCE(const CString& csPath)
 {
 	BOOL value = FALSE;
 
+	// clear the collection of markdown image references
+	ClearMarkdownImages();
+
 	// -------------------------------------------------------------
 	// Open CE ZIP file
 	// -------------------------------------------------------------
@@ -1242,6 +1312,17 @@ BOOL CClimateExplorerDoc::LoadCE(const CString& csPath)
 
 	// read the ClimateExplorer.xml from the zip file
 	value = ReadXml(pStream);
+
+	// images referenced in markdown files
+	for (auto& image : m_keyMarkdownImages.Items)
+	{
+		CString csPath = image.first;
+		shared_ptr<CImagePlus> pImage = image.second;
+		if (!::PathFileExists(csPath))
+		{
+			pImage->Save(csPath);
+		}
+	}
 
 	return value;
 } // LoadCE

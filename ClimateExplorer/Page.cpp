@@ -429,7 +429,9 @@ void CPage::ReadXml(IXmlReader* pReader)
 
 		if (pContent != nullptr)
 		{
-			pContent->ReadXml(pReader);
+			int nPage = Page;
+			int nItem = m_arrContent.Count + 1;
+			pContent->ReadXml(pReader, nPage, nItem);
 			CString csTitle = pContent->ContentTitle;
 			m_arrContent.add(csTitle, pContent, true);
 		}

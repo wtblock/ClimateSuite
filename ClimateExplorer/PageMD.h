@@ -53,6 +53,49 @@ public:
 	__declspec(property(get = GetMarkdown, put = SetMarkdown))
 		CString Markdown;
 
+	// get paths to images in the markdown
+	std::vector<CString> GetImageReferences()
+	{
+		std::vector<CString> value;
+		int nMD = 0;
+		CString csLine = m_csMarkdown.Tokenize(L"\n\r", nMD);
+		while (!csLine.IsEmpty())
+		{
+			csLine.TrimLeft(L" \t");
+			if (csLine.Left(2) == L"![")
+			{
+				// if there is not text between the brackets
+				bool bNoAlt = csLine.Left(4) == L"![](";
+
+				// parse the pathname
+				int nLine = 0;
+				CString csAlt = csLine.Tokenize(L"![]()", nLine);
+				if (!csAlt.IsEmpty())
+				{
+					CString csPath;
+					if (bNoAlt)
+					{
+						csPath = csAlt;
+					}
+					else
+					{
+						csPath = csLine.Tokenize(L"![]()", nLine);
+					}
+
+					if (!csPath.IsEmpty())
+					{
+						value.push_back(csPath);
+					}
+				}
+			}
+			csLine = m_csMarkdown.Tokenize(L"\n\r", nMD);
+		}
+		return value;
+	}
+	// get paths to images in the markdown
+	__declspec(property(get = GetImageReferences))
+		std::vector<CString> ImageReferences;
+
 // public override methods
 public:
 	///////////////////////////////////////////////////////////////////////////
@@ -72,7 +115,7 @@ public:
 	// Shell only — does nothing yet.
 	// Will be implemented during the serialization refactor.
 	///////////////////////////////////////////////////////////////////////////
-	virtual void ReadXml(IXmlReader* pReader) override;
+	virtual void ReadXml(IXmlReader* pReader, int nPage = 0, int nItem = 0) override;
 
 public:
 	///////////////////////////////////////////////////////////////////////////

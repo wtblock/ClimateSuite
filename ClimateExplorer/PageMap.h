@@ -199,7 +199,7 @@ public:
 		int nItem = 0
 	) override;
 
-	virtual void ReadXml(IXmlReader* pReader) override;
+	virtual void ReadXml(IXmlReader* pReader, int nPage = 0, int nItem = 0) override;
 
 // public constructor/destructor
 public:
