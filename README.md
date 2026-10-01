@@ -29,7 +29,7 @@ Climate Explorer lets you graph temperature trends, view interactive maps of sta
 
 A short YouTube video provides a quick walkthrough of Climate Explorer, showing how to navigate the database, view maps, generate graphs, and create documents. It’s the fastest way to see the core features in action before exploring on your own.
 
-![Climate Explorer Video](https://img.youtube.com/viAdCsyUhw8uc/0.jpg)](https://youtu.be/AdCsyUhw8uc)
+[![Video Thumbnail](https://img.youtube.com/vi/AdCsyUhw8uc/0.jpg)](https://youtu.be/AdCsyUhw8uc)
 
 ## Learn More
 
