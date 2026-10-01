@@ -8,6 +8,8 @@ Climate Explorer includes a rich set of tools that make climate history easy to 
 
 Getting started is simple: download the Climate Suite ZIP file, extract it anywhere, and launch Climate Explorer (`ce.cmd`). The database is included, so you can begin exploring climate history immediately—no setup, no configuration, and no additional downloads required.
 
+[![Video Thumbnail](https://img.youtube.com/vi/7SYEbimxDUs/0.jpg)](https://youtu.be/7SYEbimxDUs)
+
 ### Running Unsigned Builds
 
 The Climate Suite executables are currently **not code‑signed**.  
