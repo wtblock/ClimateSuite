@@ -15,7 +15,7 @@ Getting started is simple: download the Climate Suite ZIP file, extract it anywh
 The Climate Suite executables are currently **not code‑signed**.  
 When you launch the application for the first time, Windows may show a SmartScreen warning.
 
-This is normal for independent open‑source software.
+This is normal for independent open‑source software. I am giving away three months of my time, and it does not make sense to pay one to two hundred dollars a year for signing certificate. As long as you download the software from this site, you know it came from me.
 
 To continue:
 1. Click **More info**
