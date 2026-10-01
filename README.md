@@ -29,9 +29,7 @@ Climate Explorer lets you graph temperature trends, view interactive maps of sta
 
 A short YouTube video provides a quick walkthrough of Climate Explorer, showing how to navigate the database, view maps, generate graphs, and create documents. It’s the fastest way to see the core features in action before exploring on your own.
 
-<!-- 
-[![Video Thumbnail](https://img.youtube.com/vi/VIDEO_ID/0.jpg)](https://youtu.be/VIDEO_ID)
--->
+[!Climate Explorer Video](https://img.youtube.com/viAdCsyUhw8uc/0.jpg)](https://youtu.be/AdCsyUhw8uc)
 
 ## Learn More
 
@@ -40,10 +38,6 @@ The sections below provide a brief overview of the workspace layout, optional co
 ## Workspace Model
 
 Climate Suite uses a self‑contained workspace design: everything you need is included in the ZIP file, and all tools run directly from the extracted folder. There is no installation process, no registry changes, and no system configuration required. This makes the suite fully portable—easy to move, back up, or place on any drive.
-
-## Folder Structure
-
-After extracting the ZIP file, the Climate Suite workspace looks like this:
 
 ## Folder Structure
 
