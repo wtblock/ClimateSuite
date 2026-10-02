@@ -8,12 +8,14 @@ Climate Explorer includes a rich set of tools that make climate history easy to 
 
 Getting started is simple: download the Climate Suite ZIP file, extract it anywhere, and launch Climate Explorer (`ce.cmd`). The database is included, so you can begin exploring climate history immediately—no setup, no configuration, and no additional downloads required.
 
+[![Video Thumbnail](https://img.youtube.com/vi/7SYEbimxDUs/0.jpg)](https://youtu.be/7SYEbimxDUs)
+
 ### Running Unsigned Builds
 
 The Climate Suite executables are currently **not code‑signed**.  
 When you launch the application for the first time, Windows may show a SmartScreen warning.
 
-This is normal for independent open‑source software.
+This is normal for independent open‑source software. I am giving away three months of my time, and it does not make sense to pay one to two hundred dollars a year for signing certificate. As long as you download the software from this site, you know it came from me.
 
 To continue:
 1. Click **More info**
@@ -29,9 +31,7 @@ Climate Explorer lets you graph temperature trends, view interactive maps of sta
 
 A short YouTube video provides a quick walkthrough of Climate Explorer, showing how to navigate the database, view maps, generate graphs, and create documents. It’s the fastest way to see the core features in action before exploring on your own.
 
-<!-- 
-[![Video Thumbnail](https://img.youtube.com/vi/VIDEO_ID/0.jpg)](https://youtu.be/VIDEO_ID)
--->
+[![Video Thumbnail](https://img.youtube.com/vi/AdCsyUhw8uc/0.jpg)](https://youtu.be/AdCsyUhw8uc)
 
 ## Learn More
 
@@ -40,10 +40,6 @@ The sections below provide a brief overview of the workspace layout, optional co
 ## Workspace Model
 
 Climate Suite uses a self‑contained workspace design: everything you need is included in the ZIP file, and all tools run directly from the extracted folder. There is no installation process, no registry changes, and no system configuration required. This makes the suite fully portable—easy to move, back up, or place on any drive.
-
-## Folder Structure
-
-After extracting the ZIP file, the Climate Suite workspace looks like this:
 
 ## Folder Structure
 
