@@ -32,7 +32,8 @@ protected:
 	///////////////////////////////////////////////////////////////////////////
 	CClimateExplorerDoc* m_pDoc;
 
-	CString m_csMarkdown;   // raw markdown text
+	// raw markdown text
+	CString m_csMarkdown;   
 
 // public properties
 public:

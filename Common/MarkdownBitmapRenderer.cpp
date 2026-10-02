@@ -720,12 +720,13 @@ void CMarkdownBitmapRenderer::DrawText(const CString& text)
 	if (InlineCode)
 	{
 		bBackground = true;
-		colorFG = Color::Silver;
+		colorFG = Color::Gray;
 		colorBG = Color::Silver;
 		nStyle = FontStyleRegular;
-		fSize = 12.0f;
+		//pFont = make_shared<Gdiplus::Font>
+		//	(L"Consolas", fSize, nStyle, UnitPoint);
 		pFont = make_shared<Gdiplus::Font>
-			(L"Consolas", fSize, nStyle, UnitPoint);
+			(&ff, fSize, nStyle, UnitPoint);
 	}
 	else
 	{

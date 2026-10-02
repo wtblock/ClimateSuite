@@ -350,7 +350,7 @@ void CPageMD::ReadXml(IXmlReader* pReader, int nPage/* = 0*/, int nItem/* = 0*/)
 
 					if (pImg)
 					{
-						m_pImageContent = shared_ptr<Gdiplus::Image>(pImg);
+						ImageContent = shared_ptr<Gdiplus::Image>(pImg);
 						return;
 					}
 				}
@@ -361,7 +361,7 @@ void CPageMD::ReadXml(IXmlReader* pReader, int nPage/* = 0*/, int nItem/* = 0*/)
 	// ---------------------------------------------------------
 	// If CE image not present, Markdown will render lazily on demand
 	//
-	// (m_pImageContent stays null; GetImageContent() will render)
+	// (ImageContent stays null; GetImageContent() will render)
 	// ---------------------------------------------------------
 
 } // ReadXml
@@ -381,7 +381,7 @@ shared_ptr<Gdiplus::Image> CPageMD::GetImageContent()
 	// ---------------------------------------------------------
 	// Load markdown text if not already loaded
 	// ---------------------------------------------------------
-	if (m_csMarkdown.IsEmpty())
+	if (Markdown.IsEmpty())
 	{
 		CString csPath = ContentPath;
 
@@ -396,12 +396,12 @@ shared_ptr<Gdiplus::Image> CPageMD::GetImageContent()
 				csText += L"\r\n";
 			}
 
-			m_csMarkdown = csText;
+			Markdown = csText;
 		}
 	}
 
 	// still empty → nothing to render
-	if (m_csMarkdown.IsEmpty())
+	if (Markdown.IsEmpty())
 	{
 		return nullptr;
 	}
@@ -446,7 +446,7 @@ shared_ptr<Gdiplus::Image> CPageMD::GetImageContent()
 
 	CMarkdownParser parser;
 	parser.Renderer = pRenderer;
-	parser.Markdown = m_csMarkdown;
+	parser.Markdown = Markdown;
 
 	parser.Parse();
 

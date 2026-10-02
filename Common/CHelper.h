@@ -1478,6 +1478,37 @@ public:
 		return ReadText(csPath, csEncoding);
 	}
 
+	/////////////////////////////////////////////////////////////////////////////
+	// WriteTextAuto
+	// ----------------
+	// Writes text using the same encoding detected by DetectEncoding().
+	// Preserves:
+	//   • UTF-8 with BOM
+	//   • UTF-8 without BOM
+	//   • UTF-16 LE
+	//   • UTF-16 BE
+	//   • ANSI
+	/////////////////////////////////////////////////////////////////////////////
+	static inline bool WriteTextAuto(const CString& csPath, const CString& csText)
+	{
+		CString csEncoding = DetectEncoding(csPath);
+
+		FILE* pFile = nullptr;
+		CString csMode;
+		csMode.Format(L"wt, ccs=%s", (LPCTSTR)csEncoding);
+
+		errno_t e = ::_wfopen_s(&pFile, csPath, csMode);
+		if (e != 0 || !pFile)
+			return false;
+
+		CStdioFile file(pFile);
+
+		// Write the entire cleaned text
+		file.WriteString(csText);
+
+		::fclose(pFile);
+		return true;
+	} // WriteTextAuto
 
 	/////////////////////////////////////////////////////////////////////////////
 	// returns a vector of all words separated by spaces (default) in the given

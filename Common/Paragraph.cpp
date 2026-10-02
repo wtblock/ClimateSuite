@@ -340,13 +340,15 @@ void CParagraph::DrawInlineCodeBackground
 
 	// padding around inline code
 	const double fPadX = 0.05;
-	const double fPadY = 0.02;
+
+	// removing the font's existing padding
+	const double fPadY = 0.04;
 
 	double fLeftInches = dX /*+ fIndentInches*/ - fPadX;
-	double fTopInches = dY - fPadY;
+	double fTopInches = dY + fPadY;
 
 	double fWidth = fWidthInches + (2 * fPadX);
-	double fHeight = fHeightInches + (2 * fPadY);
+	double fHeight = fHeightInches - (2 * fPadY);
 
 	Gdiplus::RectF rcInches
 	(
