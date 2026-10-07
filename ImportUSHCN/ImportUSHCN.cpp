@@ -300,7 +300,7 @@ int _tmain(int argc, TCHAR* argv[], TCHAR* envp[])
 		fErr.WriteString(L".\n");
 		fErr.WriteString
 		(
-			L"ClimateUSHCN, Copyright (c) 2026, "
+			L"ImportUSHCN, Copyright (c) 2026, "
 			L"by W. T. Block.\n"
 		);
 
@@ -317,7 +317,7 @@ int _tmain(int argc, TCHAR* argv[], TCHAR* envp[])
 			L".\n"
 			L"Usage:\n"
 			L".\n"
-			L".  ClimateUSHCN pathname [station_file_name]\n"
+			L".  ImportUSHCN pathname [station_file_name]\n"
 			L".\n"
 			L"Where:\n"
 			L".\n"

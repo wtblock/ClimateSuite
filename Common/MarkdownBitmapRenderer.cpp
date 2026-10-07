@@ -829,6 +829,11 @@ void CMarkdownBitmapRenderer::OnParagraphEnd()
 		// draw the table
 		m_table.Draw();
 
+		double dY = YInches;
+		double dHeight = m_table.Height;
+		dY += dHeight;
+		YInches = dY;
+
 		// clean up
 		InTable = false;
 		InTableHeading = false;

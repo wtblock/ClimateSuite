@@ -492,6 +492,18 @@ public:
 	void Clear()
 	{
 		m_arrRows.clear();
+		m_arrJustify.clear();
+		TableGraphics = nullptr;
+		TableFont = nullptr;
+		Left = 0;
+		Top = 0;
+		Width = 0;
+		Height = 0;
+		Dpi = 0;
+		BorderWidth = 10.0; // pixels
+		ColorBG = Color::White;
+		ColorHeadingBG = Color::Silver;
+		ColorFG = Color::Black;
 	}
 
 // protected overrides
@@ -504,17 +516,7 @@ public:
 public:
 	CTableMD()
 	{
-		TableGraphics = nullptr;
-		TableFont = nullptr;
-		Left = 0;
-		Top = 0;
-		Width = 0;
-		Height = 0;
-		Dpi = 0;
-		BorderWidth = 10.0; // pixels
-		ColorBG = Color::White;
-		ColorHeadingBG = Color::Silver;
-		ColorFG = Color::Black;
+		Clear();
 	}
 	~CTableMD()
 	{

@@ -342,7 +342,7 @@ void CParagraph::DrawInlineCodeBackground
 	const double fPadX = 0.05;
 
 	// removing the font's existing padding
-	const double fPadY = 0.04;
+	const double fPadY = 0.05;
 
 	double fLeftInches = dX /*+ fIndentInches*/ - fPadX;
 	double fTopInches = dY + fPadY;
@@ -364,9 +364,9 @@ void CParagraph::DrawInlineCodeBackground
 	SolidBrush brush(colorBG); // GitHub inline code bg
 	m_pGraphics->FillRectangle(&brush, rcPixels);
 
-	// border
-	Pen pen(colorFG, 10.0f); // GitHub inline code border
-	m_pGraphics->DrawRectangle(&pen, rcPixels);
+	//// border
+	//Pen pen(colorFG, 10.0f); // GitHub inline code border
+	//m_pGraphics->DrawRectangle(&pen, rcPixels);
 
 } // DrawInlineCodeBackground
 
