@@ -7,6 +7,7 @@
 #include "ClimateExplorerDoc.h"
 #include "ClimateExplorerView.h"
 #include "MainFrm.h"
+#include <afxdockingmanager.h>
 
 #ifdef _DEBUG
 #define new DEBUG_NEW
@@ -192,6 +193,11 @@ int CMainFrame::OnCreate(LPCREATESTRUCT lpCreateStruct)
 			CMFCToolBar::SetUserImages(&m_UserImages);
 		}
 	}
+
+	//m_wndProperties.m_nSlideSteps = 1;
+	//m_wndProperties.m_nTimeOutBeforeAutoHide = 1;
+	m_wndProperties.m_bDisableAnimation = TRUE;
+	m_wndOutput.m_bDisableAnimation = TRUE;
 
 	// enable menu personalization (most-recently used commands)
 	// TODO: define your own basic commands, ensuring that each pulldown menu has at least one basic command.
