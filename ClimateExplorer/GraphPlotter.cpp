@@ -2096,6 +2096,8 @@ void CGraphPlotter::DrawTitle
 
 	// modify the title to indicate the running avg line's presense and color
 	// on a second line
+	CString csSubType = Subtype;
+	if (csSubType != L"Stations")
 	{
 		SolidBrush br
 		(

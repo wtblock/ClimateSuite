@@ -910,7 +910,7 @@ public:
 	// bottom margin in inches
 	double GetBottomMargin()
 	{
-		return 0.5;
+		return m_dBottomMargin;
 	}
 	// bottom margin in inches
 	void SetBottomMargin(double value)
@@ -924,7 +924,7 @@ public:
 	// inside margin in inches
 	double GetInsideMargin()
 	{
-		return 0.6;
+		return m_dInsideMargin;
 	}
 	// inside margin in inches
 	void SetInsideMargin(double value)
@@ -2098,8 +2098,17 @@ public:
 	{
 		double dTitle = TitleFontSizePoints;
 		dTitle /= 72; // points to inches
-
-		double value = dTitle * 3;
+		CString csSubtype = Subtype;
+		const bool bStations = csSubtype == L"Stations";
+		double value = dTitle;
+		if (bStations)
+		{
+			value *= 2;
+		}
+		else
+		{
+			value *= 3;
+		}
 		TopPaddingInches = value;
 		return m_fTopPaddingInches;
 	}

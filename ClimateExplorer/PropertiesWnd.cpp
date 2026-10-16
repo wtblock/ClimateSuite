@@ -267,6 +267,20 @@ LRESULT CPropertiesWnd::OnPropertyChange
 		return value;
 	}
 
+	// lambda to reduce duplication
+	auto SetDoubleProp = 
+		[&](const CString& csValueIn, double& target, double dDefault)
+	{
+		CString cs = csValueIn;
+		cs.Trim();
+		if (cs.IsEmpty())
+			target = dDefault;
+		else
+			target = _tstof(cs);
+	};
+
+	double dTarget;
+
 	// the message passed in the property panel property that changed
 	// which is displaying a copy of the information in the selected
 	// image's corresponding property
@@ -274,6 +288,7 @@ LRESULT CPropertiesWnd::OnPropertyChange
 
 	// the current value from the property panel
 	const _variant_t varIn = pProp->GetValue();
+	CString csValue = CString(varIn);
 
 	// the property panel name of the property
 	CString csName = pProp->GetName();
@@ -376,6 +391,41 @@ LRESULT CPropertiesWnd::OnPropertyChange
 				csQuality = L"75";
 			}
 			pDoc->ExportQuality = (UINT)_tstol(csQuality);
+		}
+		else if (csName == L"Page Width (inches)")
+		{
+			SetDoubleProp(csValue, dTarget, 8.5);
+			pDoc->WidthOfPage = dTarget;
+		}
+		else if (csName == L"Page Height (inches)")
+		{
+			SetDoubleProp(csValue, dTarget, 11.0);
+			pDoc->HeightOfPage = dTarget;
+		}
+		else if (csName == L"Top Margin (inches)")
+		{
+			SetDoubleProp(csValue, dTarget, 0.5);
+			pDoc->TopMargin = dTarget;
+		}
+		else if (csName == L"Bottom Margin (inches)")
+		{
+			SetDoubleProp(csValue, dTarget, 0.5);
+			pDoc->BottomMargin = dTarget;
+		}
+		else if (csName == L"Inside Margin (inches)")
+		{
+			SetDoubleProp(csValue, dTarget, 0.6);
+			pDoc->InsideMargin = dTarget;
+		}
+		else if (csName == L"Outside Margin (inches)")
+		{
+			SetDoubleProp(csValue, dTarget, 0.4);
+			pDoc->OutsideMargin = dTarget;
+		}
+		else if (csName == L"Gutter (inches)")
+		{
+			SetDoubleProp(csValue, dTarget, 0.2);
+			pDoc->Gutter = dTarget;
 		}
 	}
 	else if (csGroup == L"Render Properties")
@@ -947,6 +997,76 @@ void CPropertiesWnd::UpdatePropertiesFromDocument(CClimateExplorerDoc* pDoc)
 				if (csValue.IsEmpty())
 				{
 					csValue = L"75";
+				}
+				pProp->SetValue(csValue);
+			}
+			else if (csName == L"Page Width (inches)")
+			{
+				CString csValue;
+				csValue.Format(L"%f", pDoc->WidthOfPage);
+				if (csValue.IsEmpty())
+				{
+					csValue = L"8.5";
+				}
+				pProp->SetValue(csValue);
+			}
+			else if (csName == L"Page Height (inches)")
+			{
+				CString csValue;
+				csValue.Format(L"%f", pDoc->HeightOfPage);
+				if (csValue.IsEmpty())
+				{
+					csValue = L"11.0";
+				}
+				pProp->SetValue(csValue);
+			}
+			else if (csName == L"Top Margin (inches)")
+			{
+				CString csValue;
+				csValue.Format(L"%f", pDoc->TopMargin);
+				if (csValue.IsEmpty())
+				{
+					csValue = L"0.5";
+				}
+				pProp->SetValue(csValue);
+			}
+			else if (csName == L"Bottom Margin (inches)")
+			{
+				CString csValue;
+				csValue.Format(L"%f", pDoc->BottomMargin);
+				if (csValue.IsEmpty())
+				{
+					csValue = L"0.5";
+				}
+				pProp->SetValue(csValue);
+			}
+			else if (csName == L"Inside Margin (inches)")
+			{
+				CString csValue;
+				csValue.Format(L"%f", pDoc->InsideMargin);
+				if (csValue.IsEmpty())
+				{
+					csValue = L"0.6";
+				}
+				pProp->SetValue(csValue);
+			}
+			else if (csName == L"Outside Margin (inches)")
+			{
+				CString csValue;
+				csValue.Format(L"%f", pDoc->OutsideMargin);
+				if (csValue.IsEmpty())
+				{
+					csValue = L"0.4";
+				}
+				pProp->SetValue(csValue);
+			}
+			else if (csName == L"Gutter (inches)")
+			{
+				CString csValue;
+				csValue.Format(L"%f", pDoc->Gutter);
+				if (csValue.IsEmpty())
+				{
+					csValue = L"0.4";
 				}
 				pProp->SetValue(csValue);
 			}
@@ -1537,6 +1657,82 @@ void CPropertiesWnd::InitExportPageProperties()
 		)
 	);
 
+	//
+	// NEW: Kindle‑critical page geometry properties
+	//
+	pExportGroup->AddSubItem
+	(
+		new CMFCPropertyGridProperty
+		(
+			L"Page Width (inches)",
+			(_variant_t)L"8.500",
+			L"The physical width of the PDF page in inches."
+		)
+	);
+
+	pExportGroup->AddSubItem
+	(
+		new CMFCPropertyGridProperty
+		(
+			L"Page Height (inches)",
+			(_variant_t)L"11.000",
+			L"The physical height of the PDF page in inches."
+		)
+	);
+
+	pExportGroup->AddSubItem
+	(
+		new CMFCPropertyGridProperty
+		(
+			L"Top Margin (inches)",
+			(_variant_t)L"0.500",
+			L"Distance from top edge to printable area."
+		)
+	);
+
+	pExportGroup->AddSubItem
+	(
+		new CMFCPropertyGridProperty
+		(
+			L"Bottom Margin (inches)",
+			(_variant_t)L"0.500",
+			L"Distance from bottom edge to printable area."
+		)
+	);
+
+	pExportGroup->AddSubItem
+	(
+		new CMFCPropertyGridProperty
+		(
+			L"Inside Margin (inches)",
+			(_variant_t)L"0.600",
+			L"Margin on the binding side (inside) without the gutter."
+		)
+	);
+
+	pExportGroup->AddSubItem
+	(
+		new CMFCPropertyGridProperty
+		(
+			L"Outside Margin (inches)",
+			(_variant_t)L"0.400",
+			L"Margin on the outer (non‑binding) side."
+		)
+	);
+
+	pExportGroup->AddSubItem
+	(
+		new CMFCPropertyGridProperty
+		(
+			L"Gutter (inches)",
+			(_variant_t)L"0.2",
+			L"Additional space added to the inside margin for binding."
+		)
+	);
+
+	//
+	// Add the group to the property list
+	//
 	m_wndPropList.AddProperty(pExportGroup);
 
 } // InitExportPageProperties

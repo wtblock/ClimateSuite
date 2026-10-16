@@ -213,6 +213,136 @@ Gdiplus::RectF CClimateExplorerView::GetRealMargin()
 } // GetRealMargin
 
 /////////////////////////////////////////////////////////////////////////////
+// DrawViewRulers
+//
+// Draws rulers along the top and left edges of the *view*, not the margin
+// rectangle. This allows visual comparison between Kindle margins and the
+// absolute page coordinate system.
+//
+// Major ticks: 1.0 inch
+// Minor ticks: 0.1 inch
+/////////////////////////////////////////////////////////////////////////////
+void CClimateExplorerView::DrawViewRulers
+(
+	CDC* pDC,
+	int nLeftOfView, int nTopOfView,
+	int nRightOfView, int nBottomOfView
+)
+{
+	// ruler thickness
+	const double dRulerThicknessInches = 0.25;
+	const int nRulerThickness = InchesToLogical(dRulerThicknessInches);
+
+	const double dMajorTickInches = 1.0;
+	const double dMinorTickInches = 0.1;
+
+	const int nMajorTickLength = InchesToLogical(0.20);
+	const int nMidTickLength = InchesToLogical(0.15);
+	const int nMinorTickLength = InchesToLogical(0.10);
+
+	CColorPlus* pCP = theApp.ColorPlus;
+
+	CPen penMajor(PS_SOLID, InchesToLogical(0.02), pCP->RGBByName[L"Black"]);
+	CPen penMinor(PS_SOLID, InchesToLogical(0.01), pCP->RGBByName[L"Gray"]);
+	CPen* pOldPen = nullptr;
+
+	///////////////////////////////////////////////////////////////////////////
+	// Horizontal Ruler (top of view)
+	///////////////////////////////////////////////////////////////////////////
+	{
+		// background
+		CBrush brushBk(pCP->RGBByName[L"White"]);
+		CBrush* pOldBrush = pDC->SelectObject(&brushBk);
+		pDC->Rectangle(nLeftOfView, nTopOfView,
+			nRightOfView, nTopOfView + nRulerThickness);
+
+		// total width in inches
+		double dWidthInches = LogicalToInches(nRightOfView - nLeftOfView);
+
+		for (double d = 0.0; d <= dWidthInches + 0.0001; d += dMinorTickInches)
+		{
+			d = CHelper::RoundToNearest(d, 0.1);
+			int nX = nLeftOfView + InchesToLogical(d);
+			double dMajor = fmod(d, dMajorTickInches);
+			double dMid = fmod(d, dMajorTickInches / 2);
+			bool bMajor = CHelper::NearlyEqual(dMajor, 0.0, 0.001);
+			bool bMid = CHelper::NearlyEqual(dMid, 0.0, 0.001);
+
+			pOldPen = pDC->SelectObject(bMajor ? &penMajor : &penMinor);
+			int nTickLen = 
+				bMajor ? nMajorTickLength : 
+				bMid ? nMidTickLength : nMinorTickLength;
+
+			pDC->MoveTo(nX, nTopOfView + nRulerThickness);
+			pDC->LineTo(nX, nTopOfView + nRulerThickness - nTickLen);
+
+			if (bMajor)
+			{
+				CString s;
+				s.Format(L"%.0f", d);
+				pDC->TextOut
+				(
+					nX + InchesToLogical(0.05), 
+					nTopOfView + InchesToLogical(0.05),
+					s
+				);
+			}
+		}
+
+		pDC->SelectObject(pOldBrush);
+	}
+
+	///////////////////////////////////////////////////////////////////////////
+	// Vertical Ruler (left of view)
+	///////////////////////////////////////////////////////////////////////////
+	{
+		// background
+		CBrush brushBk(pCP->RGBByName[L"White"]);
+		CBrush* pOldBrush = pDC->SelectObject(&brushBk);
+		pDC->Rectangle(nLeftOfView, nTopOfView,
+			nLeftOfView + nRulerThickness, nBottomOfView);
+
+		// total height in inches
+		double dHeightInches = LogicalToInches(nBottomOfView - nTopOfView);
+
+		for (double d = 0.0; d <= dHeightInches + 0.0001; d += dMinorTickInches)
+		{
+			d = CHelper::RoundToNearest(d, 0.1);
+			int nY = nTopOfView + InchesToLogical(d);
+			double dMajor = fmod(d, dMajorTickInches);
+			double dMid = fmod(d, dMajorTickInches / 2);
+			bool bMajor = CHelper::NearlyEqual(dMajor, 0.0, 0.001);
+			bool bMid = CHelper::NearlyEqual(dMid, 0.0, 0.001);
+
+			pOldPen = pDC->SelectObject(bMajor ? &penMajor : &penMinor);
+			int nTickLen =
+				bMajor ? nMajorTickLength :
+				bMid ? nMidTickLength : nMinorTickLength;
+
+			pDC->MoveTo(nLeftOfView + nRulerThickness, nY);
+			pDC->LineTo(nLeftOfView + nRulerThickness - nTickLen, nY);
+
+			if (bMajor)
+			{
+				CString s;
+				s.Format(L"%.0f", d);
+				pDC->TextOut
+				(
+					nLeftOfView + InchesToLogical(0.05),
+					nY + InchesToLogical(0.05),
+					s
+				);
+			}
+		}
+
+		pDC->SelectObject(pOldBrush);
+	}
+
+	if (pOldPen)
+		pDC->SelectObject(pOldPen);
+} // DrawRulers
+
+/////////////////////////////////////////////////////////////////////////////
 // RenderMargins
 //
 // Draws page margins and page boundary lines.
@@ -261,6 +391,17 @@ void CClimateExplorerView::RenderMargins
 	{
 		pDC->MoveTo(nLeftOfView, nBottomOfPage);
 		pDC->LineTo(nRightOfView, nBottomOfPage);
+
+		// vertical margin line
+		const int nWidthOfPage = InchesToLogical(pDoc->WidthOfPage);
+		pDC->MoveTo(nWidthOfPage, nTopOfView);
+		pDC->LineTo(nWidthOfPage, nBottomOfPage);
+		DrawViewRulers
+		(
+			pDC,
+			nLeftOfView, nTopOfView,
+			nRightOfView, nBottomOfView
+		);
 	}
 
 	shared_ptr<CPage> page = pDoc->CurrentPage;
@@ -880,14 +1021,19 @@ CRect CClimateExplorerView::DrawImage
 	CRect  rectDest(ptDest, sizeDest);
 	GDI.Draw(pDC, rectDest);
 
-	if (bSelected)
+	const bool bPrinting = Printing;
+	const bool bExporting = Exporting;
+	if (!bPrinting && !bExporting)
 	{
-		int nDC = pDC->SaveDC();
-		CPen pen(PS_DOT, 100, RGB(255, 128, 0));
-		pDC->SelectObject(&pen);
-		pDC->SelectObject(GetStockObject(NULL_BRUSH));
-		pDC->RoundRect(rectDest, CPoint(100, 100));
-		pDC->RestoreDC(nDC);
+		if (bSelected)
+		{
+			int nDC = pDC->SaveDC();
+			CPen pen(PS_DOT, 100, RGB(255, 128, 0));
+			pDC->SelectObject(&pen);
+			pDC->SelectObject(GetStockObject(NULL_BRUSH));
+			pDC->RoundRect(rectDest, CPoint(100, 100));
+			pDC->RestoreDC(nDC);
+		}
 	}
 
 	return rectDest;

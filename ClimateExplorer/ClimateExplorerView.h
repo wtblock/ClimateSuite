@@ -218,6 +218,23 @@ public:
 	CClimateExplorerDoc* GetDocument() const;
 
 	/////////////////////////////////////////////////////////////////////////////
+	// DrawViewRulers
+	//
+	// Draws rulers along the top and left edges of the *view*, not the margin
+	// rectangle. This allows visual comparison between Kindle margins and the
+	// absolute page coordinate system.
+	//
+	// Major ticks: 1.0 inch
+	// Minor ticks: 0.1 inch
+	/////////////////////////////////////////////////////////////////////////////
+	void DrawViewRulers
+	(
+		CDC* pDC,
+		int nLeftOfView, int nTopOfView,
+		int nRightOfView, int nBottomOfView
+	);
+
+	/////////////////////////////////////////////////////////////////////////////
 	// RenderMargins
 	//
 	// Draws page margins and page boundary lines.
