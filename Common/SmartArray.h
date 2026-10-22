@@ -209,6 +209,37 @@ public:
 		return Count - 1;
 	}
 
+	/////////////////////////////////////////////////////////////////////////////
+	// insert
+	//
+	// Inserts the given shared_ptr<TYPE> at the specified index.
+	// If index == Count, behaves like append().
+	// If index > Count, the array is resized and gaps are filled with nullptr.
+	// Returns true if insertion succeeded.
+	//
+	/////////////////////////////////////////////////////////////////////////////
+	inline bool insert(long lIndex, shared_ptr<TYPE> pItem)
+	{
+		if (lIndex < 0)
+			return false;
+
+		// If inserting beyond current size, resize first
+		if (lIndex > Count)
+			resize(lIndex);   // resize to lIndex (last valid index is lIndex-1)
+
+		if (lIndex == Count)
+		{
+			// Equivalent to append
+			m_arrItems.push_back(pItem);
+			return true;
+		}
+
+		// Insert at position, shifting elements right
+		auto pos = m_arrItems.begin() + lIndex;
+		m_arrItems.insert(pos, pItem);
+		return true;
+	}
+
 public:
 	/////////////////////////////////////////////////////////////////////////////
 	// Constructor / Destructor

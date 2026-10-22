@@ -3058,39 +3058,22 @@ void CClimateExplorerDoc::ShiftPlotsDown()
 	shared_ptr<CPage> pFirstPage = m_arrPages.get(nFirstPage);
 	shared_ptr<CPage> pLastPage = m_arrPages.get(nLastPage);
 
-	// if the last page is full, we need to add a page for the current
-	// last page plot to move down
-	if (pLastPage->PageIsFull)
+	// whole pages are shifted down using the document layout for the new page
+	CString csLayout = Layout;
+	CPage::PAGE_TYPE eType = pFirstPage->PageType;
+	shared_ptr<CPage> pNewPage =
+		shared_ptr<CPage>(new CPage(nFirstPage, csLayout, this, eType));
+
+	for (int nPage = nFirstPage; nPage <= nLastPage; nPage++)
 	{
-		nLastPage++;
-		CString csLayout = pLastPage->Layout;
-		CPage::PAGE_TYPE eType = pLastPage->PageType;
-		pLastPage =
-			shared_ptr<CPage>(new CPage(nLastPage + 1, csLayout, this, eType));
-		m_arrPages.append(pLastPage);
-		nPages = m_arrPages.Count;
-		Pages = nPages;
+		shared_ptr<CPage> pPage = m_arrPages.get(nPage);
+		int nPageNumber = pPage->Page;
+		nPageNumber++;
+		pPage->Page = nPageNumber;
 	}
 
-	for (int nPage = nLastPage - 1; nPage >= nFirstPage; nPage--)
-	{
-		shared_ptr<CPage> pPageSrc = m_arrPages.get(nPage);
+	m_arrPages.insert(nFirstPage, pNewPage);
 
-		shared_ptr<CPage> pPageDst = m_arrPages.get(nPage + 1);
-
-		// the source plot to be shifted down
-		CString csKey = pPageSrc->Content.LastKey;
-		shared_ptr<CPageContent> pContent = pPageSrc->Content.find(csKey);
-
-		// add the plot to the destionation page
-		pPageDst->Content.add(csKey, pContent);
-
-		// remove the plot from the source page
-		pPageSrc->Content.remove(csKey);
-
-		// critical: reorganzes rectangle and margins
-		pPageDst->Page = nPage + 2;
-	}
 
 	CMainFrame* pFrame = (CMainFrame*)AfxGetMainWnd();
 	CPropertiesWnd* pProperties = pFrame->PropertiesPane;
